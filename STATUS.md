@@ -1,7 +1,7 @@
 # Agent Profile Service - Status
 
 **Version:** 0.4.3   (production-ready)
-**Stage:** Feature complete. OpenAPI v0.4.3 (25 paths, WebFinger/discovery documented). 130 tests. Awaiting Jordan: PyPI + prod domain.
+**Stage:** Feature complete. SDK get_badge()+webfinger() added. 134 tests. Awaiting Jordan: PyPI + prod domain.
 **Last updated:** 2026-02-21
 
 ---
@@ -23,6 +23,16 @@
    - Environment name: `pypi`
 3. Push a tag: `git tag sdk-v0.1.0 && git push origin sdk-v0.1.0`
 4. GitHub Actions builds + publishes automatically — no secrets needed
+
+## ✅ Done (SDK get_badge() + webfinger() — Feb 21)
+
+- `client.get_badge(username)` → SVG string; gray "unknown" for non-existent profiles
+- `client.webfinger(username, host=None)` → JRD dict; auto-derives host from base URL
+- `_get_text()` helper for non-JSON responses
+- CLI: `agent-profile badge nanook [--save badge.svg]`
+- CLI: `agent-profile webfinger nanook [--host example.com]`
+- 4 new tests: `test_get_badge`, `test_get_badge_unknown_profile`, `test_webfinger`, `test_webfinger_not_found`
+- **134 total tests** (13 Rust unit + 79 Rust integration + 42 Python SDK)
 
 ## ✅ Done (OpenAPI v0.4.3 — Feb 21)
 
@@ -216,5 +226,5 @@ See DESIGN.md for full spec. Key points:
 |-------|-------|--------|
 | Rust unit | 13 | ✅ |
 | Rust integration | 79 | ✅ |
-| Python SDK | 38 | ✅ |
-| **Total** | **130** | ✅ |
+| Python SDK | 42 | ✅ |
+| **Total** | **134** | ✅ |
