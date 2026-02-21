@@ -332,3 +332,134 @@ def test_context_manager():
     """Client should work as a context manager."""
     with AgentProfileClient(BASE) as c:
         assert c is not None
+
+
+# ── Endorsements ───────────────────────────────────────────────────────────────
+
+ENDORSEMENT_RESPONSE = {
+    "id": "end-uuid-001",
+    "endorsee": "nanook",
+    "endorser": "jiggai",
+    "message": "Outstanding collaborator.",
+    "verified": False,
+    "created_at": "2026-02-21T10:00:00Z",
+}
+
+ENDORSEMENT_LIST_RESPONSE = {
+    "username": "nanook",
+    "endorsements": [
+        {
+            "id": "end-uuid-001",
+            "endorsee_id": "profile-uuid-001",
+            "endorser_username": "jiggai",
+            "message": "Outstanding collaborator.",
+            "signature": "",
+            "verified": False,
+            "created_at": "2026-02-21T10:00:00Z",
+        }
+    ],
+    "total": 1,
+    "verified_count": 0,
+}
+
+
+@respx.mock
+def test_get_endorsements(client):
+    respx.get(f"{BASE}/api/v1/profiles/nanook/endorsements").mock(
+        return_value=httpx.Response(200, json=ENDORSEMENT_LIST_RESPONSE)
+    )
+    result = client.get_endorsements("nanook")
+    assert result["total"] == 1
+    assert result["endorsements"][0]["endorser_username"] == "jiggai"
+    assert result["verified_count"] == 0
+
+
+@respx.mock
+def test_get_endorsements_empty(client):
+    respx.get(f"{BASE}/api/v1/profiles/empty/endorsements").mock(
+        return_value=httpx.Response(200, json={"username": "empty", "endorsements": [], "total": 0, "verified_count": 0})
+    )
+    result = client.get_endorsements("empty")
+    assert result["total"] == 0
+    assert result["endorsements"] == []
+
+
+@respx.mock
+def test_get_endorsements_not_found(client):
+    respx.get(f"{BASE}/api/v1/profiles/ghost/endorsements").mock(
+        return_value=httpx.Response(404, json={"error": "Profile 'ghost' not found"})
+    )
+    with pytest.raises(NotFoundError):
+        client.get_endorsements("ghost")
+
+
+@respx.mock
+def test_add_endorsement(client):
+    respx.post(f"{BASE}/api/v1/profiles/nanook/endorsements").mock(
+        return_value=httpx.Response(200, json=ENDORSEMENT_RESPONSE)
+    )
+    result = client.add_endorsement("nanook", "jiggai", "ap_key123", "Outstanding collaborator.")
+    assert result["endorser"] == "jiggai"
+    assert result["endorsee"] == "nanook"
+    assert result["verified"] is False
+
+
+@respx.mock
+def test_add_endorsement_verified(client):
+    verified_response = {**ENDORSEMENT_RESPONSE, "verified": True}
+    respx.post(f"{BASE}/api/v1/profiles/nanook/endorsements").mock(
+        return_value=httpx.Response(200, json=verified_response)
+    )
+    result = client.add_endorsement(
+        "nanook", "jiggai", "ap_key123",
+        "Outstanding collaborator.",
+        signature="3045022100abcdef..."
+    )
+    assert result["verified"] is True
+
+
+@respx.mock
+def test_add_endorsement_upsert(client):
+    upsert_response = {**ENDORSEMENT_RESPONSE, "updated": True}
+    respx.post(f"{BASE}/api/v1/profiles/nanook/endorsements").mock(
+        return_value=httpx.Response(200, json=upsert_response)
+    )
+    result = client.add_endorsement("nanook", "jiggai", "ap_key123", "Updated message.")
+    assert result.get("updated") is True
+
+
+@respx.mock
+def test_add_endorsement_self_endorse(client):
+    respx.post(f"{BASE}/api/v1/profiles/nanook/endorsements").mock(
+        return_value=httpx.Response(422, json={"error": "Cannot endorse your own profile"})
+    )
+    with pytest.raises(ValidationError):
+        client.add_endorsement("nanook", "nanook", "ap_key123", "I am great!")
+
+
+@respx.mock
+def test_add_endorsement_unauthorized(client):
+    respx.post(f"{BASE}/api/v1/profiles/nanook/endorsements").mock(
+        return_value=httpx.Response(401, json={"error": "Invalid API key"})
+    )
+    with pytest.raises(UnauthorizedError):
+        client.add_endorsement("nanook", "jiggai", "wrong_key", "A message.")
+
+
+@respx.mock
+def test_delete_endorsement(client):
+    respx.delete(f"{BASE}/api/v1/profiles/nanook/endorsements/jiggai").mock(
+        return_value=httpx.Response(200, json={"deleted": True, "endorser": "jiggai", "endorsee": "nanook"})
+    )
+    result = client.delete_endorsement("nanook", "jiggai", "ap_key123")
+    assert result["deleted"] is True
+    assert result["endorser"] == "jiggai"
+
+
+@respx.mock
+def test_delete_endorsement_not_found(client):
+    respx.delete(f"{BASE}/api/v1/profiles/nanook/endorsements/nobody").mock(
+        return_value=httpx.Response(404, json={"error": "No endorsement from 'nobody' on 'nanook'"})
+    )
+    with pytest.raises(NotFoundError):
+        client.delete_endorsement("nanook", "nobody", "ap_key123")

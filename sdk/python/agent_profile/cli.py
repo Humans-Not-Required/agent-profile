@@ -195,6 +195,53 @@ def cmd_challenge(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_endorsements(args: argparse.Namespace) -> int:
+    with _client(args) as c:
+        result = c.get_endorsements(args.username)
+    items = result.get("endorsements", [])
+    if not items:
+        print(f"No endorsements for @{args.username}.")
+        return 0
+    print(f"\n  @{args.username} — {result['total']} endorsement(s)"
+          f" ({result.get('verified_count', 0)} verified)\n")
+    for e in items:
+        badge = "✅" if e.get("verified") else "  "
+        ts = e.get("created_at", "")[:10]
+        print(f"  {badge} @{e['endorser_username']} [{ts}]: {e['message']}")
+    print()
+    return 0
+
+
+def cmd_endorse(args: argparse.Namespace) -> int:
+    api_key = args.api_key or os.environ.get("AGENT_PROFILE_API_KEY")
+    if not api_key:
+        print("Error: --api-key required.", file=sys.stderr)
+        return 1
+    with _client(args) as c:
+        result = c.add_endorsement(
+            args.username,
+            args.from_username,
+            api_key,
+            args.message,
+            signature=getattr(args, "signature", None),
+        )
+    action = "Updated" if result.get("updated") else "Added"
+    verified = "✅ verified" if result.get("verified") else "unverified"
+    print(f"✅ {action} endorsement from @{result['endorser']} on @{result['endorsee']} [{verified}]")
+    return 0
+
+
+def cmd_delete_endorsement(args: argparse.Namespace) -> int:
+    api_key = args.api_key or os.environ.get("AGENT_PROFILE_API_KEY")
+    if not api_key:
+        print("Error: --api-key required.", file=sys.stderr)
+        return 1
+    with _client(args) as c:
+        result = c.delete_endorsement(args.username, args.endorser, api_key)
+    print(f"🗑️  Removed endorsement from @{result['endorser']} on @{result['endorsee']}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="agent-profile",
@@ -284,6 +331,24 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("challenge", help="Get an identity challenge for secp256k1 verification")
     p.add_argument("username")
 
+    # endorsements
+    p = sub.add_parser("endorsements", help="List endorsements received by a profile")
+    p.add_argument("username")
+
+    # endorse
+    p = sub.add_parser("endorse", help="Leave an endorsement on another agent's profile")
+    p.add_argument("username", help="Profile to endorse")
+    p.add_argument("--from", dest="from_username", required=True, help="Your username (endorser)")
+    p.add_argument("--message", required=True, help="Endorsement text (max 500 chars)")
+    p.add_argument("--signature", help="Optional secp256k1 signature over message (hex)")
+    p.add_argument("--api-key", dest="api_key")
+
+    # delete-endorsement
+    p = sub.add_parser("delete-endorsement", help="Remove an endorsement (by endorser or endorsee)")
+    p.add_argument("username", help="Profile whose endorsement to remove (endorsee)")
+    p.add_argument("endorser", help="Username of the endorser to remove")
+    p.add_argument("--api-key", dest="api_key")
+
     return parser
 
 
@@ -304,6 +369,9 @@ def main() -> None:
         "add-section": cmd_add_section,
         "add-skill": cmd_add_skill,
         "challenge": cmd_challenge,
+        "endorsements": cmd_endorsements,
+        "endorse": cmd_endorse,
+        "delete-endorsement": cmd_delete_endorsement,
     }
 
     handler = handlers.get(args.command)

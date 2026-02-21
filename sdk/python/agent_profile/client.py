@@ -446,6 +446,92 @@ class AgentProfileClient:
         """Remove a skill by its ID."""
         return self._delete(f"/api/v1/profiles/{username}/skills/{skill_id}", api_key)
 
+    # ── Endorsements ──────────────────────────────────────────────────────────
+
+    def get_endorsements(self, username: str) -> dict:
+        """List endorsements received by a profile (public, no auth required).
+
+        Args:
+            username: The profile whose endorsements to fetch.
+
+        Returns:
+            dict with ``username``, ``endorsements`` list, ``total``, ``verified_count``.
+
+        Raises:
+            NotFoundError: Profile not found.
+        """
+        return self._get(f"/api/v1/profiles/{username}/endorsements")
+
+    def add_endorsement(
+        self,
+        username: str,
+        from_username: str,
+        api_key: str,
+        message: str,
+        signature: str | None = None,
+    ) -> dict:
+        """Leave an endorsement on another agent's profile.
+
+        The API key must belong to ``from_username`` (the endorser), not the
+        profile being endorsed. Re-endorsing the same profile updates the existing
+        endorsement (upsert semantics).
+
+        Args:
+            username: The profile to endorse.
+            from_username: Your username (the endorser).
+            api_key: Your API key.
+            message: Endorsement text (1–500 characters).
+            signature: Optional secp256k1 ECDSA signature over ``message``
+                (hex-encoded, DER or compact). Requires your profile to have a
+                pubkey set. If valid, marks the endorsement as ``verified=True``.
+
+        Returns:
+            dict with ``id``, ``endorsee``, ``endorser``, ``message``, ``verified``,
+            ``created_at``. May include ``updated=True`` if this replaces a prior
+            endorsement.
+
+        Raises:
+            UnauthorizedError: API key does not match ``from_username``.
+            NotFoundError: Target profile not found.
+            ValidationError: Self-endorsement, message too long, or signature invalid.
+        """
+        body: dict = {"from": from_username, "message": message}
+        if signature is not None:
+            body["signature"] = signature
+        return self._post(
+            f"/api/v1/profiles/{username}/endorsements",
+            json=body,
+            headers={"X-API-Key": api_key},
+        )
+
+    def delete_endorsement(
+        self,
+        username: str,
+        endorser_username: str,
+        api_key: str,
+    ) -> dict:
+        """Remove an endorsement.
+
+        The API key must belong to either the endorser (taking back their
+        endorsement) or the endorsee (removing an unwanted endorsement).
+
+        Args:
+            username: The profile whose endorsements to modify (endorsee).
+            endorser_username: Username of the endorser whose endorsement to remove.
+            api_key: API key of either the endorser or the endorsee.
+
+        Returns:
+            dict with ``deleted`` (True), ``endorser``, ``endorsee``.
+
+        Raises:
+            UnauthorizedError: API key matches neither party.
+            NotFoundError: Endorsement or profile not found.
+        """
+        return self._delete(
+            f"/api/v1/profiles/{username}/endorsements/{endorser_username}",
+            api_key,
+        )
+
     # ── Profile Score ─────────────────────────────────────────────────────────
 
     def get_score(self, username: str) -> dict:
