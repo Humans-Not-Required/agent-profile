@@ -1,7 +1,7 @@
 # Agent Profile Service - Status
 
 **Version:** 0.4.3   (production-ready)
-**Stage:** Feature complete. Endorsements + skill dir + stats + badge SVG + sitemap + WebFinger. 130 tests. Awaiting Jordan: PyPI + prod domain.
+**Stage:** Feature complete. BaseUrl guard (WebFinger/sitemap auto-detect Host header). 130 tests. Awaiting Jordan: PyPI + prod domain.
 **Last updated:** 2026-02-21
 
 ---
@@ -23,6 +23,14 @@
    - Environment name: `pypi`
 3. Push a tag: `git tag sdk-v0.1.0 && git push origin sdk-v0.1.0`
 4. GitHub Actions builds + publishes automatically — no secrets needed
+
+## ✅ Done (BaseUrl request guard — Feb 21)
+
+- `BaseUrl` Rocket request guard: checks `BASE_URL` env → falls back to `Host`+`X-Forwarded-Proto` headers
+- WebFinger, sitemap.xml, robots.txt now return absolute URLs even without `BASE_URL` configured
+- Fixes RFC 7033 non-compliance (relative `href` in WebFinger links) on staging
+- Removed stale `use std::net::IpAddr` unused import from `ratelimit.rs`
+- Prefixed `_key_b` in test to silence unused-variable warning → zero compiler warnings
 
 ## ✅ Done (WebFinger RFC 7033 — Feb 21)
 
