@@ -71,6 +71,63 @@ pub(crate) fn load_profile(conn: &Connection, username: &str) -> Option<Profile>
     })
 }
 
+/// Load all profiles (lightweight: only skills populated, other sub-resources empty).
+/// Used by the landing page to render profile cards.
+pub(crate) fn list_all_profiles(conn: &Connection) -> Vec<Profile> {
+    let mut stmt = match conn.prepare(
+        "SELECT id, username, display_name, tagline, bio, third_line, avatar_url, \
+         theme, particle_effect, particle_enabled, particle_seasonal, pubkey, \
+         profile_score, created_at, updated_at \
+         FROM profiles ORDER BY profile_score DESC, created_at DESC LIMIT 100"
+    ) {
+        Ok(s) => s,
+        Err(_) => return vec![],
+    };
+
+    let mapped = match stmt.query_map([], |row| {
+        Ok((
+            row.get::<_, String>(0)?,
+            row.get::<_, String>(1)?,
+            row.get::<_, String>(2)?,
+            row.get::<_, String>(3)?,
+            row.get::<_, String>(4)?,
+            row.get::<_, String>(5)?,
+            row.get::<_, String>(6)?,
+            row.get::<_, String>(7)?,
+            row.get::<_, String>(8)?,
+            row.get::<_, i32>(9)?,
+            row.get::<_, i32>(10)?,
+            row.get::<_, String>(11)?,
+            row.get::<_, i64>(12)?,
+            row.get::<_, String>(13)?,
+            row.get::<_, String>(14)?,
+        ))
+    }) {
+        Ok(m) => m,
+        Err(_) => return vec![],
+    };
+
+    mapped.flatten()
+        .map(|(id, username, display_name, tagline, bio, third_line, avatar_url,
+               theme, particle_effect, particle_enabled, particle_seasonal, pubkey,
+               profile_score, created_at, updated_at)| {
+            let skills = load_skills(conn, &id);
+            Profile {
+                id, username, display_name, tagline, bio, third_line, avatar_url,
+                theme, particle_effect,
+                particle_enabled: particle_enabled != 0,
+                particle_seasonal: particle_seasonal != 0,
+                pubkey, profile_score, created_at, updated_at,
+                crypto_addresses: vec![],
+                links: vec![],
+                sections: vec![],
+                skills,
+                endorsements: vec![],
+            }
+        })
+        .collect()
+}
+
 fn load_addresses(conn: &Connection, profile_id: &str) -> Vec<CryptoAddress> {
     let mut stmt = conn.prepare(
         "SELECT id, profile_id, network, address, label, created_at \

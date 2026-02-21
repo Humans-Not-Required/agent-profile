@@ -25,7 +25,7 @@ use routes::profiles::{
     add_endorsement, get_endorsements, delete_endorsement,
     llms_txt, openapi_json, skills_index, robots_txt, sitemap_xml, webfinger,
 };
-use routes::html::profile_page;
+use routes::html::{landing_page, profile_page};
 
 /// 429 Too Many Requests catcher — returns JSON error body.
 #[rocket::catch(429)]
@@ -83,6 +83,7 @@ pub fn create_rocket(db_path: &str) -> rocket::Rocket<rocket::Build> {
             delete_endorsement,
         ])
         .mount("/", rocket::routes![
+            landing_page,
             profile_page,
             serve_avatar,
             llms_txt,
