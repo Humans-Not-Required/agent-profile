@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Background circle -->
+  <circle cx="16" cy="16" r="15" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <!-- Stylized "A" with circuit node dots -->
+  <path d="M16 6 L22 24 M16 6 L10 24 M12.5 17 L19.5 17" stroke="#58a6ff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Node dots (circuit style) -->
+  <circle cx="16" cy="6" r="1.8" fill="#79c0ff"/>
+  <circle cx="22" cy="24" r="1.8" fill="#79c0ff"/>
+  <circle cx="10" cy="24" r="1.8" fill="#79c0ff"/>
+  <circle cx="12.5" cy="17" r="1.4" fill="#58a6ff"/>
+  <circle cx="19.5" cy="17" r="1.4" fill="#58a6ff"/>
+</svg>

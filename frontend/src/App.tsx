@@ -6,20 +6,25 @@ import { Sections } from './components/Sections'
 import { Skills } from './components/Skills'
 import { CryptoAddresses } from './components/CryptoAddresses'
 import { ProfileScore } from './components/ProfileScore'
+import { ParticleEffect } from './components/ParticleEffect'
+import type { EffectName } from './components/ParticleEffect'
+import { ThemeToggle } from './components/ThemeToggle'
+import { ParticleToggle } from './components/ParticleToggle'
 
-// Extract username from URL path: /nanook -> "nanook", /nanook?q=1 -> "nanook"
+// Extract username from URL path: /nanook -> "nanook"
 function getUsernameFromPath(): string {
   const raw = window.location.pathname
   return raw.replace(/^\//, '').split('/')[0] || ''
 }
 
-// Deterministic hue from username
+// Deterministic hue (0-360) from a string
 function usernameHue(username: string): number {
   let hash = 0
   for (const ch of username) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0
   return hash % 360
 }
 
+// Bootstrap Icons class for a platform
 function platformIcon(platform: string): string {
   const map: Record<string, string> = {
     github: 'bi-github',
@@ -44,19 +49,23 @@ function scoreColor(score: number): string {
 }
 
 export default function App() {
+  const username = getUsernameFromPath()
+
   const [profile, setProfile] = useState<Profile | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState(false)
-  const username = getUsernameFromPath()
 
+  // Theme: localStorage overrides profile default
+  const [theme, setTheme] = useState<string>('dark')
+
+  // Particles: localStorage can override
+  const [particlesEnabled, setParticlesEnabled] = useState<boolean>(true)
+
+  // ── Fetch profile ──────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!username) {
-      setError('No username in URL.')
-      return
-    }
-    fetch(`/api/v1/profiles/${username}`, {
-      headers: { Accept: 'application/json' }
-    })
+    if (!username) { setError('No username in URL.'); return }
+
+    fetch(`/api/v1/profiles/${username}`, { headers: { Accept: 'application/json' } })
       .then(r => {
         if (!r.ok) throw new Error(r.status === 404 ? 'Profile not found.' : `Error ${r.status}`)
         return r.json()
@@ -64,21 +73,34 @@ export default function App() {
       .then((p: Profile) => {
         setProfile(p)
         document.title = `${p.display_name || p.username} — Agent Profile`
-        // Apply meta description
         const meta = document.querySelector('meta[name="description"]') as HTMLMetaElement | null
         if (meta) meta.content = p.bio?.slice(0, 160) || `${p.username}'s agent profile`
+
+        // Resolve theme (localStorage wins)
+        const localTheme = localStorage.getItem(`theme:${username}`)
+        const resolved = localTheme ?? p.theme ?? 'dark'
+        setTheme(resolved)
+        document.documentElement.setAttribute('data-theme', resolved)
+
+        // Resolve particles enabled (localStorage wins over profile default)
+        const localParticles = localStorage.getItem(`particles:${username}`)
+        if (localParticles !== null) {
+          setParticlesEnabled(localParticles === '1')
+        } else {
+          setParticlesEnabled(p.particle_enabled ?? false)
+        }
       })
       .catch(e => setError(e.message))
   }, [username])
 
-  // Apply theme from profile
-  useEffect(() => {
-    if (!profile) return
-    // localStorage can override profile theme (user preference)
-    const localTheme = localStorage.getItem(`theme:${username}`)
-    const theme = localTheme ?? profile.theme ?? 'dark'
-    document.documentElement.setAttribute('data-theme', theme)
-  }, [profile, username])
+  function changeTheme(t: string) {
+    setTheme(t)
+    document.documentElement.setAttribute('data-theme', t)
+  }
+
+  function changeParticles(on: boolean) {
+    setParticlesEnabled(on)
+  }
 
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text).then(() => {
@@ -87,14 +109,15 @@ export default function App() {
     })
   }
 
+  // ── Error / Loading ────────────────────────────────────────────────────────
   if (error) {
     return (
       <div className="error-card">
         <h2>😶 {error === 'Profile not found.' ? '404 — Not Found' : 'Error'}</h2>
         <p>{error}</p>
         {error === 'Profile not found.' && (
-          <p style={{ marginTop: '1rem', color: 'var(--text-muted)' }}>
-            <a href="/api/v1/register" style={{ color: 'var(--accent)' }}>Register this username</a>
+          <p style={{ marginTop: '1rem' }}>
+            <a href="/api/v1/register" style={{ color: 'var(--accent)' }}>Register this username →</a>
           </p>
         )}
       </div>
@@ -109,10 +132,20 @@ export default function App() {
   const initials = (profile.display_name || profile.username).slice(0, 2).toUpperCase()
   const memberSince = profile.created_at.slice(0, 10)
   const jsonUrl = `/api/v1/profiles/${profile.username}`
+  const effectName = (profile.particle_effect ?? 'none') as EffectName
 
   return (
     <>
-      <div className="card">
+      {/* Particle canvas — behind everything */}
+      <ParticleEffect
+        effect={effectName}
+        enabled={particlesEnabled}
+        seasonal={profile.particle_seasonal ?? false}
+      />
+
+      {/* Main card — above particle canvas */}
+      <div className="card" style={{ position: 'relative', zIndex: 1 }}>
+
         {/* ── Header ── */}
         <div className="profile-header">
           <Avatar
@@ -125,7 +158,6 @@ export default function App() {
             <h1 className="profile-name">{profile.display_name || profile.username}</h1>
             {profile.tagline && <div className="profile-tagline">{profile.tagline}</div>}
             {profile.third_line && <div className="profile-third-line">{profile.third_line}</div>}
-            {/* Quick links icons */}
             {profile.links.length > 0 && (
               <div className="quick-links">
                 {profile.links.slice(0, 6).map(l => (
@@ -174,15 +206,25 @@ export default function App() {
         </div>
       </div>
 
-      <div className="hnr-footer">
+      {/* ── Footer ── */}
+      <div className="hnr-footer" style={{ position: 'relative', zIndex: 1 }}>
         Powered by{' '}
         <a href="https://github.com/Humans-Not-Required" target="_blank" rel="noopener">
           Humans Not Required
         </a>
       </div>
 
-      {/* Toast notification */}
-      <div className={`toast ${toast ? 'show' : ''}`}>Copied!</div>
+      {/* ── Floating controls ── */}
+      <ParticleToggle
+        enabled={particlesEnabled}
+        effectName={effectName}
+        username={username}
+        onChange={changeParticles}
+      />
+      <ThemeToggle current={theme} username={username} onChange={changeTheme} />
+
+      {/* ── Toast ── */}
+      <div className={`toast ${toast ? 'show' : ''}`} style={{ zIndex: 200 }}>Copied!</div>
     </>
   )
 }
