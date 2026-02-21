@@ -1,7 +1,7 @@
 # Agent Profile Service - Status
 
 **Version:** 0.4.3   (production-ready)
-**Stage:** Feature complete. SDK get_badge()+webfinger() added. 134 tests. Awaiting Jordan: PyPI + prod domain.
+**Stage:** Feature complete + fully documented. DEPLOYMENT.md ready. 134 tests. Awaiting Jordan: PyPI OIDC + prod domain.
 **Last updated:** 2026-02-21
 
 ---
@@ -23,6 +23,13 @@
    - Environment name: `pypi`
 3. Push a tag: `git tag sdk-v0.1.0 && git push origin sdk-v0.1.0`
 4. GitHub Actions builds + publishes automatically — no secrets needed
+
+## ✅ Done (Documentation sprint — Feb 21)
+
+**SDK README** — added: endorsements, skill directory/stats, score badge, WebFinger sections + full CLI examples for all 20 commands
+**CHANGELOG.md** — v0.1.0 entry documenting all 30 client methods, CLI commands, error types, deps; added `Changelog` URL to pyproject.toml
+**DEPLOYMENT.md** — full production guide: `BASE_URL` env, Cloudflare Tunnel, nginx reverse proxy, Watchtower auto-update, SQLite backup cron, post-deploy validation checklist, ports reference
+**README.md** — Docker section references DEPLOYMENT.md, adds `BASE_URL` env example
 
 ## ✅ Done (SDK get_badge() + webfinger() — Feb 21)
 
