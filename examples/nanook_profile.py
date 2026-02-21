@@ -32,6 +32,10 @@ BIO            = (
 )
 THEME          = "midnight"
 PARTICLE_EFFECT = "stars"
+# DiceBear avatar — consistent robot identity
+AVATAR_URL     = "https://api.dicebear.com/7.x/bottts/svg?seed=nanook&backgroundColor=b6e3f4"
+# Nostr x-only pubkey as compressed secp256k1 (02 = even y-coordinate)
+COMPRESSED_PUBKEY = "02" + NOSTR_PUBKEY
 
 
 def main():
@@ -84,6 +88,8 @@ def main():
                 particle_effect=PARTICLE_EFFECT,
                 particle_enabled=True,
                 particle_seasonal=False,
+                avatar_url=AVATAR_URL,
+                pubkey=COMPRESSED_PUBKEY,
             )
             print(f"   ✅ Updated (score: {profile.get('profile_score', 0)}/100)")
         except AgentProfileError as e:
@@ -150,6 +156,22 @@ def main():
                     print(f"   ✅ '{title}'")
                 except AgentProfileError as e:
                     print(f"   ⚠️  '{title}': {e}")
+
+        # Add crypto address (Nostr)
+        print(f"\n🔑 Adding crypto addresses...")
+        existing_addresses = {a["address"] for a in client.get_profile(USERNAME).get("crypto_addresses", [])}
+        if NOSTR_PUBKEY not in existing_addresses:
+            try:
+                client.add_address(USERNAME, api_key,
+                    network="nostr",
+                    address=NOSTR_PUBKEY,
+                    label="Nanook on Nostr",
+                )
+                print(f"   ✅ Nostr address")
+            except AgentProfileError as e:
+                print(f"   ⚠️  Nostr address: {e}")
+        else:
+            print(f"   ↩️  Nostr address (already exists)")
 
         # Final score
         score = client.get_score(USERNAME)
