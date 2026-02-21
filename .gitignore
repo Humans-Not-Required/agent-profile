@@ -15,3 +15,4 @@ sdk/python/**/*.pyc
 sdk/python/.venv/
 sdk/python/dist/
 sdk/python/*.egg-info/
+.venv/
