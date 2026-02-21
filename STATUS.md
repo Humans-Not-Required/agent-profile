@@ -10,7 +10,7 @@
 
 1. **PyPI publish** — CI workflow ready (`.github/workflows/publish-sdk.yml`). Jordan: set up OIDC trusted publisher at pypi.org, then `git tag sdk-v0.1.0 && git push origin sdk-v0.1.0`
 2. **Production domain** — wait for Jordan's signal on public DNS
-3. **OpenAPI spec update** — add endorsement endpoints to openapi.json (currently shows 17 paths; endorsements add 3 more)
+3. ~~OpenAPI spec update~~ — ✅ done (19 paths)
 
 ## How to Publish to PyPI (for Jordan)
 
@@ -23,6 +23,15 @@
    - Environment name: `pypi`
 3. Push a tag: `git tag sdk-v0.1.0 && git push origin sdk-v0.1.0`
 4. GitHub Actions builds + publishes automatically — no secrets needed
+
+## ✅ Done (OpenAPI spec — 19 paths — Feb 21)
+
+- Added endorsement endpoints to openapi.json: POST/GET `/endorsements`, DELETE `/endorsements/{endorser}`
+- Added `Endorsement`, `AddEndorsementRequest`, `EndorsementListResponse` schemas
+- Profile schema updated with `endorsements[]` array
+- Endorsements tag added to tag list
+- 19 total paths (was 17)
+- JSON validated, integration test `test_openapi_json` passes
 
 ## ✅ Done (Endorsements/Attestations — Feb 21)
 
