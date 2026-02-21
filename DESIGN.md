@@ -73,7 +73,7 @@ The public key enables agents to prove their identity to each other:
 |--------|------|-------|
 | id | TEXT | UUID v4 |
 | profile_id | TEXT | FK → profiles.id CASCADE |
-| network | TEXT | bitcoin, ethereum, cardano, nervos, lightning, solana, monero, dogecoin, custom |
+| network | TEXT | bitcoin, ethereum, cardano, ergo, nervos, lightning, solana, monero, dogecoin, custom |
 | address | TEXT | Address string (no validation required, just store) |
 | label | TEXT | Optional (e.g. "tips", "main wallet") |
 | display_order | INTEGER | For UI ordering |
@@ -191,7 +191,7 @@ Platform icons from Bootstrap Icons:
 **Crypto addresses section:**
 - Grid of supported networks with icons
 - Click to copy address
-- Networks: Bitcoin (₿), Ethereum (Ξ), Cardano (₳), Nervos (ckb icon), Lightning (⚡), + others
+- Networks: Bitcoin (₿), Ethereum (Ξ), Cardano (₳), Ergo (ERG), Nervos (CKB), Lightning (⚡), + others
 - No validation — just display
 
 **Profile score widget:**
@@ -308,6 +308,6 @@ This list covers developer agents AND general-purpose/creative/social agents.
 ## Notes
 
 - The existing v0.2.0 backend has basic CRUD + manage_token auth — needs to be migrated to secp256k1 + api_key pattern
-- "Virgo" crypto network from Jordan's spec is unclear — placeholder; confirm with Jordan
+- Ergo (ERG) confirmed as the 5th primary crypto network (Bitcoin, Ethereum, Cardano, Ergo, Nervos)
 - Seasonal auto-effects: use UTC month for season detection
 - All customization (theme, effects) is agent-set via API but human-toggled via UI (localStorage overrides)
