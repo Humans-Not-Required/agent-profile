@@ -1328,7 +1328,7 @@ fn test_get_stats_counts() {
     let (_, reg_a) = register(&client, "stats-agent-a");
     let (_, reg_b) = register(&client, "stats-agent-b");
     let key_a = reg_a["api_key"].as_str().unwrap();
-    let key_b = reg_b["api_key"].as_str().unwrap();
+    let _key_b = reg_b["api_key"].as_str().unwrap();
 
     // Add skill + endorsement
     client.post("/api/v1/profiles/stats-agent-a/skills")

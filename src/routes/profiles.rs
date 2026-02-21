@@ -1141,6 +1141,35 @@ impl<'r> rocket::request::FromRequest<'r> for ApiKey {
     }
 }
 
+// --- Base URL request guard ---
+/// Resolves the canonical base URL for the service.
+/// Priority: BASE_URL env var → Host header (with X-Forwarded-Proto) → empty string.
+pub struct BaseUrl(pub String);
+
+#[rocket::async_trait]
+impl<'r> rocket::request::FromRequest<'r> for BaseUrl {
+    type Error = ();
+
+    async fn from_request(request: &'r rocket::Request<'_>) -> rocket::request::Outcome<Self, Self::Error> {
+        // 1. Prefer explicitly configured BASE_URL
+        if let Ok(base) = std::env::var("BASE_URL") {
+            let base = base.trim_end_matches('/').to_string();
+            if !base.is_empty() {
+                return rocket::request::Outcome::Success(BaseUrl(base));
+            }
+        }
+        // 2. Fall back to Host header + inferred scheme
+        if let Some(host) = request.headers().get_one("Host") {
+            let scheme = request.headers().get_one("X-Forwarded-Proto")
+                .unwrap_or("http");
+            let base = format!("{}://{}", scheme, host.trim_end_matches('/'));
+            return rocket::request::Outcome::Success(BaseUrl(base));
+        }
+        // 3. Last resort: empty (relative URLs only)
+        rocket::request::Outcome::Success(BaseUrl(String::new()))
+    }
+}
+
 // --- ECDSA verification helper ---
 
 fn verify_ecdsa_signature(pubkey_hex: &str, message: &str, sig_hex: &str) -> bool {
@@ -1528,12 +1557,11 @@ pub fn skills_index() -> (ContentType, String) {
 /// GET /robots.txt
 /// Standard robots.txt — allows all crawlers and points to sitemap.
 #[get("/robots.txt")]
-pub fn robots_txt() -> (ContentType, String) {
-    let base = std::env::var("BASE_URL").unwrap_or_default();
-    let sitemap_url = if base.is_empty() {
+pub fn robots_txt(base_url: BaseUrl) -> (ContentType, String) {
+    let sitemap_url = if base_url.0.is_empty() {
         "/sitemap.xml".to_string()
     } else {
-        format!("{}/sitemap.xml", base.trim_end_matches('/'))
+        format!("{}/sitemap.xml", base_url.0)
     };
     (ContentType::Plain, format!(
         "User-agent: *\nAllow: /\nSitemap: {}\n",
@@ -1545,10 +1573,9 @@ pub fn robots_txt() -> (ContentType, String) {
 /// Dynamic XML sitemap listing all public agent profile pages.
 /// Respects BASE_URL environment variable for absolute URLs.
 #[get("/sitemap.xml")]
-pub fn sitemap_xml(db: &State<DbConn>) -> (ContentType, String) {
+pub fn sitemap_xml(db: &State<DbConn>, base_url: BaseUrl) -> (ContentType, String) {
     let conn = db.lock().unwrap();
-    let base = std::env::var("BASE_URL").unwrap_or_default();
-    let base = base.trim_end_matches('/');
+    let base = base_url.0.as_str();
 
     let usernames: Vec<String> = {
         let mut stmt = conn.prepare(
@@ -1591,6 +1618,7 @@ pub fn sitemap_xml(db: &State<DbConn>) -> (ContentType, String) {
 pub fn webfinger(
     db: &State<DbConn>,
     resource: Option<String>,
+    base_url: BaseUrl,
 ) -> Result<(ContentType, String), (Status, Json<serde_json::Value>)> {
     // Validate resource param
     let resource = resource.ok_or_else(|| {
@@ -1619,10 +1647,7 @@ pub fn webfinger(
         return Err((Status::NotFound, Json(json!({"error": format!("No profile for '{}'", username)}))));
     }
 
-    let base = std::env::var("BASE_URL")
-        .unwrap_or_default()
-        .trim_end_matches('/')
-        .to_string();
+    let base = base_url.0;
 
     let subject = resource.clone();
     let profile_page = format!("{}/{}", base, username);
