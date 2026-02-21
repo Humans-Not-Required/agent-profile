@@ -1,7 +1,7 @@
 # Agent Profile Service - Status
 
 **Version:** 0.4.0   (production-ready)
-**Stage:** Feature complete. Endorsements + skill search live. 112 tests. Awaiting Jordan: PyPI + prod domain.
+**Stage:** Feature complete. Endorsements + skill directory + stats. 120 tests. Awaiting Jordan: PyPI + prod domain.
 **Last updated:** 2026-02-21
 
 ---
@@ -23,6 +23,14 @@
    - Environment name: `pypi`
 3. Push a tag: `git tag sdk-v0.1.0 && git push origin sdk-v0.1.0`
 4. GitHub Actions builds + publishes automatically — no secrets needed
+
+## ✅ Done (Skill directory + stats endpoints — Feb 21)
+
+- `GET /api/v1/skills` — ecosystem skill taxonomy sorted by usage count; `?q=` substring search; case-normalized
+- `GET /api/v1/stats` — aggregate counts: profiles (total/with_pubkey/avg_score), skills (total/distinct/top-5), endorsements (total/verified), links, addresses
+- Python SDK: `list_skills()`, `get_stats()`, plus `skills` and `stats` CLI commands
+- OpenAPI: 21 total paths
+- 5+3 = 8 new tests → 120 total (13 unit + 69 integration + 38 Python SDK)
 
 ## ✅ Done (Skill-based profile search + has_pubkey filter — Feb 21)
 
@@ -165,6 +173,6 @@ See DESIGN.md for full spec. Key points:
 | Scope | Count | Status |
 |-------|-------|--------|
 | Rust unit | 13 | ✅ |
-| Rust integration | 64 | ✅ |
-| Python SDK | 35 | ✅ |
-| **Total** | **112** | ✅ |
+| Rust integration | 69 | ✅ |
+| Python SDK | 38 | ✅ |
+| **Total** | **120** | ✅ |
