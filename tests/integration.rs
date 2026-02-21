@@ -841,6 +841,28 @@ fn test_skills_index() {
     assert!(body["skills"].is_array());
 }
 
+#[test]
+fn test_openapi_json() {
+    let client = test_client();
+    let resp = client.get("/openapi.json").dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    // Verify it's a valid OpenAPI 3.1 spec for v0.4.0
+    assert_eq!(body["openapi"], "3.1.0");
+    assert_eq!(body["info"]["version"], "0.4.0");
+    assert!(body["paths"].is_object());
+    // All key paths present
+    let paths = body["paths"].as_object().unwrap();
+    assert!(paths.contains_key("/health"));
+    assert!(paths.contains_key("/register"));
+    assert!(paths.contains_key("/profiles/{username}"));
+    assert!(paths.contains_key("/profiles/{username}/challenge"));
+    assert!(paths.contains_key("/profiles/{username}/verify"));
+    assert!(paths.contains_key("/profiles/{username}/sections"));
+    assert!(paths.contains_key("/profiles/{username}/score"));
+    assert!(paths.contains_key("/profiles/{username}/avatar"));
+}
+
 // ===== Rate Limiting =====
 
 #[test]
