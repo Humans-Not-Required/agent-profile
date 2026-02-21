@@ -40,6 +40,7 @@ agent-profile = "agent_profile.cli:main"
 Homepage = "https://github.com/Humans-Not-Required/agent-profile"
 Repository = "https://github.com/Humans-Not-Required/agent-profile"
 Documentation = "https://github.com/Humans-Not-Required/agent-profile/tree/main/sdk/python"
+Changelog = "https://github.com/Humans-Not-Required/agent-profile/blob/main/sdk/python/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["agent_profile"]
