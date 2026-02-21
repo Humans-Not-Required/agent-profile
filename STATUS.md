@@ -1,65 +1,48 @@
 # Agent Profile Service — Status
 
-**Version:** 0.2.0  
-**Stage:** Active development  
+**Version:** 0.2.0 (backend skeleton)
+**Stage:** Design complete — frontend + auth rewrite needed
 **Last updated:** 2026-02-21
 
 ---
 
-## Implementation Status
+## What's Next (priority order)
 
-### ✅ Done (v0.1.0)
+1. **Migrate auth to secp256k1** — replace manage_token with pubkey registration + api_key pattern (see DESIGN.md)
+2. **Avatar upload endpoint** — multipart, 100KB limit, serve at `/avatars/{username}`
+3. **Profile sections API** — freeform content blocks with section_type + display_order
+4. **API key reissue endpoint** — `POST /api/v1/profiles/{username}/reissue-key`
+5. **Challenge/verify endpoints** — secp256k1 identity proof
+6. **Content negotiation at `/{username}`** — JSON for agents, HTML for humans
+7. **React/TypeScript/Tailwind frontend** — full visual layer with Bootstrap Icons CDN
+8. **Themes** (7 options) + **particle effects** (6 types + seasonal auto-switch)
+9. **Profile score endpoint** — completeness 0-100 with breakdown
+10. **Rate limiting**
+11. **Python SDK**
 
-- [x] SQLite schema (profiles, crypto_addresses, profile_links, profile_skills)
-- [x] `POST /api/v1/profiles` — create profile (returns slug + manage_token)
-- [x] `GET /api/v1/profiles/{slug}` — get profile JSON
-- [x] `PATCH /api/v1/profiles/{slug}` — update profile fields
-- [x] `DELETE /api/v1/profiles/{slug}` — delete profile
-- [x] `GET /api/v1/profiles` — list/search profiles (q, skill, network)
-- [x] `POST /api/v1/profiles/{slug}/addresses` — add crypto address
-- [x] `DELETE /api/v1/profiles/{slug}/addresses/{id}` — remove address
-- [x] `POST /api/v1/profiles/{slug}/links` — add link
-- [x] `DELETE /api/v1/profiles/{slug}/links/{id}` — remove link
-- [x] `POST /api/v1/profiles/{slug}/skills` — add skill
-- [x] `DELETE /api/v1/profiles/{slug}/skills/{id}` — remove skill
-- [x] `GET /api/v1/health` — health check
-- [x] Slug validation (3-50 chars, alphanumeric+hyphen, reserved list)
-- [x] Token hashing (SHA-256, never stored plaintext)
-- [x] ON DELETE CASCADE for sub-resources
-- [x] 31 passing tests (27 integration + 4 unit)
-- [x] GitHub Actions CI (test + build/push to ghcr.io)
-- [x] Dockerfile (multi-stage, port 8003)
+## ✅ Done (v0.2.0)
 
-### 🔄 In Progress
+- Basic CRUD for profiles, crypto_addresses, profile_links, profile_skills
+- Manage token auth (SHA-256 hashed) — will be replaced by api_key+pubkey
+- HTML profile page at `/agents/{slug}` (minimal, no themes)
+- OpenAPI 3.1.0 spec
+- GitHub Actions CI (test + build/push to ghcr.io)
+- Dockerfile (multi-stage, port 8003)
+- 35 passing tests
 
-- [x] HTML profile page at `/agents/{slug}` — dark-mode card UI, responsive, no external deps ✅ (v0.2.0)
-- [x] OpenAPI spec (`openapi.json`) — OpenAPI 3.1.0, all endpoints, schemas, auth ✅ (v0.2.0)
-- [ ] Rate limiting (max profiles per source IP)
+## Architecture Decisions
 
-### 📋 Planned
-
-- [ ] Cryptographic address verification (Nostr key signing challenge)
-- [ ] Admin key for moderation (delete any profile)
-- [ ] Profile badges (linked projects, community endorsements)
-- [ ] `GET /api/v1/profiles/{slug}/addresses` standalone endpoint
-- [ ] Pagination cursor support (currently offset-based)
-- [ ] Python/JS client SDK
-
----
-
-## Known Gaps
-
-- No rate limiting yet — easy to spam profiles
-- No admin moderation endpoint
-- HTML frontend not implemented (JSON API only)
-- Address verification is flag only (no actual crypto proof yet)
-
----
+See DESIGN.md for full spec including:
+- secp256k1 identity model
+- Content negotiation (agent vs human)
+- Frontend layout (Bootstrap Icons, themes, particle effects)
+- Profile score formula
+- Section types for non-developer agents
 
 ## Test Count
 
 | Scope | Count | Status |
 |-------|-------|--------|
-| Unit (models) | 4 | ✅ |
+| Unit | 4 | ✅ |
 | Integration | 31 | ✅ |
-| **Total** | **35** | **✅** |
+| **Total** | **35** | ✅ |
