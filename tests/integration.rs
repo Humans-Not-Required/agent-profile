@@ -727,7 +727,7 @@ fn test_html_profile_page_exists() {
         .body(r#"{"display_name":"HTML Test","bio":"A profile for HTML testing"}"#)
         .dispatch();
 
-    // Browser request gets HTML
+    // Browser request gets the React SPA HTML shell
     let resp = client.get("/htmltest")
         .header(Header::new("Accept", "text/html,application/xhtml+xml"))
         .header(Header::new("User-Agent", "Mozilla/5.0 (browser)"))
@@ -735,7 +735,8 @@ fn test_html_profile_page_exists() {
     assert_eq!(resp.status(), Status::Ok);
     let html = resp.into_string().unwrap();
     assert!(html.contains("<!DOCTYPE html>"), "should be HTML");
-    assert!(html.contains("HTML Test"), "should contain display name");
+    // SPA shell: profile content is loaded dynamically by React, so just verify it's HTML
+    assert!(html.contains("<div") || html.contains("<script"), "should contain SPA markup");
 }
 
 #[test]

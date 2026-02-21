@@ -1,4 +1,14 @@
-# Stage 1: Build
+# Stage 1: Build React frontend
+FROM node:22-slim AS frontend-builder
+
+WORKDIR /app/frontend
+COPY frontend/package.json frontend/package-lock.json* ./
+RUN npm ci --prefer-offline
+
+COPY frontend/ .
+RUN npm run build
+
+# Stage 2: Build Rust binary (with embedded frontend assets)
 FROM rust:1-slim-bookworm AS builder
 
 RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
@@ -7,13 +17,17 @@ WORKDIR /app
 COPY Cargo.toml Cargo.lock* ./
 COPY src/ src/
 COPY tests/ tests/
+COPY openapi.json ./
+
+# Copy the compiled frontend so rust-embed can include it
+COPY --from=frontend-builder /app/frontend/dist/ frontend/dist/
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/app/target \
     cargo build --release && \
     cp target/release/agent-profile /usr/local/bin/agent-profile
 
-# Stage 2: Runtime
+# Stage 3: Runtime
 FROM debian:bookworm-slim
 
 LABEL org.opencontainers.image.source="https://github.com/Humans-Not-Required/agent-profile"

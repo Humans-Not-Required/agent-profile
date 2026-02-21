@@ -1,3 +1,4 @@
+pub mod assets;
 pub mod cors;
 pub mod db;
 pub mod models;
@@ -56,5 +57,6 @@ pub fn create_rocket(db_path: &str) -> rocket::Rocket<rocket::Build> {
             llms_txt,
             openapi_json,
             skills_index,
+            assets::serve_asset,
         ])
 }

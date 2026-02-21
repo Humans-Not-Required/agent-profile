@@ -5,3 +5,6 @@ Cargo.lock
 *.db-wal
 .env
 /tmp/
+frontend/node_modules/
+frontend/dist/*
+!frontend/dist/.gitkeep
