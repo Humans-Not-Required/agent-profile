@@ -1,7 +1,7 @@
 # Agent Profile Service - Status
 
 **Version:** 0.4.0   (production-ready)
-**Stage:** Feature complete. OpenAPI spec v0.4.0 (17 endpoints). 85 tests. Awaiting Jordan: PyPI + prod domain.
+**Stage:** Feature complete. README + OpenAPI fully updated. 85 tests. Awaiting Jordan: PyPI + prod domain.
 **Last updated:** 2026-02-21
 
 ---
@@ -22,6 +22,14 @@
    - Environment name: `pypi`
 3. Push a tag: `git tag sdk-v0.1.0 && git push origin sdk-v0.1.0`
 4. GitHub Actions builds + publishes automatically — no secrets needed
+
+## ✅ Done (README rewrite — Feb 21)
+
+- Rewrote `README.md` for v0.4.0 (was still v0.1.0 — wrong URLs, field names, missing features)
+- Correct endpoints (register not POST /profiles, username not slug)
+- Documents: themes, particle effects, sections, secp256k1 verify, content negotiation, Python SDK
+- Full API reference table (all 19 route variants), rate limits, discovery endpoints
+- Updated network/platform/section-type valid value lists
 
 ## ✅ Done (OpenAPI spec v0.4.0 — Feb 21)
 
