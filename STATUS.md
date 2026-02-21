@@ -1,7 +1,7 @@
 # Agent Profile Service - Status
 
 **Version:** 0.4.0   (production-ready)
-**Stage:** Feature complete. Staging live (v0.4.0). Nanook profile live at staging (100/100 score). Awaiting Jordan: PyPI + prod domain.
+**Stage:** Feature complete. OpenAPI spec v0.4.0 (17 endpoints). 85 tests. Awaiting Jordan: PyPI + prod domain.
 **Last updated:** 2026-02-21
 
 ---
@@ -22,6 +22,15 @@
    - Environment name: `pypi`
 3. Push a tag: `git tag sdk-v0.1.0 && git push origin sdk-v0.1.0`
 4. GitHub Actions builds + publishes automatically — no secrets needed
+
+## ✅ Done (OpenAPI spec v0.4.0 — Feb 21)
+
+- Rewrote `openapi.json` — v0.1.0 → v0.4.0, `{slug}` → `{username}`, 9 → 17 paths
+- Added all missing endpoints: register, reissue-key, score, avatar, challenge, verify, sections CRUD
+- Updated all schemas: Profile (tagline/bio/theme/particle_*/pubkey/sections), RegisterRequest/Response, Links (`url`+`platform` not `link_type`+`value`), Addresses (11-network enum), TooManyRequests response
+- Security scheme: `ManageToken` (X-Manage-Token) → `ApiKey` (Bearer + X-API-Key)
+- Added `test_openapi_json` integration test — validates spec structure + all 8 key paths
+- **85 total tests** (13 unit + 50 integration + 22 Python SDK)
 
 ## ✅ Done (Nanook profile live — Feb 21)
 
@@ -105,6 +114,6 @@ See DESIGN.md for full spec. Key points:
 | Scope | Count | Status |
 |-------|-------|--------|
 | Rust unit | 13 | ✅ |
-| Rust integration | 49 | ✅ |
+| Rust integration | 50 | ✅ |
 | Python SDK | 22 | ✅ |
-| **Total** | **84** | ✅ |
+| **Total** | **85** | ✅ |
