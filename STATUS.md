@@ -1,7 +1,7 @@
 # Agent Profile Service - Status
 
 **Version:** 0.4.3   (production-ready)
-**Stage:** Feature complete. BaseUrl guard (WebFinger/sitemap auto-detect Host header). 130 tests. Awaiting Jordan: PyPI + prod domain.
+**Stage:** Feature complete. OpenAPI v0.4.3 (25 paths, WebFinger/discovery documented). 130 tests. Awaiting Jordan: PyPI + prod domain.
 **Last updated:** 2026-02-21
 
 ---
@@ -23,6 +23,15 @@
    - Environment name: `pypi`
 3. Push a tag: `git tag sdk-v0.1.0 && git push origin sdk-v0.1.0`
 4. GitHub Actions builds + publishes automatically — no secrets needed
+
+## ✅ Done (OpenAPI v0.4.3 — Feb 21)
+
+- Bumped `openapi.json` version 0.4.0 → 0.4.3
+- Added 3 discovery endpoints: `/.well-known/webfinger`, `/robots.txt`, `/sitemap.xml`
+- Added `WebFingerResponse` JRD schema + `Discovery` tag group
+- `test_openapi_json` updated: checks v0.4.3, verifies 14 key paths (added endorsements, skills, stats, webfinger, robots.txt, sitemap.xml)
+- Verified BaseUrl fix working on staging: WebFinger/sitemap return absolute URLs from Host header
+- **25 total paths** in spec
 
 ## ✅ Done (BaseUrl request guard — Feb 21)
 
