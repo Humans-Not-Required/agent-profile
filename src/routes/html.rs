@@ -1,6 +1,4 @@
 use rocket::{get, State, http::{ContentType, Status}};
-use rusqlite::params;
-use std::sync::Mutex;
 
 use crate::routes::profiles::{DbConn, load_profile};
 
