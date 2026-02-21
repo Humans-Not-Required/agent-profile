@@ -34,6 +34,16 @@ export interface ProfileSkill {
   created_at: string;
 }
 
+export interface Endorsement {
+  id: string;
+  endorsee_id: string;
+  endorser_username: string;
+  message: string;
+  signature: string;
+  verified: boolean;
+  created_at: string;
+}
+
 export interface Profile {
   id: string;
   username: string;
@@ -54,4 +64,5 @@ export interface Profile {
   links: ProfileLink[];
   sections: ProfileSection[];
   skills: ProfileSkill[];
+  endorsements: Endorsement[];
 }

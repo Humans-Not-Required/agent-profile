@@ -68,6 +68,19 @@ pub struct ProfileSkill {
     pub created_at: String,
 }
 
+// --- Endorsements ---
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Endorsement {
+    pub id: String,
+    pub endorsee_id: String,
+    pub endorser_username: String,
+    pub message: String,
+    pub signature: String,
+    pub verified: bool,
+    pub created_at: String,
+}
+
 // --- Main profile type ---
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -91,6 +104,7 @@ pub struct Profile {
     pub links: Vec<ProfileLink>,
     pub sections: Vec<ProfileSection>,
     pub skills: Vec<ProfileSkill>,
+    pub endorsements: Vec<Endorsement>,
 }
 
 // --- Request types ---
@@ -154,6 +168,16 @@ pub struct AddSkillRequest {
 #[derive(Debug, Deserialize)]
 pub struct VerifySignatureRequest {
     pub signature: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AddEndorsementRequest {
+    /// Username of the endorsing agent (must match the API key used)
+    pub from: String,
+    /// Short endorsement message (1–500 chars)
+    pub message: String,
+    /// Optional secp256k1 signature over the message (hex-encoded)
+    pub signature: Option<String>,
 }
 
 // --- Response types ---

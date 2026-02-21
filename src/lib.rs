@@ -21,6 +21,7 @@ use routes::profiles::{
     add_skill, delete_skill,
     upload_avatar, serve_avatar,
     get_challenge, verify_signature,
+    add_endorsement, get_endorsements, delete_endorsement,
     llms_txt, openapi_json, skills_index,
 };
 use routes::html::profile_page;
@@ -73,6 +74,9 @@ pub fn create_rocket(db_path: &str) -> rocket::Rocket<rocket::Build> {
             upload_avatar,
             get_challenge,
             verify_signature,
+            add_endorsement,
+            get_endorsements,
+            delete_endorsement,
         ])
         .mount("/", rocket::routes![
             profile_page,

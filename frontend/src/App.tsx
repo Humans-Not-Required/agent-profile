@@ -10,6 +10,7 @@ import { ParticleEffect } from './components/ParticleEffect'
 import type { EffectName } from './components/ParticleEffect'
 import { ThemeToggle } from './components/ThemeToggle'
 import { ParticleToggle } from './components/ParticleToggle'
+import Endorsements from './components/Endorsements'
 
 // Extract username from URL path: /nanook -> "nanook"
 function getUsernameFromPath(): string {
@@ -210,6 +211,11 @@ export default function App() {
         {/* ── Crypto addresses ── */}
         {profile.crypto_addresses.length > 0 && (
           <CryptoAddresses addresses={profile.crypto_addresses} onCopy={copyToClipboard} />
+        )}
+
+        {/* ── Endorsements ── */}
+        {profile.endorsements && profile.endorsements.length > 0 && (
+          <Endorsements endorsements={profile.endorsements} />
         )}
 
         {/* ── Meta footer ── */}

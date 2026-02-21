@@ -80,6 +80,19 @@ pub fn init_db(conn: &Connection) -> Result<()> {
             used INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS endorsements (
+            id TEXT PRIMARY KEY,
+            endorsee_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+            endorser_username TEXT NOT NULL,
+            message TEXT NOT NULL,
+            signature TEXT NOT NULL DEFAULT '',
+            verified INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL,
+            UNIQUE(endorsee_id, endorser_username)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_endorsements_endorsee ON endorsements(endorsee_id);
     ")?;
     Ok(())
 }

@@ -59,6 +59,7 @@ pub(crate) fn load_profile(conn: &Connection, username: &str) -> Option<Profile>
     let links = load_links(conn, &id);
     let sections = load_sections(conn, &id);
     let skills = load_skills(conn, &id);
+    let endorsements = load_endorsements(conn, &id);
 
     Some(Profile {
         id, username, display_name, tagline, bio, third_line, avatar_url,
@@ -66,7 +67,7 @@ pub(crate) fn load_profile(conn: &Connection, username: &str) -> Option<Profile>
         particle_enabled: particle_enabled != 0,
         particle_seasonal: particle_seasonal != 0,
         pubkey, profile_score, created_at, updated_at,
-        crypto_addresses, links, sections, skills,
+        crypto_addresses, links, sections, skills, endorsements,
     })
 }
 
@@ -123,6 +124,24 @@ fn load_skills(conn: &Connection, profile_id: &str) -> Vec<ProfileSkill> {
         Ok(ProfileSkill {
             id: row.get(0)?, profile_id: row.get(1)?,
             skill: row.get(2)?, created_at: row.get(3)?,
+        })
+    }).unwrap().flatten().collect()
+}
+
+fn load_endorsements(conn: &Connection, profile_id: &str) -> Vec<Endorsement> {
+    let mut stmt = conn.prepare(
+        "SELECT id, endorsee_id, endorser_username, message, signature, verified, created_at \
+         FROM endorsements WHERE endorsee_id = ?1 ORDER BY created_at DESC"
+    ).unwrap();
+    stmt.query_map(params![profile_id], |row| {
+        Ok(Endorsement {
+            id: row.get(0)?,
+            endorsee_id: row.get(1)?,
+            endorser_username: row.get(2)?,
+            message: row.get(3)?,
+            signature: row.get(4)?,
+            verified: row.get::<_, i32>(5)? != 0,
+            created_at: row.get(6)?,
         })
     }).unwrap().flatten().collect()
 }
@@ -1195,7 +1214,211 @@ pub fn skills_index() -> (ContentType, String) {
                 "name": "Verify agent identity",
                 "endpoint": "GET+POST /api/v1/profiles/{username}/challenge+verify",
                 "description": "Cryptographically verify an agent's identity via secp256k1 signature"
+            },
+            {
+                "id": "endorse-agent",
+                "name": "Endorse another agent",
+                "endpoint": "POST /api/v1/profiles/{username}/endorsements",
+                "description": "Leave a signed attestation vouching for another agent's profile or capabilities"
             }
         ]
     }).to_string())
+}
+
+// --- Endorsements ---
+
+/// POST /api/v1/profiles/{username}/endorsements
+/// Add an endorsement from the calling agent (identified by their API key) to the target profile.
+/// - `from`: the endorser's username (must match API key owner)
+/// - `message`: short endorsement text (1–500 chars)
+/// - `signature`: optional secp256k1 signature over the message hex (for cryptographic attestation)
+#[post("/profiles/<username>/endorsements", data = "<body>")]
+pub fn add_endorsement(
+    db: &State<DbConn>,
+    username: &str,
+    body: Json<AddEndorsementRequest>,
+    api_key: ApiKey,
+) -> Result<Json<serde_json::Value>, (Status, Json<serde_json::Value>)> {
+    let endorsee_username = username.to_lowercase();
+    let endorser_username = body.from.to_lowercase();
+    let conn = db.lock().unwrap();
+
+    // Validate message length
+    let message = body.message.trim().to_string();
+    if message.is_empty() {
+        return Err((Status::UnprocessableEntity, Json(json!({"error": "message cannot be empty"}))));
+    }
+    if message.len() > 500 {
+        return Err((Status::UnprocessableEntity, Json(json!({"error": "message max 500 chars"}))));
+    }
+
+    // Validate: API key belongs to the endorser
+    if !verify_api_key(&conn, &endorser_username, &api_key.0) {
+        return Err((Status::Unauthorized, Json(json!({
+            "error": "Invalid API key. The API key must belong to the 'from' username (the endorser)."
+        }))));
+    }
+
+    // Validate: not self-endorsing
+    if endorser_username == endorsee_username {
+        return Err((Status::UnprocessableEntity, Json(json!({"error": "Cannot endorse your own profile"}))));
+    }
+
+    // Validate: endorsee profile exists, get their id
+    let endorsee_result = conn.query_row(
+        "SELECT id FROM profiles WHERE username = ?1",
+        params![endorsee_username],
+        |row| row.get::<_, String>(0),
+    );
+    let endorsee_id = match endorsee_result {
+        Ok(id) => id,
+        Err(_) => return Err((Status::NotFound, Json(json!({
+            "error": format!("Profile '{}' not found", endorsee_username)
+        })))),
+    };
+
+    // Optional: verify secp256k1 signature over the message if provided
+    let sig_str = body.signature.clone().unwrap_or_default();
+    let mut verified = false;
+    if !sig_str.is_empty() {
+        // Look up the endorser's pubkey
+        let endorser_pubkey: String = conn.query_row(
+            "SELECT pubkey FROM profiles WHERE username = ?1",
+            params![endorser_username],
+            |row| row.get(0),
+        ).unwrap_or_default();
+
+        if endorser_pubkey.is_empty() {
+            return Err((Status::UnprocessableEntity, Json(json!({
+                "error": "Endorser has no public key set. Add a secp256k1 pubkey to your profile before signing endorsements."
+            }))));
+        }
+        verified = verify_ecdsa_signature(&endorser_pubkey, &message, &sig_str);
+        if !verified {
+            return Err((Status::UnprocessableEntity, Json(json!({
+                "error": "Signature verification failed. Sign the exact message text with your secp256k1 private key."
+            }))));
+        }
+    }
+
+    // Insert endorsement (UNIQUE(endorsee_id, endorser_username) prevents duplicates)
+    let id = Uuid::new_v4().to_string();
+    let ts = now();
+    let insert_result = conn.execute(
+        "INSERT INTO endorsements (id, endorsee_id, endorser_username, message, signature, verified, created_at) \
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        params![id, endorsee_id, endorser_username, message, sig_str, verified as i32, ts],
+    );
+
+    match insert_result {
+        Ok(_) => Ok(Json(json!({
+            "id": id,
+            "endorsee": endorsee_username,
+            "endorser": endorser_username,
+            "message": message,
+            "verified": verified,
+            "created_at": ts,
+        }))),
+        Err(e) if e.to_string().contains("UNIQUE") => {
+            // Already endorsed — update the existing endorsement instead
+            conn.execute(
+                "UPDATE endorsements SET message = ?1, signature = ?2, verified = ?3 \
+                 WHERE endorsee_id = ?4 AND endorser_username = ?5",
+                params![message, sig_str, verified as i32, endorsee_id, endorser_username],
+            ).ok();
+            Ok(Json(json!({
+                "id": id,
+                "endorsee": endorsee_username,
+                "endorser": endorser_username,
+                "message": message,
+                "verified": verified,
+                "updated": true,
+                "created_at": ts,
+            })))
+        }
+        Err(e) => Err((Status::InternalServerError, Json(json!({"error": e.to_string()})))),
+    }
+}
+
+/// GET /api/v1/profiles/{username}/endorsements
+/// List all endorsements received by a profile (public, no auth).
+#[get("/profiles/<username>/endorsements")]
+pub fn get_endorsements(
+    db: &State<DbConn>,
+    username: &str,
+) -> Result<Json<serde_json::Value>, (Status, Json<serde_json::Value>)> {
+    let username = username.to_lowercase();
+    let conn = db.lock().unwrap();
+
+    let profile_id_result = conn.query_row(
+        "SELECT id FROM profiles WHERE username = ?1",
+        params![username],
+        |row| row.get::<_, String>(0),
+    );
+    let profile_id = match profile_id_result {
+        Ok(id) => id,
+        Err(_) => return Err((Status::NotFound, Json(json!({
+            "error": format!("Profile '{}' not found", username)
+        })))),
+    };
+
+    let endorsements = load_endorsements(&conn, &profile_id);
+    let verified_count = endorsements.iter().filter(|e| e.verified).count();
+
+    Ok(Json(json!({
+        "username": username,
+        "endorsements": endorsements,
+        "total": endorsements.len(),
+        "verified_count": verified_count,
+    })))
+}
+
+/// DELETE /api/v1/profiles/{username}/endorsements/{endorser_username}
+/// Remove an endorsement. Can be done by either the endorser OR the endorsee.
+#[delete("/profiles/<username>/endorsements/<endorser>")]
+pub fn delete_endorsement(
+    db: &State<DbConn>,
+    username: &str,
+    endorser: &str,
+    api_key: ApiKey,
+) -> Result<Json<serde_json::Value>, (Status, Json<serde_json::Value>)> {
+    let endorsee_username = username.to_lowercase();
+    let endorser_username = endorser.to_lowercase();
+    let conn = db.lock().unwrap();
+
+    // Auth: must be either the endorser or the endorsee
+    let is_endorser = verify_api_key(&conn, &endorser_username, &api_key.0);
+    let is_endorsee = verify_api_key(&conn, &endorsee_username, &api_key.0);
+
+    if !is_endorser && !is_endorsee {
+        return Err((Status::Unauthorized, Json(json!({
+            "error": "API key must belong to either the endorser or the endorsee profile"
+        }))));
+    }
+
+    // Get endorsee profile id
+    let endorsee_id_result = conn.query_row(
+        "SELECT id FROM profiles WHERE username = ?1",
+        params![endorsee_username],
+        |row| row.get::<_, String>(0),
+    );
+    let endorsee_id = match endorsee_id_result {
+        Ok(id) => id,
+        Err(_) => return Err((Status::NotFound, Json(json!({
+            "error": format!("Profile '{}' not found", endorsee_username)
+        })))),
+    };
+
+    let deleted = conn.execute(
+        "DELETE FROM endorsements WHERE endorsee_id = ?1 AND endorser_username = ?2",
+        params![endorsee_id, endorser_username],
+    ).unwrap_or(0);
+
+    if deleted == 0 {
+        return Err((Status::NotFound, Json(json!({
+            "error": format!("No endorsement from '{}' on '{}'", endorser_username, endorsee_username)
+        }))));
+    }
+
+    Ok(Json(json!({"deleted": true, "endorser": endorser_username, "endorsee": endorsee_username})))
 }

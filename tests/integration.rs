@@ -924,3 +924,212 @@ fn test_verify_rate_limit() {
         .dispatch();
     assert_eq!(resp.status(), Status::TooManyRequests, "4th verify should be rate limited");
 }
+
+// ===== Endorsements =====
+
+#[test]
+fn test_add_endorsement_basic() {
+    let client = test_client();
+    // Register two agents
+    let (_, reg_a) = register(&client, "endorser-a");
+    let (_, _reg_b) = register(&client, "endorsee-b");
+    let key_a = reg_a["api_key"].as_str().unwrap();
+
+    // A endorses B
+    let resp = client.post("/api/v1/profiles/endorsee-b/endorsements")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key_a.to_string()))
+        .body(serde_json::json!({
+            "from": "endorser-a",
+            "message": "Great collaborator. Highly trustworthy agent."
+        }).to_string())
+        .dispatch();
+
+    assert_eq!(resp.status(), Status::Ok, "endorsement should succeed");
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["endorser"], "endorser-a");
+    assert_eq!(body["endorsee"], "endorsee-b");
+    assert_eq!(body["verified"], false); // no signature provided
+    assert!(body["id"].as_str().is_some());
+}
+
+#[test]
+fn test_get_endorsements() {
+    let client = test_client();
+    let (_, reg_a) = register(&client, "get-end-a");
+    let (_, _reg_b) = register(&client, "get-end-b");
+    let key_a = reg_a["api_key"].as_str().unwrap();
+
+    // Add endorsement
+    client.post("/api/v1/profiles/get-end-b/endorsements")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key_a.to_string()))
+        .body(serde_json::json!({"from": "get-end-a", "message": "Solid agent."}).to_string())
+        .dispatch();
+
+    // Fetch endorsements (public, no auth needed)
+    let resp = client.get("/api/v1/profiles/get-end-b/endorsements").dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["total"], 1);
+    assert_eq!(body["endorsements"][0]["endorser_username"], "get-end-a");
+    assert_eq!(body["endorsements"][0]["message"], "Solid agent.");
+}
+
+#[test]
+fn test_endorsement_in_profile_json() {
+    let client = test_client();
+    let (_, reg_a) = register(&client, "ep-src");
+    let (_, _reg_b) = register(&client, "ep-dst");
+    let key_a = reg_a["api_key"].as_str().unwrap();
+
+    // Endorse
+    client.post("/api/v1/profiles/ep-dst/endorsements")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key_a.to_string()))
+        .body(serde_json::json!({"from": "ep-src", "message": "Excellent partner."}).to_string())
+        .dispatch();
+
+    // Profile JSON includes endorsements
+    let resp = client.get("/api/v1/profiles/ep-dst").dispatch();
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let endorsements = body["endorsements"].as_array().unwrap();
+    assert_eq!(endorsements.len(), 1);
+    assert_eq!(endorsements[0]["endorser_username"], "ep-src");
+}
+
+#[test]
+fn test_endorsement_no_self_endorse() {
+    let client = test_client();
+    let (_, reg_a) = register(&client, "self-end");
+    let key_a = reg_a["api_key"].as_str().unwrap();
+
+    let resp = client.post("/api/v1/profiles/self-end/endorsements")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key_a.to_string()))
+        .body(serde_json::json!({"from": "self-end", "message": "I'm great!"}).to_string())
+        .dispatch();
+
+    assert_eq!(resp.status(), Status::UnprocessableEntity);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert!(body["error"].as_str().unwrap().contains("own profile"));
+}
+
+#[test]
+fn test_endorsement_wrong_api_key() {
+    let client = test_client();
+    let (_, _reg_a) = register(&client, "wk-end-a");
+    let (_, reg_b) = register(&client, "wk-end-b");
+    let key_b = reg_b["api_key"].as_str().unwrap();
+
+    // B's key used but from=a — should fail
+    let resp = client.post("/api/v1/profiles/wk-end-b/endorsements")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key_b.to_string()))
+        .body(serde_json::json!({"from": "wk-end-a", "message": "Not legitimate."}).to_string())
+        .dispatch();
+
+    assert_eq!(resp.status(), Status::Unauthorized);
+}
+
+#[test]
+fn test_endorsement_upsert() {
+    // Endorsing again updates the message rather than creating a duplicate
+    let client = test_client();
+    let (_, reg_a) = register(&client, "ups-end-a");
+    let (_, _reg_b) = register(&client, "ups-end-b");
+    let key_a = reg_a["api_key"].as_str().unwrap();
+
+    // First endorsement
+    client.post("/api/v1/profiles/ups-end-b/endorsements")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key_a.to_string()))
+        .body(serde_json::json!({"from": "ups-end-a", "message": "First impression."}).to_string())
+        .dispatch();
+
+    // Second endorsement (update)
+    client.post("/api/v1/profiles/ups-end-b/endorsements")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key_a.to_string()))
+        .body(serde_json::json!({"from": "ups-end-a", "message": "Updated: even better."}).to_string())
+        .dispatch();
+
+    // Should only have 1 endorsement with the updated message
+    let resp = client.get("/api/v1/profiles/ups-end-b/endorsements").dispatch();
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["total"], 1, "should only have one endorsement");
+    assert_eq!(body["endorsements"][0]["message"], "Updated: even better.");
+}
+
+#[test]
+fn test_delete_endorsement_by_endorser() {
+    let client = test_client();
+    let (_, reg_a) = register(&client, "del-end-a");
+    let (_, _reg_b) = register(&client, "del-end-b");
+    let key_a = reg_a["api_key"].as_str().unwrap();
+
+    // Add endorsement
+    client.post("/api/v1/profiles/del-end-b/endorsements")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key_a.to_string()))
+        .body(serde_json::json!({"from": "del-end-a", "message": "Temp endorsement."}).to_string())
+        .dispatch();
+
+    // Delete it (endorser uses their own key)
+    let resp = client.delete("/api/v1/profiles/del-end-b/endorsements/del-end-a")
+        .header(Header::new("X-API-Key", key_a.to_string()))
+        .dispatch();
+
+    assert_eq!(resp.status(), Status::Ok);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["deleted"], true);
+
+    // Verify it's gone
+    let resp2 = client.get("/api/v1/profiles/del-end-b/endorsements").dispatch();
+    let body2: serde_json::Value = serde_json::from_str(&resp2.into_string().unwrap()).unwrap();
+    assert_eq!(body2["total"], 0);
+}
+
+#[test]
+fn test_delete_endorsement_by_endorsee() {
+    let client = test_client();
+    let (_, reg_a) = register(&client, "dlee-src");
+    let (_, reg_b) = register(&client, "dlee-dst");
+    let key_a = reg_a["api_key"].as_str().unwrap();
+    let key_b = reg_b["api_key"].as_str().unwrap();
+
+    // A endorses B
+    client.post("/api/v1/profiles/dlee-dst/endorsements")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key_a.to_string()))
+        .body(serde_json::json!({"from": "dlee-src", "message": "Unwanted endorsement."}).to_string())
+        .dispatch();
+
+    // B removes it using their own key (endorsee can also delete)
+    let resp = client.delete("/api/v1/profiles/dlee-dst/endorsements/dlee-src")
+        .header(Header::new("X-API-Key", key_b.to_string()))
+        .dispatch();
+
+    assert_eq!(resp.status(), Status::Ok);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["deleted"], true);
+}
+
+#[test]
+fn test_endorsement_message_too_long() {
+    let client = test_client();
+    let (_, reg_a) = register(&client, "long-end-a");
+    let (_, _reg_b) = register(&client, "long-end-b");
+    let key_a = reg_a["api_key"].as_str().unwrap();
+
+    let long_msg = "x".repeat(501);
+    let resp = client.post("/api/v1/profiles/long-end-b/endorsements")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key_a.to_string()))
+        .body(serde_json::json!({"from": "long-end-a", "message": long_msg}).to_string())
+        .dispatch();
+
+    assert_eq!(resp.status(), Status::UnprocessableEntity);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert!(body["error"].as_str().unwrap().contains("500"));
+}
