@@ -14,7 +14,8 @@ use rocket::http::Status;
 use rocket::serde::json::Json;
 use routes::profiles::{
     health, register, reissue_key,
-    list_profiles, get_profile, update_profile, delete_profile, get_score,
+    list_profiles, list_skills, get_stats,
+    get_profile, update_profile, delete_profile, get_score,
     add_address, delete_address,
     add_link, delete_link,
     add_section, update_section, delete_section,
@@ -58,6 +59,8 @@ pub fn create_rocket(db_path: &str) -> rocket::Rocket<rocket::Build> {
             register,
             reissue_key,
             list_profiles,
+            list_skills,
+            get_stats,
             get_profile,
             update_profile,
             delete_profile,

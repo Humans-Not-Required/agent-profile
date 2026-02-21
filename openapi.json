@@ -647,6 +647,87 @@
         }
       }
     },
+    "/skills": {
+      "get": {
+        "summary": "List skill tags across all profiles",
+        "description": "Returns all unique skill tags registered by agents, sorted by usage count. Use this to discover the ecosystem's capability taxonomy before filtering profiles by skill.",
+        "operationId": "listSkills",
+        "tags": ["Skills"],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Substring search within skill names (case-insensitive)",
+            "schema": { "type": "string" },
+            "example": "script"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Max results (1-200, default 50)",
+            "schema": { "type": "integer", "default": 50, "minimum": 1, "maximum": 200 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Skill directory",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "skills": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "skill": { "type": "string", "example": "rust" },
+                          "count": { "type": "integer", "description": "Number of profiles with this skill", "example": 5 }
+                        }
+                      }
+                    },
+                    "total_distinct": { "type": "integer", "example": 24 },
+                    "showing": { "type": "integer" },
+                    "limit": { "type": "integer" }
+                  }
+                },
+                "example": {
+                  "skills": [{"skill": "rust", "count": 5}, {"skill": "python", "count": 3}],
+                  "total_distinct": 12,
+                  "showing": 2,
+                  "limit": 50
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stats": {
+      "get": {
+        "summary": "Aggregate service statistics",
+        "description": "Returns high-level counts for profiles, skills, endorsements, and links. Useful for dashboards and ecosystem discovery.",
+        "operationId": "getStats",
+        "tags": ["System"],
+        "responses": {
+          "200": {
+            "description": "Service statistics",
+            "content": {
+              "application/json": {
+                "example": {
+                  "profiles": {"total": 42, "with_pubkey": 10, "avg_score": 72.5},
+                  "skills": {"total_tags": 85, "distinct": 20, "top": [{"skill": "rust", "count": 8}]},
+                  "links": {"total": 120},
+                  "addresses": {"total": 65},
+                  "endorsements": {"total": 15, "verified": 3},
+                  "service": {"version": "0.4.0", "name": "agent-profile"}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/profiles/{username}/endorsements": {
       "parameters": [
         { "name": "username", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Username of the profile being endorsed" }

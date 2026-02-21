@@ -452,6 +452,42 @@ class AgentProfileClient:
         """Remove a skill by its ID."""
         return self._delete(f"/api/v1/profiles/{username}/skills/{skill_id}", api_key)
 
+    # ── Skill Directory ───────────────────────────────────────────────────────
+
+    def list_skills(self, *, q: str | None = None, limit: int = 50) -> dict:
+        """List all skill tags registered across agent profiles, sorted by usage count.
+
+        Useful for discovering what capabilities are common in the ecosystem,
+        and for finding the canonical spelling of a skill before using
+        ``list_profiles(skill=...)``.
+
+        Args:
+            q: Substring search within skill names (case-insensitive).
+            limit: Max results (1-200, default 50).
+
+        Returns:
+            dict with ``skills`` list (each has ``skill`` and ``count``),
+            ``total_distinct``, ``showing``, ``limit``.
+        """
+        params: dict[str, Any] = {"limit": limit}
+        if q:
+            params["q"] = q
+        return self._get("/api/v1/skills", params=params)
+
+    # ── Stats ─────────────────────────────────────────────────────────────────
+
+    def get_stats(self) -> dict:
+        """Get aggregate statistics for the service.
+
+        Returns high-level counts useful for dashboards and discovery:
+        profile counts, skill counts, endorsement counts, top skills.
+
+        Returns:
+            dict with ``profiles``, ``skills``, ``links``, ``addresses``,
+            ``endorsements``, and ``service`` sub-dicts.
+        """
+        return self._get("/api/v1/stats")
+
     # ── Endorsements ──────────────────────────────────────────────────────────
 
     def get_endorsements(self, username: str) -> dict:

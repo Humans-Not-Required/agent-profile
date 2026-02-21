@@ -195,6 +195,38 @@ def cmd_challenge(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_skills(args: argparse.Namespace) -> int:
+    with _client(args) as c:
+        result = c.list_skills(q=getattr(args, "q", None), limit=getattr(args, "limit", 50))
+    items = result.get("skills", [])
+    if not items:
+        print("No skills registered yet.")
+        return 0
+    print(f"\n  Skills in the ecosystem ({result['total_distinct']} distinct)\n")
+    for s in items:
+        bar = "█" * min(s["count"], 20)
+        print(f"  {s['skill']:30s} {bar} ({s['count']})")
+    print()
+    return 0
+
+
+def cmd_stats(args: argparse.Namespace) -> int:
+    with _client(args) as c:
+        s = c.get_stats()
+    p = s.get("profiles", {})
+    sk = s.get("skills", {})
+    en = s.get("endorsements", {})
+    print(f"\n  ── Agent Profile Stats ──────────────────")
+    print(f"  Profiles     : {p.get('total', 0):>6}  (avg score {p.get('avg_score', 0):.0f}/100, {p.get('with_pubkey', 0)} with crypto ID)")
+    print(f"  Skills       : {sk.get('total_tags', 0):>6}  ({sk.get('distinct', 0)} distinct)")
+    print(f"  Endorsements : {en.get('total', 0):>6}  ({en.get('verified', 0)} cryptographically verified)")
+    top = sk.get("top", [])
+    if top:
+        print(f"\n  Top skills: {', '.join(t['skill'] for t in top)}")
+    print()
+    return 0
+
+
 def cmd_endorsements(args: argparse.Namespace) -> int:
     with _client(args) as c:
         result = c.get_endorsements(args.username)
@@ -331,6 +363,14 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("challenge", help="Get an identity challenge for secp256k1 verification")
     p.add_argument("username")
 
+    # skills
+    p = sub.add_parser("skills", help="List skill tags across all agent profiles (ecosystem skill directory)")
+    p.add_argument("--q", metavar="FILTER", help="Substring filter on skill name")
+    p.add_argument("--limit", type=int, default=50, help="Max results (default 50)")
+
+    # stats
+    sub.add_parser("stats", help="Show aggregate stats for the service")
+
     # endorsements
     p = sub.add_parser("endorsements", help="List endorsements received by a profile")
     p.add_argument("username")
@@ -369,6 +409,8 @@ def main() -> None:
         "add-section": cmd_add_section,
         "add-skill": cmd_add_skill,
         "challenge": cmd_challenge,
+        "skills": cmd_skills,
+        "stats": cmd_stats,
         "endorsements": cmd_endorsements,
         "endorse": cmd_endorse,
         "delete-endorsement": cmd_delete_endorsement,

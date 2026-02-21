@@ -356,6 +356,146 @@ pub fn list_profiles(
     }))
 }
 
+/// GET /api/v1/skills
+/// List all skill tags registered across all agent profiles, sorted by usage count descending.
+/// Optional ?q= for substring search within skill names.
+#[get("/skills?<q>&<limit>")]
+pub fn list_skills(
+    db: &State<DbConn>,
+    q: Option<&str>,
+    limit: Option<i64>,
+) -> Json<serde_json::Value> {
+    let conn = db.lock().unwrap();
+    let lim = limit.unwrap_or(50).min(200);
+
+    let (sql, skill_filter) = if let Some(filter) = q {
+        (
+            "SELECT LOWER(skill) as skill_lower, COUNT(*) as count \
+             FROM profile_skills \
+             WHERE LOWER(skill) LIKE ?1 \
+             GROUP BY skill_lower \
+             ORDER BY count DESC, skill_lower ASC \
+             LIMIT ?2".to_string(),
+            Some(format!("%{}%", filter.to_lowercase())),
+        )
+    } else {
+        (
+            "SELECT LOWER(skill) as skill_lower, COUNT(*) as count \
+             FROM profile_skills \
+             GROUP BY skill_lower \
+             ORDER BY count DESC, skill_lower ASC \
+             LIMIT ?1".to_string(),
+            None,
+        )
+    };
+
+    let skills: Vec<serde_json::Value> = if let Some(ref f) = skill_filter {
+        let mut stmt = conn.prepare(&sql).unwrap();
+        stmt.query_map(rusqlite::params![f, lim], |row| {
+            Ok(json!({
+                "skill": row.get::<_, String>(0)?,
+                "count": row.get::<_, i64>(1)?,
+            }))
+        }).unwrap().flatten().collect()
+    } else {
+        let mut stmt = conn.prepare(&sql).unwrap();
+        stmt.query_map(rusqlite::params![lim], |row| {
+            Ok(json!({
+                "skill": row.get::<_, String>(0)?,
+                "count": row.get::<_, i64>(1)?,
+            }))
+        }).unwrap().flatten().collect()
+    };
+
+    let total_distinct = conn.query_row(
+        "SELECT COUNT(DISTINCT LOWER(skill)) FROM profile_skills",
+        [],
+        |row| row.get::<_, i64>(0),
+    ).unwrap_or(0);
+
+    Json(json!({
+        "skills": skills,
+        "total_distinct": total_distinct,
+        "showing": skills.len(),
+        "limit": lim,
+    }))
+}
+
+/// GET /api/v1/stats
+/// Aggregate statistics for the service — useful for dashboards and agent discovery.
+#[get("/stats")]
+pub fn get_stats(db: &State<DbConn>) -> Json<serde_json::Value> {
+    let conn = db.lock().unwrap();
+
+    let total_profiles: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM profiles", [], |r| r.get(0)
+    ).unwrap_or(0);
+
+    let profiles_with_pubkey: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM profiles WHERE pubkey != ''", [], |r| r.get(0)
+    ).unwrap_or(0);
+
+    let total_skills: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM profile_skills", [], |r| r.get(0)
+    ).unwrap_or(0);
+
+    let distinct_skills: i64 = conn.query_row(
+        "SELECT COUNT(DISTINCT LOWER(skill)) FROM profile_skills", [], |r| r.get(0)
+    ).unwrap_or(0);
+
+    let total_links: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM profile_links", [], |r| r.get(0)
+    ).unwrap_or(0);
+
+    let total_addresses: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM crypto_addresses", [], |r| r.get(0)
+    ).unwrap_or(0);
+
+    let total_endorsements: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM endorsements", [], |r| r.get(0)
+    ).unwrap_or(0);
+
+    let verified_endorsements: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM endorsements WHERE verified = 1", [], |r| r.get(0)
+    ).unwrap_or(0);
+
+    let avg_score: f64 = conn.query_row(
+        "SELECT AVG(CAST(profile_score AS REAL)) FROM profiles", [], |r| r.get(0)
+    ).unwrap_or(0.0);
+
+    // Top 5 skills
+    let mut top_stmt = conn.prepare(
+        "SELECT LOWER(skill), COUNT(*) as c FROM profile_skills \
+         GROUP BY LOWER(skill) ORDER BY c DESC LIMIT 5"
+    ).unwrap();
+    let top_skills: Vec<serde_json::Value> = top_stmt.query_map([], |row| {
+        Ok(json!({"skill": row.get::<_, String>(0)?, "count": row.get::<_, i64>(1)?}))
+    }).unwrap().flatten().collect();
+
+    Json(json!({
+        "profiles": {
+            "total": total_profiles,
+            "with_pubkey": profiles_with_pubkey,
+            "avg_score": (avg_score * 10.0).round() / 10.0,
+        },
+        "skills": {
+            "total_tags": total_skills,
+            "distinct": distinct_skills,
+            "top": top_skills,
+        },
+        "links": { "total": total_links },
+        "addresses": { "total": total_addresses },
+        "endorsements": {
+            "total": total_endorsements,
+            "verified": verified_endorsements,
+        },
+        "service": {
+            "version": env!("CARGO_PKG_VERSION"),
+            "name": "agent-profile",
+        }
+    }))
+}
+
 #[get("/profiles/<username>")]
 pub fn get_profile(
     db: &State<DbConn>,

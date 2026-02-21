@@ -1244,3 +1244,107 @@ fn test_list_profiles_skill_and_query_combined() {
     assert_eq!(profiles.len(), 1);
     assert_eq!(profiles[0]["username"], "combo-search-agent");
 }
+
+// ===== Skills Directory =====
+
+#[test]
+fn test_list_skills_empty() {
+    let client = test_client();
+    let resp = client.get("/api/v1/skills").dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["skills"].as_array().unwrap().len(), 0);
+    assert_eq!(body["total_distinct"], 0);
+}
+
+#[test]
+fn test_list_skills_with_data() {
+    let client = test_client();
+    let (_, reg_a) = register(&client, "sd-agent-a");
+    let (_, reg_b) = register(&client, "sd-agent-b");
+    let key_a = reg_a["api_key"].as_str().unwrap();
+    let key_b = reg_b["api_key"].as_str().unwrap();
+
+    for skill in &["Rust", "Python"] {
+        client.post("/api/v1/profiles/sd-agent-a/skills")
+            .header(ContentType::JSON)
+            .header(Header::new("X-API-Key", key_a.to_string()))
+            .body(serde_json::json!({"skill": skill}).to_string())
+            .dispatch();
+    }
+    client.post("/api/v1/profiles/sd-agent-b/skills")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key_b.to_string()))
+        .body(r#"{"skill":"Rust"}"#)
+        .dispatch();
+
+    let resp = client.get("/api/v1/skills").dispatch();
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let skills = body["skills"].as_array().unwrap();
+    // Rust should be first (count=2) and python second (count=1)
+    assert_eq!(skills[0]["skill"], "rust");
+    assert_eq!(skills[0]["count"], 2);
+    assert_eq!(body["total_distinct"], 2);
+}
+
+#[test]
+fn test_list_skills_search() {
+    let client = test_client();
+    let (_, reg) = register(&client, "sd-search-agent");
+    let key = reg["api_key"].as_str().unwrap();
+    for skill in &["TypeScript", "JavaScript", "Rust"] {
+        client.post("/api/v1/profiles/sd-search-agent/skills")
+            .header(ContentType::JSON)
+            .header(Header::new("X-API-Key", key.to_string()))
+            .body(serde_json::json!({"skill": skill}).to_string())
+            .dispatch();
+    }
+
+    let resp = client.get("/api/v1/skills?q=script").dispatch();
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let skills = body["skills"].as_array().unwrap();
+    assert_eq!(skills.len(), 2, "should find typescript and javascript");
+    assert!(skills.iter().all(|s| s["skill"].as_str().unwrap().contains("script")));
+}
+
+// ===== Stats =====
+
+#[test]
+fn test_get_stats() {
+    let client = test_client();
+    let resp = client.get("/api/v1/stats").dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    // Check structure
+    assert!(body["profiles"]["total"].is_number());
+    assert!(body["skills"]["distinct"].is_number());
+    assert!(body["endorsements"]["total"].is_number());
+    assert_eq!(body["service"]["name"], "agent-profile");
+}
+
+#[test]
+fn test_get_stats_counts() {
+    let client = test_client();
+    let (_, reg_a) = register(&client, "stats-agent-a");
+    let (_, reg_b) = register(&client, "stats-agent-b");
+    let key_a = reg_a["api_key"].as_str().unwrap();
+    let key_b = reg_b["api_key"].as_str().unwrap();
+
+    // Add skill + endorsement
+    client.post("/api/v1/profiles/stats-agent-a/skills")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key_a.to_string()))
+        .body(r#"{"skill":"Rust"}"#)
+        .dispatch();
+    client.post("/api/v1/profiles/stats-agent-b/endorsements")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key_a.to_string()))
+        .body(serde_json::json!({"from": "stats-agent-a", "message": "Great agent."}).to_string())
+        .dispatch();
+
+    let resp = client.get("/api/v1/stats").dispatch();
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert!(body["profiles"]["total"].as_i64().unwrap() >= 2);
+    assert!(body["skills"]["total_tags"].as_i64().unwrap() >= 1);
+    assert!(body["endorsements"]["total"].as_i64().unwrap() >= 1);
+}

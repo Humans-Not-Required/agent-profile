@@ -498,3 +498,60 @@ def test_delete_endorsement_not_found(client):
     )
     with pytest.raises(NotFoundError):
         client.delete_endorsement("nanook", "nobody", "ap_key123")
+
+
+# ── Skills Directory ───────────────────────────────────────────────────────────
+
+@respx.mock
+def test_list_skills(client):
+    respx.get(f"{BASE}/api/v1/skills").mock(
+        return_value=httpx.Response(200, json={
+            "skills": [
+                {"skill": "rust", "count": 5},
+                {"skill": "python", "count": 3},
+            ],
+            "total_distinct": 2,
+            "showing": 2,
+            "limit": 50,
+        })
+    )
+    result = client.list_skills()
+    assert result["total_distinct"] == 2
+    assert result["skills"][0]["skill"] == "rust"
+    assert result["skills"][0]["count"] == 5
+
+
+@respx.mock
+def test_list_skills_with_filter(client):
+    respx.get(f"{BASE}/api/v1/skills").mock(
+        return_value=httpx.Response(200, json={
+            "skills": [{"skill": "typescript", "count": 2}],
+            "total_distinct": 10,
+            "showing": 1,
+            "limit": 50,
+        })
+    )
+    result = client.list_skills(q="script")
+    assert len(result["skills"]) == 1
+    assert result["skills"][0]["skill"] == "typescript"
+
+
+# ── Stats ──────────────────────────────────────────────────────────────────────
+
+@respx.mock
+def test_get_stats(client):
+    respx.get(f"{BASE}/api/v1/stats").mock(
+        return_value=httpx.Response(200, json={
+            "profiles": {"total": 42, "with_pubkey": 10, "avg_score": 72.5},
+            "skills": {"total_tags": 85, "distinct": 20, "top": [{"skill": "rust", "count": 8}]},
+            "links": {"total": 120},
+            "addresses": {"total": 65},
+            "endorsements": {"total": 15, "verified": 3},
+            "service": {"version": "0.4.0", "name": "agent-profile"},
+        })
+    )
+    result = client.get_stats()
+    assert result["profiles"]["total"] == 42
+    assert result["skills"]["distinct"] == 20
+    assert result["endorsements"]["verified"] == 3
+    assert result["service"]["name"] == "agent-profile"
