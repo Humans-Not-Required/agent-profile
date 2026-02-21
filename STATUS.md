@@ -1,7 +1,7 @@
 # Agent Profile Service - Status
 
 **Version:** 0.4.0   (production-ready)
-**Stage:** Feature complete. Endorsements system live. 94 tests. Awaiting Jordan: PyPI + prod domain.
+**Stage:** Feature complete. Endorsements system live. 104 tests. Awaiting Jordan: PyPI + prod domain.
 **Last updated:** 2026-02-21
 
 ---
@@ -23,6 +23,15 @@
    - Environment name: `pypi`
 3. Push a tag: `git tag sdk-v0.1.0 && git push origin sdk-v0.1.0`
 4. GitHub Actions builds + publishes automatically — no secrets needed
+
+## ✅ Done (Python SDK endorsement methods — Feb 21)
+
+- `client.get_endorsements(username)` — list endorsements (public)
+- `client.add_endorsement(username, from_username, api_key, message, signature=None)` — full docstring, upsert semantics, optional signature
+- `client.delete_endorsement(username, endorser_username, api_key)` — either party can delete
+- CLI: `endorsements`, `endorse`, `delete-endorsement` subcommands with verified badge display
+- 10 new SDK unit tests → 32 total SDK tests
+- Total: **104 tests** (13 unit + 59 integration + 32 Python SDK)
 
 ## ✅ Done (OpenAPI spec — 19 paths — Feb 21)
 
@@ -78,7 +87,7 @@
 - Full `AgentProfileClient` (sync, httpx-based): register, get/update/delete profile, links, addresses, sections, skills, score, challenge/verify, avatar upload, list
 - 6 typed exceptions (`NotFoundError`, `ConflictError`, `RateLimitError`, etc.)
 - CLI (`agent-profile register/get/update/score/list/add-link/...`)
-- 22 unit tests with respx mocking — all passing
+- 32 unit tests with respx mocking — all passing (includes 10 endorsement tests)
 - CI: parallel `test-sdk` job on Python 3.11
 - README with full API reference, error handling guide, valid value tables
 
@@ -147,5 +156,5 @@ See DESIGN.md for full spec. Key points:
 |-------|-------|--------|
 | Rust unit | 13 | ✅ |
 | Rust integration | 59 | ✅ |
-| Python SDK | 22 | ✅ |
-| **Total** | **94** | ✅ |
+| Python SDK | 32 | ✅ |
+| **Total** | **104** | ✅ |
