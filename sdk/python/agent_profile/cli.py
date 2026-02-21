@@ -274,6 +274,33 @@ def cmd_delete_endorsement(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_badge(args: argparse.Namespace) -> int:
+    """Print the SVG badge for a profile."""
+    with _client(args) as client:
+        svg = client.get_badge(args.username)
+        if args.save:
+            with open(args.save, "w") as f:
+                f.write(svg)
+            print(f"Badge saved to {args.save}")
+        else:
+            print(svg)
+    return 0
+
+
+def cmd_webfinger(args: argparse.Namespace) -> int:
+    """Look up an agent's WebFinger identity record."""
+    with _client(args) as client:
+        host = args.host or None
+        data = client.webfinger(args.username, host=host)
+        print(f"Subject: {data.get('subject', '?')}")
+        print("Links:")
+        for link in data.get("links", []):
+            rel = link.get("rel", "").split("/")[-1]
+            href = link.get("href", "")
+            print(f"  {rel}: {href}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="agent-profile",

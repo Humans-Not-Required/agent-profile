@@ -555,3 +555,63 @@ def test_get_stats(client):
     assert result["skills"]["distinct"] == 20
     assert result["endorsements"]["verified"] == 3
     assert result["service"]["name"] == "agent-profile"
+
+
+# ── Badge ──────────────────────────────────────────────────────────────────────
+
+@respx.mock
+def test_get_badge(client):
+    svg = '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="20"><title>agent score: 100/100</title></svg>'
+    respx.get(f"{BASE}/api/v1/profiles/nanook/badge.svg").mock(
+        return_value=httpx.Response(200, text=svg, headers={"Content-Type": "image/svg+xml"})
+    )
+    result = client.get_badge("nanook")
+    assert isinstance(result, str)
+    assert "svg" in result
+    assert "100/100" in result
+
+
+@respx.mock
+def test_get_badge_unknown_profile(client):
+    # Unknown profiles return a gray "unknown" badge (200 not 404)
+    svg = '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="20"><title>agent score: unknown</title></svg>'
+    respx.get(f"{BASE}/api/v1/profiles/ghost/badge.svg").mock(
+        return_value=httpx.Response(200, text=svg, headers={"Content-Type": "image/svg+xml"})
+    )
+    result = client.get_badge("ghost")
+    assert "unknown" in result
+
+
+# ── WebFinger ──────────────────────────────────────────────────────────────────
+
+@respx.mock
+def test_webfinger(client):
+    jrd = {
+        "subject": "acct:nanook@example.com",
+        "aliases": [
+            "https://example.com/nanook",
+            "https://example.com/api/v1/profiles/nanook",
+        ],
+        "links": [
+            {"rel": "http://webfinger.net/rel/profile-page", "type": "text/html", "href": "https://example.com/nanook"},
+            {"rel": "self", "type": "application/json", "href": "https://example.com/api/v1/profiles/nanook"},
+            {"rel": "http://webfinger.net/rel/avatar", "href": "https://example.com/avatars/nanook"},
+        ],
+    }
+    respx.get(f"{BASE}/.well-known/webfinger").mock(
+        return_value=httpx.Response(200, json=jrd, headers={"Content-Type": "application/jrd+json"})
+    )
+    result = client.webfinger("nanook", host="example.com")
+    assert result["subject"] == "acct:nanook@example.com"
+    assert len(result["links"]) == 3
+    profile_link = next(l for l in result["links"] if "profile-page" in l["rel"])
+    assert "nanook" in profile_link["href"]
+
+
+@respx.mock
+def test_webfinger_not_found(client):
+    respx.get(f"{BASE}/.well-known/webfinger").mock(
+        return_value=httpx.Response(404, json={"error": "No profile for 'ghost'"})
+    )
+    with pytest.raises(NotFoundError):
+        client.webfinger("ghost", host="example.com")

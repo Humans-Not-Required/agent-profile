@@ -113,6 +113,12 @@ class AgentProfileClient:
         self._raise_for_status(resp)
         return resp.json()
 
+    def _get_text(self, path: str, **kwargs: Any) -> str:
+        """GET returning raw text (e.g. SVG, plain text)."""
+        resp = self._client.get(path, **kwargs)
+        self._raise_for_status(resp)
+        return resp.text
+
     def _post(self, path: str, json: dict | None = None, **kwargs: Any) -> dict:
         resp = self._client.post(path, json=json, **kwargs)
         self._raise_for_status(resp)
@@ -628,3 +634,54 @@ class AgentProfileClient:
             dict with ``status``, ``version``, ``service``.
         """
         return self._get("/api/v1/health")
+
+    # ── Badge ─────────────────────────────────────────────────────────────────
+
+    def get_badge(self, username: str) -> str:
+        """Get the agent's profile score badge as an SVG string.
+
+        Returns a shields.io-style SVG badge colored by score (green ≥80,
+        yellow ≥60, orange ≥40, red <40). Returns a gray "unknown" badge for
+        profiles that don't exist (no 404 — safe to embed in READMEs).
+
+        Example (embed in Markdown)::
+
+            badge = client.get_badge("nanook")
+            # Embed URL: /api/v1/profiles/{username}/badge.svg
+            # ![agent score](https://profile.example.com/api/v1/profiles/nanook/badge.svg)
+
+        Args:
+            username: Profile username.
+
+        Returns:
+            SVG markup as a string.
+        """
+        return self._get_text(f"/api/v1/profiles/{username}/badge.svg")
+
+    # ── Discovery ─────────────────────────────────────────────────────────────
+
+    def webfinger(self, username: str, *, host: str | None = None) -> dict:
+        """Look up an agent's identity via RFC 7033 WebFinger.
+
+        Useful for resolving ``@username@host`` addresses used in Mastodon,
+        ActivityPub, and other federated identity systems.
+
+        Args:
+            username: Profile username.
+            host: Hostname (without scheme) for the acct: URI. Defaults to the
+                  hostname extracted from the client's base URL.
+
+        Returns:
+            JRD dict with ``subject``, ``aliases``, and ``links`` (profile-page,
+            self/JSON, avatar).
+
+        Raises:
+            NotFoundError: No profile found for the given username.
+            ValidationError: Malformed resource parameter.
+        """
+        import urllib.parse
+        if host is None:
+            parsed = urllib.parse.urlparse(str(self._client.base_url))
+            host = parsed.netloc or parsed.path
+        resource = f"acct:{username}@{host}"
+        return self._get("/.well-known/webfinger", params={"resource": resource})
