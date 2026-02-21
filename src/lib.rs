@@ -9,6 +9,7 @@ use routes::profiles::{
     health, create_profile, list_profiles, get_profile, update_profile, delete_profile,
     add_address, delete_address, add_link, delete_link, add_skill, delete_skill,
 };
+use routes::html::profile_page;
 
 pub fn create_rocket(db_path: &str) -> rocket::Rocket<rocket::Build> {
     let conn = Connection::open(db_path).expect("Failed to open database");
@@ -31,4 +32,5 @@ pub fn create_rocket(db_path: &str) -> rocket::Rocket<rocket::Build> {
             add_skill,
             delete_skill,
         ])
+        .mount("/", rocket::routes![profile_page])
 }

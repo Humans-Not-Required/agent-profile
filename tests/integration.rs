@@ -432,3 +432,51 @@ fn test_profile_has_all_sub_resources() {
     assert_eq!(profile["links"].as_array().unwrap().len(), 1);
     assert_eq!(profile["skills"].as_array().unwrap().len(), 1);
 }
+
+// --- HTML Profile Page Tests ---
+
+#[test]
+fn test_html_profile_page_exists() {
+    let client = test_client();
+    let (_, create_body) = create_test_profile(&client, "html-test");
+    let token = create_body["manage_token"].as_str().unwrap();
+
+    client.post("/api/v1/profiles/html-test/skills")
+        .header(ContentType::JSON)
+        .header(Header::new("X-Manage-Token", token.to_string()))
+        .body(serde_json::json!({"skill": "rust"}).to_string())
+        .dispatch();
+
+    let resp = client.get("/agents/html-test").dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body = resp.into_string().unwrap();
+    assert!(body.contains("<!DOCTYPE html>"));
+    assert!(body.contains("html-test"));
+    assert!(body.contains("Test Agent html-test"));
+    assert!(body.contains("rust"));
+    assert!(body.contains(r#"/api/v1/profiles/html-test"#));
+}
+
+#[test]
+fn test_html_profile_page_not_found() {
+    let client = test_client();
+    let resp = client.get("/agents/nonexistent-profile").dispatch();
+    assert_eq!(resp.status(), Status::NotFound);
+}
+
+#[test]
+fn test_html_profile_page_case_insensitive() {
+    let client = test_client();
+    let _ = create_test_profile(&client, "htmlcase");
+    let resp = client.get("/agents/HTMLCASE").dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+}
+
+#[test]
+fn test_html_profile_page_content_type_is_html() {
+    let client = test_client();
+    let _ = create_test_profile(&client, "ctype-test");
+    let resp = client.get("/agents/ctype-test").dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    assert!(resp.content_type().unwrap().is_html());
+}

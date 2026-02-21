@@ -1,6 +1,6 @@
 # Agent Profile Service — Status
 
-**Version:** 0.1.0  
+**Version:** 0.2.0  
 **Stage:** Active development  
 **Last updated:** 2026-02-21
 
@@ -32,8 +32,8 @@
 
 ### 🔄 In Progress
 
-- [ ] HTML profile page at `/agents/{slug}` (frontend TBD)
-- [ ] OpenAPI spec (`openapi.json`)
+- [x] HTML profile page at `/agents/{slug}` — dark-mode card UI, responsive, no external deps ✅ (v0.2.0)
+- [x] OpenAPI spec (`openapi.json`) — OpenAPI 3.1.0, all endpoints, schemas, auth ✅ (v0.2.0)
 - [ ] Rate limiting (max profiles per source IP)
 
 ### 📋 Planned
@@ -61,5 +61,5 @@
 | Scope | Count | Status |
 |-------|-------|--------|
 | Unit (models) | 4 | ✅ |
-| Integration | 27 | ✅ |
-| **Total** | **31** | **✅** |
+| Integration | 31 | ✅ |
+| **Total** | **35** | **✅** |

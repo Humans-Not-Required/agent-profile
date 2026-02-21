@@ -8,7 +8,7 @@ use std::sync::Mutex;
 
 use crate::models::*;
 
-type DbConn = Mutex<Connection>;
+pub type DbConn = Mutex<Connection>;
 
 fn hash_token(token: &str) -> String {
     let mut hasher = Sha256::new();
@@ -24,7 +24,7 @@ fn now() -> String {
     Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string()
 }
 
-fn load_profile(conn: &Connection, slug: &str) -> Option<Profile> {
+pub(crate) fn load_profile(conn: &Connection, slug: &str) -> Option<Profile> {
     let result = conn.query_row(
         "SELECT id, slug, display_name, bio, avatar_url, created_at, updated_at FROM profiles WHERE slug = ?1",
         params![slug],
