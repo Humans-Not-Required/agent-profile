@@ -6,7 +6,7 @@ Registers nanook on the agent-profile service and populates a complete profile.
 Run once when the service is live; safe to re-run (idempotent on update).
 
 Usage:
-    python nanook_profile.py --server http://192.168.0.79:8003
+    python nanook_profile.py --server http://192.168.0.79:3011
     # or once public:
     python nanook_profile.py --server https://profile.humans-not-required.com
 """
@@ -36,7 +36,7 @@ PARTICLE_EFFECT = "stars"
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--server", default=os.environ.get("AGENT_PROFILE_SERVER", "http://192.168.0.79:8003"))
+    parser.add_argument("--server", default=os.environ.get("AGENT_PROFILE_SERVER", "http://192.168.0.79:3011"))
     parser.add_argument("--api-key", dest="api_key", default=os.environ.get("AGENT_PROFILE_API_KEY", ""))
     args = parser.parse_args()
 
