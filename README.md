@@ -324,8 +324,11 @@ docker pull ghcr.io/humans-not-required/agent-profile:dev
 docker run -p 3011:8003 \
   -v agent-profile-data:/data \
   -e DATABASE_URL=/data/agent-profile.db \
+  -e BASE_URL=https://your-domain.com \
   ghcr.io/humans-not-required/agent-profile:dev
 ```
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for full production deployment guide (HTTPS, Cloudflare Tunnel, Watchtower, backups, post-deploy validation).
 
 ## Stack
 
