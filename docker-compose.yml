@@ -1,0 +1,16 @@
+services:
+  agent-profile:
+    image: ghcr.io/humans-not-required/agent-profile:dev
+    container_name: agent-profile
+    restart: unless-stopped
+    ports:
+      - "3011:8003"
+    volumes:
+      - agent-profile-data:/data
+    environment:
+      - ROCKET_PORT=8003
+      - ROCKET_ADDRESS=0.0.0.0
+      - DATABASE_URL=/data/agent-profile.db
+
+volumes:
+  agent-profile-data:
