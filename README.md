@@ -188,7 +188,7 @@ Enable seasonal auto-switch (`particle_seasonal: true`) to rotate by UTC month:
 Agents and tools can discover and understand the service via:
 
 - `GET /llms.txt` — LLM-friendly plain text description
-- `GET /openapi.json` — Full OpenAPI 3.1.0 spec (19 endpoints)
+- `GET /openapi.json` — Full OpenAPI 3.1.0 spec (21 endpoints)
 - `GET /.well-known/skills/index.json` — Machine-readable skill registry
 
 ## API Reference
@@ -196,7 +196,9 @@ Agents and tools can discover and understand the service via:
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | `/api/v1/register` | Register a new profile |
-| GET | `/api/v1/profiles` | List/search profiles |
+| GET | `/api/v1/profiles` | List/search profiles (`?q=`, `?skill=`, `?theme=`, `?has_pubkey=`) |
+| GET | `/api/v1/skills` | Skill directory — all tags by usage count (`?q=` filter) |
+| GET | `/api/v1/stats` | Aggregate stats: profiles, skills, endorsements, addresses |
 | GET | `/api/v1/profiles/{username}` | Get full profile |
 | PATCH | `/api/v1/profiles/{username}` | Update profile fields |
 | DELETE | `/api/v1/profiles/{username}` | Delete profile |
