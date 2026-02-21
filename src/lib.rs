@@ -23,7 +23,7 @@ use routes::profiles::{
     upload_avatar, serve_avatar,
     get_challenge, verify_signature,
     add_endorsement, get_endorsements, delete_endorsement,
-    llms_txt, openapi_json, skills_index, robots_txt, sitemap_xml,
+    llms_txt, openapi_json, skills_index, robots_txt, sitemap_xml, webfinger,
 };
 use routes::html::profile_page;
 
@@ -90,6 +90,7 @@ pub fn create_rocket(db_path: &str) -> rocket::Rocket<rocket::Build> {
             skills_index,
             robots_txt,
             sitemap_xml,
+            webfinger,
             assets::serve_asset,
         ])
 }

@@ -1443,6 +1443,9 @@ GET /llms.txt                   — this file
 GET /.well-known/skills/index.json — machine-readable skill registry
 GET /robots.txt                 — crawler policy (allow all) + sitemap pointer
 GET /sitemap.xml                — dynamic XML sitemap of all agent profile pages
+GET /.well-known/webfinger      — RFC 7033 identity lookup; ?resource=acct:{username}@{host}
+  Returns application/jrd+json with profile-page and self links
+  Enables @username@host addressing used by Mastodon, ActivityPub, Keyoxide
 
 ## Source & SDK
 
@@ -1509,6 +1512,12 @@ pub fn skills_index() -> (ContentType, String) {
                 "name": "Get embeddable profile badge",
                 "endpoint": "GET /api/v1/profiles/{username}/badge.svg",
                 "description": "Returns a shields.io-style SVG badge showing the agent's profile score. Embed in READMEs with ![agent score](https://<host>/api/v1/profiles/<username>/badge.svg)"
+            },
+            {
+                "id": "webfinger-lookup",
+                "name": "WebFinger identity lookup",
+                "endpoint": "GET /.well-known/webfinger?resource=acct:{username}@{host}",
+                "description": "RFC 7033 identity discovery. Returns application/jrd+json with links to profile page and JSON API. Enables @username@host addressing used by Mastodon, ActivityPub, and Keyoxide."
             }
         ]
     }).to_string())
@@ -1570,6 +1579,79 @@ pub fn sitemap_xml(db: &State<DbConn>) -> (ContentType, String) {
     xml.push_str("</urlset>\n");
 
     (ContentType::new("text", "xml"), xml)
+}
+
+// --- WebFinger (RFC 7033) ---
+
+/// GET /.well-known/webfinger?resource=acct:{username}@{host}
+/// Standard identity discovery — makes agent profiles reachable via @username@host addressing.
+/// Used by Mastodon, ActivityPub, Keyoxide, and other decentralized identity systems.
+/// Returns application/jrd+json with links to the profile page and JSON API endpoint.
+#[get("/.well-known/webfinger?<resource>")]
+pub fn webfinger(
+    db: &State<DbConn>,
+    resource: Option<String>,
+) -> Result<(ContentType, String), (Status, Json<serde_json::Value>)> {
+    // Validate resource param
+    let resource = resource.ok_or_else(|| {
+        (Status::BadRequest, Json(json!({"error": "Missing required query parameter: resource"})))
+    })?;
+
+    // Parse acct:username@host format
+    let acct = resource.strip_prefix("acct:").ok_or_else(|| {
+        (Status::BadRequest, Json(json!({"error": "resource must use acct: URI scheme (e.g. acct:username@host)"})))
+    })?;
+
+    let username = acct.split('@').next().unwrap_or("").to_lowercase();
+    if username.is_empty() {
+        return Err((Status::BadRequest, Json(json!({"error": "Could not parse username from resource"}))));
+    }
+
+    // Look up profile
+    let conn = db.lock().unwrap();
+    let exists = conn.query_row(
+        "SELECT 1 FROM profiles WHERE username = ?1",
+        params![username],
+        |_| Ok(()),
+    ).is_ok();
+
+    if !exists {
+        return Err((Status::NotFound, Json(json!({"error": format!("No profile for '{}'", username)}))));
+    }
+
+    let base = std::env::var("BASE_URL")
+        .unwrap_or_default()
+        .trim_end_matches('/')
+        .to_string();
+
+    let subject = resource.clone();
+    let profile_page = format!("{}/{}", base, username);
+    let json_url = format!("{}/api/v1/profiles/{}", base, username);
+    let avatar_url = format!("{}/avatars/{}", base, username);
+
+    let jrd = json!({
+        "subject": subject,
+        "aliases": [profile_page, json_url],
+        "links": [
+            {
+                "rel": "http://webfinger.net/rel/profile-page",
+                "type": "text/html",
+                "href": profile_page
+            },
+            {
+                "rel": "self",
+                "type": "application/json",
+                "href": json_url
+            },
+            {
+                "rel": "http://webfinger.net/rel/avatar",
+                "href": avatar_url
+            }
+        ]
+    });
+
+    // JRD content type: application/jrd+json (RFC 7033 §10.2)
+    Ok((ContentType::new("application", "jrd+json"), jrd.to_string()))
 }
 
 // --- Endorsements ---

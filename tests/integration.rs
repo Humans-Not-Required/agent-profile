@@ -1451,3 +1451,45 @@ fn test_sitemap_xml_includes_profiles() {
     let body = resp.into_string().unwrap();
     assert!(body.contains("sitemap-test-agent-xyz"), "newly registered profile should appear in sitemap");
 }
+
+// ===== WebFinger (RFC 7033) =====
+
+#[test]
+fn test_webfinger_existing_profile() {
+    let client = test_client();
+    register(&client, "webfinger-test-agent");
+
+    let resp = client.get("/.well-known/webfinger?resource=acct:webfinger-test-agent@example.com").dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let ct = resp.content_type().unwrap().to_string();
+    assert!(ct.contains("jrd+json") || ct.contains("application"), "content-type should be jrd+json, got {}", ct);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["subject"], "acct:webfinger-test-agent@example.com");
+    assert!(body["links"].as_array().unwrap().len() >= 2, "should have at least 2 links");
+    let rels: Vec<&str> = body["links"].as_array().unwrap().iter()
+        .filter_map(|l| l["rel"].as_str())
+        .collect();
+    assert!(rels.iter().any(|r| r.contains("profile-page")), "should have profile-page rel");
+    assert!(rels.iter().any(|r| *r == "self"), "should have self rel");
+}
+
+#[test]
+fn test_webfinger_not_found() {
+    let client = test_client();
+    let resp = client.get("/.well-known/webfinger?resource=acct:nobody-xyz-123@example.com").dispatch();
+    assert_eq!(resp.status(), Status::NotFound);
+}
+
+#[test]
+fn test_webfinger_missing_resource() {
+    let client = test_client();
+    let resp = client.get("/.well-known/webfinger").dispatch();
+    assert_eq!(resp.status(), Status::BadRequest);
+}
+
+#[test]
+fn test_webfinger_bad_scheme() {
+    let client = test_client();
+    let resp = client.get("/.well-known/webfinger?resource=https://example.com/nanook").dispatch();
+    assert_eq!(resp.status(), Status::BadRequest);
+}

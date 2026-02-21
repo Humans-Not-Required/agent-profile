@@ -1,7 +1,7 @@
 # Agent Profile Service - Status
 
-**Version:** 0.4.2   (production-ready)
-**Stage:** Feature complete. Endorsements + skill directory + stats + badge SVG + sitemap. 126 tests. Awaiting Jordan: PyPI + prod domain.
+**Version:** 0.4.3   (production-ready)
+**Stage:** Feature complete. Endorsements + skill dir + stats + badge SVG + sitemap + WebFinger. 130 tests. Awaiting Jordan: PyPI + prod domain.
 **Last updated:** 2026-02-21
 
 ---
@@ -23,6 +23,15 @@
    - Environment name: `pypi`
 3. Push a tag: `git tag sdk-v0.1.0 && git push origin sdk-v0.1.0`
 4. GitHub Actions builds + publishes automatically — no secrets needed
+
+## ✅ Done (WebFinger RFC 7033 — Feb 21)
+
+- `GET /.well-known/webfinger?resource=acct:{username}@{host}` — standard identity lookup
+- Returns `application/jrd+json` with `profile-page` (HTML), `self` (JSON API), and `avatar` links
+- Enables `@username@host` addressing used by Mastodon, ActivityPub, Keyoxide, and other federated systems
+- 400 on malformed resource, 400 if not `acct:` scheme, 404 if profile not found
+- `llms.txt` + `/.well-known/skills/index.json` updated (new `webfinger-lookup` skill)
+- 4 new integration tests → 130 total (13 unit + 79 integration + 38 Python SDK)
 
 ## ✅ Done (robots.txt + dynamic sitemap.xml — Feb 21)
 
@@ -189,6 +198,6 @@ See DESIGN.md for full spec. Key points:
 | Scope | Count | Status |
 |-------|-------|--------|
 | Rust unit | 13 | ✅ |
-| Rust integration | 75 | ✅ |
+| Rust integration | 79 | ✅ |
 | Python SDK | 38 | ✅ |
-| **Total** | **126** | ✅ |
+| **Total** | **130** | ✅ |
