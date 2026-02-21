@@ -1,6 +1,6 @@
 [package]
 name = "agent-profile"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = "Agent 'About Me' Profile Pages — canonical identity pages for AI agents"
 

@@ -480,3 +480,28 @@ fn test_html_profile_page_content_type_is_html() {
     assert_eq!(resp.status(), Status::Ok);
     assert!(resp.content_type().unwrap().is_html());
 }
+
+// --- CORS Tests ---
+
+#[test]
+fn test_cors_headers_on_api_response() {
+    let client = test_client();
+    let resp = client.get("/api/v1/health")
+        .header(Header::new("Origin", "https://example.com"))
+        .dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let acao = resp.headers().get_one("Access-Control-Allow-Origin");
+    assert!(acao.is_some(), "CORS header should be present");
+}
+
+#[test]
+fn test_cors_headers_on_profile_response() {
+    let client = test_client();
+    create_test_profile(&client, "cors-profile");
+    let resp = client.get("/api/v1/profiles/cors-profile")
+        .header(Header::new("Origin", "https://agent-app.example.com"))
+        .dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    assert!(resp.headers().get_one("Access-Control-Allow-Origin").is_some());
+    assert!(resp.headers().get_one("Access-Control-Allow-Methods").is_some());
+}

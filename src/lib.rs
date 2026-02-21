@@ -1,3 +1,4 @@
+pub mod cors;
 pub mod db;
 pub mod models;
 pub mod routes;
@@ -5,6 +6,7 @@ pub mod routes;
 use rusqlite::Connection;
 use std::sync::Mutex;
 
+use cors::Cors;
 use routes::profiles::{
     health, create_profile, list_profiles, get_profile, update_profile, delete_profile,
     add_address, delete_address, add_link, delete_link, add_skill, delete_skill,
@@ -18,6 +20,7 @@ pub fn create_rocket(db_path: &str) -> rocket::Rocket<rocket::Build> {
 
     rocket::build()
         .manage(db_state)
+        .attach(Cors)
         .mount("/api/v1", rocket::routes![
             health,
             create_profile,
