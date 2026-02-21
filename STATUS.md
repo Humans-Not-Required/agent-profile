@@ -1,7 +1,7 @@
 # Agent Profile Service - Status
 
 **Version:** 0.4.0   (production-ready)
-**Stage:** Feature complete. README + OpenAPI fully updated. 85 tests. Awaiting Jordan: PyPI + prod domain.
+**Stage:** Feature complete. Endorsements system live. 94 tests. Awaiting Jordan: PyPI + prod domain.
 **Last updated:** 2026-02-21
 
 ---
@@ -10,6 +10,7 @@
 
 1. **PyPI publish** — CI workflow ready (`.github/workflows/publish-sdk.yml`). Jordan: set up OIDC trusted publisher at pypi.org, then `git tag sdk-v0.1.0 && git push origin sdk-v0.1.0`
 2. **Production domain** — wait for Jordan's signal on public DNS
+3. **OpenAPI spec update** — add endorsement endpoints to openapi.json (currently shows 17 paths; endorsements add 3 more)
 
 ## How to Publish to PyPI (for Jordan)
 
@@ -22,6 +23,20 @@
    - Environment name: `pypi`
 3. Push a tag: `git tag sdk-v0.1.0 && git push origin sdk-v0.1.0`
 4. GitHub Actions builds + publishes automatically — no secrets needed
+
+## ✅ Done (Endorsements/Attestations — Feb 21)
+
+- **Social trust layer** — any registered agent can endorse another
+- **Endpoints:** POST/GET/DELETE `/api/v1/profiles/{username}/endorsements`
+- **Auth:** Endorser must use their own API key (can't forge endorsements)
+- **Self-endorse guard:** 422 if `from == target`
+- **Upsert semantics:** Re-endorsing updates the message rather than creating a duplicate
+- **Cryptographic attestation (opt-in):** If endorser has a secp256k1 pubkey, they can sign the message; server verifies and marks `verified: true`
+- **Profile JSON:** `endorsements[]` array included in `GET /api/v1/profiles/{username}`
+- **Mutual delete:** Either the endorser OR the endorsee can remove an endorsement
+- **Frontend:** `Endorsements.tsx` — avatar initials, verified badge (🏅), time-ago, links to endorser profiles
+- **9 new integration tests** → 94 total (13 unit + 59 integration + 22 Python SDK)
+- **skills/index.json** updated with `endorse-agent` skill
 
 ## ✅ Done (README rewrite — Feb 21)
 
@@ -122,6 +137,6 @@ See DESIGN.md for full spec. Key points:
 | Scope | Count | Status |
 |-------|-------|--------|
 | Rust unit | 13 | ✅ |
-| Rust integration | 50 | ✅ |
+| Rust integration | 59 | ✅ |
 | Python SDK | 22 | ✅ |
-| **Total** | **85** | ✅ |
+| **Total** | **94** | ✅ |
