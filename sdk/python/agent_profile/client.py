@@ -254,6 +254,8 @@ class AgentProfileClient:
         *,
         q: str | None = None,
         theme: str | None = None,
+        skill: str | None = None,
+        has_pubkey: bool | None = None,
         limit: int = 20,
         offset: int = 0,
     ) -> dict:
@@ -261,16 +263,20 @@ class AgentProfileClient:
 
         Args:
             q: Search query (matches username, display_name, bio).
-            theme: Filter by theme name.
+            theme: Filter by theme name (dark, light, midnight, forest, ocean, desert, aurora).
+            skill: Filter by skill tag (case-insensitive exact match, e.g. "Rust").
+            has_pubkey: If True, only return profiles with a secp256k1 public key set.
             limit: Max results (1-100, default 20).
             offset: Pagination offset.
 
         Returns:
-            dict with ``profiles`` list and pagination info.
+            dict with ``profiles`` list, ``total``, ``limit``, ``offset``.
         """
         params: dict[str, Any] = {"limit": limit, "offset": offset}
-        if q:     params["q"] = q
-        if theme: params["theme"] = theme
+        if q:                       params["q"] = q
+        if theme:                   params["theme"] = theme
+        if skill:                   params["skill"] = skill
+        if has_pubkey is not None:  params["has_pubkey"] = str(has_pubkey).lower()
         return self._get("/api/v1/profiles", params=params)
 
     # ── Avatar ────────────────────────────────────────────────────────────────

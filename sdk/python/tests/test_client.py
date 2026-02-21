@@ -302,6 +302,41 @@ def test_list_profiles_search(client):
     assert result["total"] == 0
 
 
+@respx.mock
+def test_list_profiles_by_skill(client):
+    respx.get(f"{BASE}/api/v1/profiles").mock(
+        return_value=httpx.Response(200, json={
+            "profiles": [{"username": "rust-bot", "display_name": "Rust Bot", "profile_score": 70}],
+            "total": 1, "limit": 20, "offset": 0,
+        })
+    )
+    result = client.list_profiles(skill="Rust")
+    assert result["total"] == 1
+    assert result["profiles"][0]["username"] == "rust-bot"
+
+
+@respx.mock
+def test_list_profiles_has_pubkey(client):
+    respx.get(f"{BASE}/api/v1/profiles").mock(
+        return_value=httpx.Response(200, json={
+            "profiles": [{"username": "crypto-agent", "display_name": "Crypto", "profile_score": 90}],
+            "total": 1, "limit": 20, "offset": 0,
+        })
+    )
+    result = client.list_profiles(has_pubkey=True)
+    assert result["total"] == 1
+    assert result["profiles"][0]["username"] == "crypto-agent"
+
+
+@respx.mock
+def test_list_profiles_skill_and_query(client):
+    respx.get(f"{BASE}/api/v1/profiles").mock(
+        return_value=httpx.Response(200, json={"profiles": [], "total": 0, "limit": 20, "offset": 0})
+    )
+    result = client.list_profiles(skill="Go", q="distributed")
+    assert result["total"] == 0
+
+
 # ── Error handling ────────────────────────────────────────────────────────────
 
 @respx.mock

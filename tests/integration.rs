@@ -1133,3 +1133,114 @@ fn test_endorsement_message_too_long() {
     let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
     assert!(body["error"].as_str().unwrap().contains("500"));
 }
+
+// ===== Skill-based search =====
+
+#[test]
+fn test_list_profiles_by_skill() {
+    let client = test_client();
+    let (_, reg_a) = register(&client, "skill-rust-agent");
+    let (_, reg_b) = register(&client, "skill-python-agent");
+    let key_a = reg_a["api_key"].as_str().unwrap();
+    let key_b = reg_b["api_key"].as_str().unwrap();
+
+    // Add skills
+    client.post("/api/v1/profiles/skill-rust-agent/skills")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key_a.to_string()))
+        .body(r#"{"skill":"Rust"}"#)
+        .dispatch();
+    client.post("/api/v1/profiles/skill-python-agent/skills")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key_b.to_string()))
+        .body(r#"{"skill":"Python"}"#)
+        .dispatch();
+
+    // Filter by skill=Rust → only rust agent
+    let resp = client.get("/api/v1/profiles?skill=Rust").dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let profiles = body["profiles"].as_array().unwrap();
+    assert_eq!(profiles.len(), 1, "should find exactly 1 Rust profile");
+    assert_eq!(profiles[0]["username"], "skill-rust-agent");
+}
+
+#[test]
+fn test_list_profiles_skill_case_insensitive() {
+    let client = test_client();
+    let (_, reg) = register(&client, "skill-ci-agent");
+    let key = reg["api_key"].as_str().unwrap();
+    client.post("/api/v1/profiles/skill-ci-agent/skills")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.to_string()))
+        .body(r#"{"skill":"TypeScript"}"#)
+        .dispatch();
+
+    // Search with different case
+    let resp = client.get("/api/v1/profiles?skill=typescript").dispatch();
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let profiles = body["profiles"].as_array().unwrap();
+    assert!(profiles.iter().any(|p| p["username"] == "skill-ci-agent"),
+        "case-insensitive skill search should find TypeScript with 'typescript'");
+}
+
+#[test]
+fn test_list_profiles_skill_no_match() {
+    let client = test_client();
+    let resp = client.get("/api/v1/profiles?skill=COBOL9000NONEXISTENT").dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["total"], 0);
+    assert_eq!(body["profiles"].as_array().unwrap().len(), 0);
+}
+
+#[test]
+fn test_list_profiles_has_pubkey() {
+    let client = test_client();
+    let pubkey = "02a1633cafcc01ebfb6d78e39f687a1f0995c62fc95f51ead10a02ee0be551b5dc";
+    let (_, reg_pk) = register(&client, "hpk-with-key");
+    let (_, _reg_no) = register(&client, "hpk-no-key");
+    let key_pk = reg_pk["api_key"].as_str().unwrap();
+
+    client.patch("/api/v1/profiles/hpk-with-key")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key_pk.to_string()))
+        .body(serde_json::json!({"pubkey": pubkey}).to_string())
+        .dispatch();
+
+    let resp = client.get("/api/v1/profiles?has_pubkey=true").dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let profiles = body["profiles"].as_array().unwrap();
+    // All returned profiles must have a pubkey
+    assert!(!profiles.is_empty(), "should find at least one profile with pubkey");
+    assert!(profiles.iter().all(|p| {
+        p["username"] != "hpk-no-key"
+    }), "profile without pubkey should not appear");
+}
+
+#[test]
+fn test_list_profiles_skill_and_query_combined() {
+    let client = test_client();
+    let (_, reg) = register(&client, "combo-search-agent");
+    let key = reg["api_key"].as_str().unwrap();
+
+    client.post("/api/v1/profiles/combo-search-agent/skills")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.to_string()))
+        .body(r#"{"skill":"Go"}"#)
+        .dispatch();
+    client.patch("/api/v1/profiles/combo-search-agent")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.to_string()))
+        .body(r#"{"bio":"builds distributed systems with zebraduck42 token"}"#)
+        .dispatch();
+
+    // Combined skill + text search
+    let resp = client.get("/api/v1/profiles?skill=Go&q=zebraduck42").dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let profiles = body["profiles"].as_array().unwrap();
+    assert_eq!(profiles.len(), 1);
+    assert_eq!(profiles[0]["username"], "combo-search-agent");
+}

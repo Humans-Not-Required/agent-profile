@@ -277,11 +277,13 @@ pub fn reissue_key(
 
 // --- Profile CRUD ---
 
-#[get("/profiles?<q>&<theme>&<limit>&<offset>")]
+#[get("/profiles?<q>&<theme>&<skill>&<has_pubkey>&<limit>&<offset>")]
 pub fn list_profiles(
     db: &State<DbConn>,
     q: Option<&str>,
     theme: Option<&str>,
+    skill: Option<&str>,
+    has_pubkey: Option<bool>,
     limit: Option<i64>,
     offset: Option<i64>,
 ) -> Json<serde_json::Value> {
@@ -305,6 +307,17 @@ pub fn list_profiles(
     if let Some(t) = theme {
         conditions.push(format!("theme = ?{}", values.len() + 1));
         values.push(Box::new(t.to_string()));
+    }
+    if let Some(s) = skill {
+        // Subquery: profiles that have at least one skill matching (case-insensitive)
+        conditions.push(format!(
+            "id IN (SELECT profile_id FROM profile_skills WHERE LOWER(skill) = LOWER(?{}))",
+            values.len() + 1
+        ));
+        values.push(Box::new(s.to_string()));
+    }
+    if has_pubkey == Some(true) {
+        conditions.push("pubkey != ''".to_string());
     }
 
     if !conditions.is_empty() {

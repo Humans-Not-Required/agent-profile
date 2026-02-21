@@ -94,6 +94,20 @@
             }
           },
           {
+            "name": "skill",
+            "in": "query",
+            "description": "Filter by skill tag (case-insensitive exact match). Returns only profiles that have this skill listed.",
+            "schema": { "type": "string" },
+            "example": "Rust"
+          },
+          {
+            "name": "has_pubkey",
+            "in": "query",
+            "description": "If true, return only profiles with a secp256k1 public key set (cryptographic identity enabled).",
+            "schema": { "type": "boolean" },
+            "example": true
+          },
+          {
             "name": "limit",
             "in": "query",
             "description": "Max results (1–100, default 20)",
@@ -108,7 +122,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Paginated list of profiles (ordered by profile_score desc)",
+            "description": "Paginated list of profiles (ordered by profile_score desc, then created_at desc)",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/ProfileListResponse" }
