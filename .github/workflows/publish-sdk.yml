@@ -1,0 +1,73 @@
+name: Publish Python SDK
+
+# Trigger: push a tag like sdk-v0.1.0
+# To publish: git tag sdk-v0.1.1 && git push origin sdk-v0.1.1
+on:
+  push:
+    tags:
+      - 'sdk-v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install build tools
+        run: pip install build
+
+      - name: Build wheel + sdist
+        run: |
+          cd sdk/python
+          python -m build
+
+      - name: Upload distribution artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-sdk-dist
+          path: sdk/python/dist/
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install SDK + test deps
+        run: |
+          cd sdk/python
+          pip install -e ".[dev]"
+
+      - name: Run SDK tests
+        run: |
+          cd sdk/python
+          python -m pytest tests/ -v
+
+  publish:
+    needs: [build, test]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/agent-profile
+    permissions:
+      id-token: write  # Required for OIDC trusted publisher
+    steps:
+      - name: Download distribution artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-sdk-dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        # Uses OIDC trusted publisher — no API token needed.
+        # One-time setup: register on PyPI at https://pypi.org/manage/account/publishing/
+        # Publisher: GitHub Actions, repo: Humans-Not-Required/agent-profile
+        # Workflow: publish-sdk.yml, environment: pypi
