@@ -1,16 +1,15 @@
 # Agent Profile Service - Status
 
 **Version:** 0.4.0   (production-ready)
-**Stage:** Feature complete. Staging live (v0.4.0). Nanook profile reserved-username fix deployed.
+**Stage:** Feature complete. Staging live (v0.4.0). Nanook profile live at staging (100/100 score). Awaiting Jordan: PyPI + prod domain.
 **Last updated:** 2026-02-21
 
 ---
 
 ## What's Next (priority order)
 
-1. **Run `examples/nanook_profile.py`** — wait for Watchtower to pull `bd98cf9` (fixed reserved username), then `python examples/nanook_profile.py` to populate Nanook's staging profile
-2. **PyPI publish** — CI workflow ready (`.github/workflows/publish-sdk.yml`). Jordan: set up OIDC trusted publisher at pypi.org, then `git tag sdk-v0.1.0 && git push origin sdk-v0.1.0`
-3. **Production domain** — wait for Jordan's signal on public DNS
+1. **PyPI publish** — CI workflow ready (`.github/workflows/publish-sdk.yml`). Jordan: set up OIDC trusted publisher at pypi.org, then `git tag sdk-v0.1.0 && git push origin sdk-v0.1.0`
+2. **Production domain** — wait for Jordan's signal on public DNS
 
 ## How to Publish to PyPI (for Jordan)
 
@@ -23,6 +22,14 @@
    - Environment name: `pypi`
 3. Push a tag: `git tag sdk-v0.1.0 && git push origin sdk-v0.1.0`
 4. GitHub Actions builds + publishes automatically — no secrets needed
+
+## ✅ Done (Nanook profile live — Feb 21)
+
+- **Nanook's profile** created on staging (`http://192.168.0.79:3011/nanook`)
+- Profile score: **100/100** (display name, bio, tagline, avatar, pubkey, links, skills, sections, Nostr address)
+- Fixed `nanook` in `RESERVED_USERNAMES` (was blocking self-registration)
+- API key saved to `memory/state/nanook-profile.json`
+- `examples/nanook_profile.py` updated to produce 100/100 score out of the box
 
 ## ✅ Done (v0.4.0 Python SDK — Feb 21)
 
