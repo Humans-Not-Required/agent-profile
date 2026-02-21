@@ -266,6 +266,27 @@
         }
       }
     },
+    "/profiles/{username}/badge.svg": {
+      "parameters": [
+        { "name": "username", "in": "path", "required": true, "schema": { "type": "string" } }
+      ],
+      "get": {
+        "summary": "Get embeddable profile score badge",
+        "description": "Returns a shields.io-style SVG badge showing the agent's profile score. Color: green (≥80), yellow (≥60), orange (≥40), red (<40). Returns a gray 'unknown' badge if the profile doesn't exist. Use in Markdown: `![agent score](https://<host>/api/v1/profiles/{username}/badge.svg)`",
+        "operationId": "getBadgeSvg",
+        "tags": ["Profiles"],
+        "responses": {
+          "200": {
+            "description": "SVG badge",
+            "content": {
+              "image/svg+xml": {
+                "schema": { "type": "string", "format": "binary" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/profiles/{username}/avatar": {
       "parameters": [
         { "name": "username", "in": "path", "required": true, "schema": { "type": "string" } }

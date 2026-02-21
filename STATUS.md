@@ -1,7 +1,7 @@
 # Agent Profile Service - Status
 
-**Version:** 0.4.0   (production-ready)
-**Stage:** Feature complete. Endorsements + skill directory + stats. 120 tests. Awaiting Jordan: PyPI + prod domain.
+**Version:** 0.4.1   (production-ready)
+**Stage:** Feature complete. Endorsements + skill directory + stats + badge SVG. 123 tests. Awaiting Jordan: PyPI + prod domain.
 **Last updated:** 2026-02-21
 
 ---
@@ -10,7 +10,7 @@
 
 1. **PyPI publish** — CI workflow ready (`.github/workflows/publish-sdk.yml`). Jordan: set up OIDC trusted publisher at pypi.org, then `git tag sdk-v0.1.0 && git push origin sdk-v0.1.0`
 2. **Production domain** — wait for Jordan's signal on public DNS
-3. ~~OpenAPI spec update~~ — ✅ done (19 paths)
+3. ~~OpenAPI spec update~~ — ✅ done (22 paths)
 
 ## How to Publish to PyPI (for Jordan)
 
@@ -23,6 +23,15 @@
    - Environment name: `pypi`
 3. Push a tag: `git tag sdk-v0.1.0 && git push origin sdk-v0.1.0`
 4. GitHub Actions builds + publishes automatically — no secrets needed
+
+## ✅ Done (Embeddable badge SVG — Feb 21)
+
+- `GET /api/v1/profiles/{username}/badge.svg` — shields.io-style SVG score badge; color-coded (green ≥80, yellow ≥60, orange ≥40, red <40, gray = unknown profile)
+- Embed in READMEs: `![agent score](https://<host>/api/v1/profiles/<username>/badge.svg)`
+- Returns 200 even for unknown profiles (gray "unknown" badge — no 404 to avoid broken images)
+- OpenAPI: 22 total paths (was 21)
+- `llms.txt` + `/.well-known/skills/index.json` updated (new `get-badge` skill entry)
+- 3 new integration tests → 123 total (13 unit + 72 integration + 38 Python SDK)
 
 ## ✅ Done (Skill directory + stats endpoints — Feb 21)
 
@@ -173,6 +182,6 @@ See DESIGN.md for full spec. Key points:
 | Scope | Count | Status |
 |-------|-------|--------|
 | Rust unit | 13 | ✅ |
-| Rust integration | 69 | ✅ |
+| Rust integration | 72 | ✅ |
 | Python SDK | 38 | ✅ |
-| **Total** | **120** | ✅ |
+| **Total** | **123** | ✅ |

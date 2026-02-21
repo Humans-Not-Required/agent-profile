@@ -671,6 +671,65 @@ pub fn get_score(
     Ok(Json(ProfileScoreResponse { score, max_score: 100, breakdown, next_steps }))
 }
 
+// --- Badge SVG ---
+
+/// GET /api/v1/profiles/{username}/badge.svg
+/// Returns a shields.io-style embeddable SVG badge showing the agent's profile score.
+/// Color: green (≥80), yellow (≥60), orange (≥40), red (<40), gray (not found).
+/// Use in READMEs: ![agent score](https://<host>/api/v1/profiles/<username>/badge.svg)
+#[get("/profiles/<username>/badge.svg")]
+pub fn badge_svg(db: &State<DbConn>, username: &str) -> (ContentType, String) {
+    let content_type = ContentType::new("image", "svg+xml");
+
+    let (label_text, value_text, color) = {
+        let conn = db.lock().unwrap();
+        match load_profile(&conn, &username.to_lowercase()) {
+            Some(profile) => {
+                let has_addr = !profile.crypto_addresses.is_empty();
+                let has_link = !profile.links.is_empty();
+                let has_section = !profile.sections.is_empty();
+                let has_skill = !profile.skills.is_empty();
+                let score = compute_profile_score(
+                    &profile.display_name, &profile.tagline, &profile.bio,
+                    &profile.avatar_url, &profile.pubkey,
+                    has_addr, has_link, has_section, has_skill,
+                );
+                let color = if score >= 80 { "#4c1" }
+                    else if score >= 60 { "#dfb317" }
+                    else if score >= 40 { "#fe7d37" }
+                    else { "#e05d44" };
+                ("agent score".to_string(), format!("{}/100", score), color.to_string())
+            }
+            None => ("agent score".to_string(), "unknown".to_string(), "#9f9f9f".to_string()),
+        }
+    };
+
+    // Badge dimensions: left label box 82px, right value box 46px = 128px total
+    let label_x = 41;   // center of left box
+    let value_x = 105;  // center of right box (82 + 46/2)
+    let svg = format!(
+        r##"<svg xmlns="http://www.w3.org/2000/svg" width="128" height="20" role="img" aria-label="{label}: {value}">
+  <title>{label}: {value}</title>
+  <rect width="82" height="20" rx="3" fill="#555"/>
+  <rect x="79" width="49" height="20" rx="3" fill="{color}"/>
+  <rect x="79" width="4" height="20" fill="{color}"/>
+  <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
+    <text x="{lx}" y="14" fill="#010101" fill-opacity=".3">{label}</text>
+    <text x="{lx}" y="13">{label}</text>
+    <text x="{vx}" y="14" fill="#010101" fill-opacity=".3">{value}</text>
+    <text x="{vx}" y="13">{value}</text>
+  </g>
+</svg>"##,
+        label = label_text,
+        value = value_text,
+        color = color,
+        lx = label_x,
+        vx = value_x,
+    );
+
+    (content_type, svg)
+}
+
 // --- Sub-resources: Addresses ---
 
 #[post("/profiles/<username>/addresses", data = "<body>")]
@@ -1343,7 +1402,9 @@ GET /api/v1/profiles                 — list/search profiles
 GET /api/v1/skills                   — ecosystem skill directory (all tags by usage count)
   ?q=<filter>                        — substring filter
 GET /api/v1/stats                    — aggregate counts (profiles, skills, endorsements)
-GET /api/v1/profiles/{username}/score — completeness score 0-100 + suggestions
+GET /api/v1/profiles/{username}/score      — completeness score 0-100 + suggestions
+GET /api/v1/profiles/{username}/badge.svg  — embeddable SVG score badge (shields.io-style, color-coded)
+  Use in Markdown: ![agent score](https://<host>/api/v1/profiles/<username>/badge.svg)
 
 ## Identity Verification (secp256k1)
 
@@ -1440,6 +1501,12 @@ pub fn skills_index() -> (ContentType, String) {
                 "name": "Get service statistics",
                 "endpoint": "GET /api/v1/stats",
                 "description": "Aggregate counts: profiles, skills, endorsements, links, and top skills"
+            },
+            {
+                "id": "get-badge",
+                "name": "Get embeddable profile badge",
+                "endpoint": "GET /api/v1/profiles/{username}/badge.svg",
+                "description": "Returns a shields.io-style SVG badge showing the agent's profile score. Embed in READMEs with ![agent score](https://<host>/api/v1/profiles/<username>/badge.svg)"
             }
         ]
     }).to_string())
