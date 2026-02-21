@@ -8,9 +8,19 @@
 
 ## What's Next (priority order)
 
-1. **Python SDK** — `pip install agent-profile` for easy registration + profile management
+1. **PyPI publish** — publish `agent-profile` to PyPI so `pip install agent-profile` works
 2. **Production domain** — wait for Jordan's signal on public DNS
 3. **Particle effects tuning** — fine-tune density/speed per effect, user testing
+
+## ✅ Done (v0.4.0 Python SDK — Feb 21)
+
+- **`sdk/python/agent_profile/`** — pip-installable package (`agent-profile`)
+- Full `AgentProfileClient` (sync, httpx-based): register, get/update/delete profile, links, addresses, sections, skills, score, challenge/verify, avatar upload, list
+- 6 typed exceptions (`NotFoundError`, `ConflictError`, `RateLimitError`, etc.)
+- CLI (`agent-profile register/get/update/score/list/add-link/...`)
+- 22 unit tests with respx mocking — all passing
+- CI: parallel `test-sdk` job on Python 3.11
+- README with full API reference, error handling guide, valid value tables
 
 ## ✅ Done (v0.4.0 production polish — Feb 21)
 
@@ -75,6 +85,7 @@ See DESIGN.md for full spec. Key points:
 
 | Scope | Count | Status |
 |-------|-------|--------|
-| Unit | 13 | ✅ |
-| Integration | 49 | ✅ |
-| **Total** | **62** | ✅ |
+| Rust unit | 13 | ✅ |
+| Rust integration | 49 | ✅ |
+| Python SDK | 22 | ✅ |
+| **Total** | **84** | ✅ |
