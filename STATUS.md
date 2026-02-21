@@ -8,9 +8,21 @@
 
 ## What's Next (priority order)
 
-1. **PyPI publish** — publish `agent-profile` to PyPI so `pip install agent-profile` works
+1. **PyPI publish** — CI workflow ready (`.github/workflows/publish-sdk.yml`). Jordan: set up OIDC trusted publisher at pypi.org, then `git tag sdk-v0.1.0 && git push origin sdk-v0.1.0`
 2. **Production domain** — wait for Jordan's signal on public DNS
-3. **Particle effects tuning** — fine-tune density/speed per effect, user testing
+3. **Live profile test** — run `examples/nanook_profile.py` once staging/prod is accessible
+
+## How to Publish to PyPI (for Jordan)
+
+1. Go to https://pypi.org → Your account → Publishing → Add a new publisher
+2. Fill in:
+   - PyPI project name: `agent-profile`
+   - GitHub owner: `Humans-Not-Required`
+   - Repository: `agent-profile`
+   - Workflow filename: `publish-sdk.yml`
+   - Environment name: `pypi`
+3. Push a tag: `git tag sdk-v0.1.0 && git push origin sdk-v0.1.0`
+4. GitHub Actions builds + publishes automatically — no secrets needed
 
 ## ✅ Done (v0.4.0 Python SDK — Feb 21)
 
