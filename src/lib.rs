@@ -2,12 +2,16 @@ pub mod assets;
 pub mod cors;
 pub mod db;
 pub mod models;
+pub mod ratelimit;
 pub mod routes;
 
 use rusqlite::Connection;
 use std::sync::Mutex;
 
 use cors::Cors;
+use ratelimit::RateLimiter;
+use rocket::http::Status;
+use rocket::serde::json::Json;
 use routes::profiles::{
     health, register, reissue_key,
     list_profiles, get_profile, update_profile, delete_profile, get_score,
@@ -21,6 +25,23 @@ use routes::profiles::{
 };
 use routes::html::profile_page;
 
+/// 429 Too Many Requests catcher — returns JSON error body.
+#[rocket::catch(429)]
+fn rate_limit_catcher() -> (Status, Json<serde_json::Value>) {
+    (Status::TooManyRequests, Json(serde_json::json!({
+        "error": "Too many requests. Please slow down and try again later.",
+        "retry_after_seconds": 60,
+    })))
+}
+
+/// 404 Not Found catcher — returns JSON error body.
+#[rocket::catch(404)]
+fn not_found_catcher() -> (Status, Json<serde_json::Value>) {
+    (Status::NotFound, Json(serde_json::json!({
+        "error": "Not found.",
+    })))
+}
+
 pub fn create_rocket(db_path: &str) -> rocket::Rocket<rocket::Build> {
     let conn = Connection::open(db_path).expect("Failed to open database");
     db::init_db(&conn).expect("Failed to initialize database");
@@ -28,7 +49,9 @@ pub fn create_rocket(db_path: &str) -> rocket::Rocket<rocket::Build> {
 
     rocket::build()
         .manage(db_state)
+        .manage(RateLimiter::new())
         .attach(Cors)
+        .register("/", rocket::catchers![rate_limit_catcher, not_found_catcher])
         .mount("/api/v1", rocket::routes![
             health,
             register,

@@ -72,23 +72,36 @@ export default function App() {
       })
       .then((p: Profile) => {
         setProfile(p)
-        document.title = `${p.display_name || p.username} — Agent Profile`
-        const meta = document.querySelector('meta[name="description"]') as HTMLMetaElement | null
-        if (meta) meta.content = p.bio?.slice(0, 160) || `${p.username}'s agent profile`
 
-        // Resolve theme (localStorage wins)
+        // ── Page title + meta ──
+        const displayName = p.display_name || p.username
+        document.title = `${displayName} — Agent Profile`
+        const bio = p.bio?.slice(0, 160) || `${p.username}'s agent profile`
+
+        const setMeta = (sel: string, val: string) => {
+          const el = document.querySelector(sel) as HTMLMetaElement | null
+          if (el) el.content = val
+        }
+        setMeta('meta[name="description"]', bio)
+        setMeta('meta[property="og:title"]', displayName)
+        setMeta('meta[property="og:description"]', bio)
+        setMeta('meta[property="og:url"]', window.location.href)
+        if (p.avatar_url) setMeta('meta[property="og:image"]', p.avatar_url)
+
+        // ── Theme: localStorage wins; fall back to profile.theme; then system pref ──
         const localTheme = localStorage.getItem(`theme:${username}`)
-        const resolved = localTheme ?? p.theme ?? 'dark'
+        let resolved = localTheme ?? p.theme ?? 'dark'
+        // If profile default is 'dark', honour system light-mode preference
+        if (!localTheme && resolved === 'dark') {
+          const preferLight = window.matchMedia('(prefers-color-scheme: light)').matches
+          if (preferLight) resolved = 'light'
+        }
         setTheme(resolved)
         document.documentElement.setAttribute('data-theme', resolved)
 
-        // Resolve particles enabled (localStorage wins over profile default)
+        // ── Particles: localStorage wins ──
         const localParticles = localStorage.getItem(`particles:${username}`)
-        if (localParticles !== null) {
-          setParticlesEnabled(localParticles === '1')
-        } else {
-          setParticlesEnabled(p.particle_enabled ?? false)
-        }
+        setParticlesEnabled(localParticles !== null ? localParticles === '1' : (p.particle_enabled ?? false))
       })
       .catch(e => setError(e.message))
   }, [username])

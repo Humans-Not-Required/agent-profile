@@ -840,3 +840,65 @@ fn test_skills_index() {
     let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
     assert!(body["skills"].is_array());
 }
+
+// ===== Rate Limiting =====
+
+#[test]
+fn test_register_rate_limit() {
+    let client = test_client();
+    // Limit is 5 per hour. First 5 should succeed (or 409 conflict if duplicate).
+    // 6th should be 429.
+    let usernames = ["rl-a1", "rl-a2", "rl-a3", "rl-a4", "rl-a5"];
+    for u in &usernames {
+        let resp = client.post("/api/v1/register")
+            .header(ContentType::JSON)
+            .body(serde_json::json!({"username": u}).to_string())
+            .dispatch();
+        let s = resp.status();
+        assert!(
+            s == Status::Created || s == Status::Conflict,
+            "expected 201 or 409, got {} for {}", s, u
+        );
+    }
+    // 6th should hit rate limit
+    let resp = client.post("/api/v1/register")
+        .header(ContentType::JSON)
+        .body(r#"{"username":"rl-a6"}"#)
+        .dispatch();
+    assert_eq!(resp.status(), Status::TooManyRequests, "6th registration should be rate limited");
+}
+
+#[test]
+fn test_verify_rate_limit() {
+    let client = test_client();
+    let pubkey = "02a1633cafcc01ebfb6d78e39f687a1f0995c62fc95f51ead10a02ee0be551b5dc";
+    let (_, reg) = register(&client, "rl-verify");
+    let api_key = reg["api_key"].as_str().unwrap();
+
+    // Set pubkey
+    client.patch("/api/v1/profiles/rl-verify")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", api_key.to_string()))
+        .body(serde_json::json!({"pubkey": pubkey}).to_string())
+        .dispatch();
+
+    // Get 3 challenges (limit per verify is 3 per 5 min)
+    for _ in 0..3 {
+        client.get("/api/v1/profiles/rl-verify/challenge").dispatch();
+        let resp = client.post("/api/v1/profiles/rl-verify/verify")
+            .header(ContentType::JSON)
+            .body(r#"{"signature":"deadbeef"}"#)
+            .dispatch();
+        // Should be 200 (verified: false) not 429 yet
+        assert_eq!(resp.status(), Status::Ok);
+    }
+
+    // 4th verify should be rate limited
+    // (Need a fresh challenge first — challenge limit is 10/min so still OK)
+    client.get("/api/v1/profiles/rl-verify/challenge").dispatch();
+    let resp = client.post("/api/v1/profiles/rl-verify/verify")
+        .header(ContentType::JSON)
+        .body(r#"{"signature":"deadbeef"}"#)
+        .dispatch();
+    assert_eq!(resp.status(), Status::TooManyRequests, "4th verify should be rate limited");
+}

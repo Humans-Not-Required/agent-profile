@@ -195,3 +195,47 @@ body {
 }
 .error-card h2 { color: var(--text-bright); margin-bottom: 0.5rem; }
 .error-card p { color: var(--text-muted); font-size: 0.9rem; }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  body { padding: 1rem 0.5rem; }
+
+  .card { padding: 1.5rem 1.25rem; border-radius: 10px; }
+
+  /* Stack header vertically on small screens */
+  .profile-header { flex-direction: column; align-items: center; text-align: center; gap: 1rem; }
+  .avatar-img, .avatar-placeholder { width: 72px; height: 72px; font-size: 1.5rem; }
+  .profile-name { font-size: 1.35rem; }
+
+  /* Center quick-links on mobile */
+  .quick-links { justify-content: center; }
+
+  /* Badges centered */
+  .badges { justify-content: center; }
+
+  /* Full-width links on mobile */
+  .links-row { flex-direction: column; }
+  .profile-link { width: 100%; justify-content: flex-start; }
+
+  /* Address rows wrap more gracefully */
+  .addr-row { gap: 0.4rem; }
+  .addr-copy-hint { display: none; } /* hide on mobile to save space */
+  .addr-value { font-size: 0.72rem; word-break: break-all; flex: 1 1 100%; }
+
+  /* Meta footer */
+  .profile-meta { flex-direction: column; align-items: flex-start; gap: 0.35rem; }
+
+  /* Float controls closer to corner */
+  .toast { bottom: 1rem; right: 1rem; }
+}
+
+@media (max-width: 400px) {
+  .card { padding: 1.25rem 1rem; }
+  .profile-name { font-size: 1.2rem; }
+  .section-title { font-size: 0.72rem; }
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}

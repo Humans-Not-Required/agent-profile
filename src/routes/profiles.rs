@@ -178,6 +178,7 @@ pub fn health() -> Json<HealthResponse> {
 pub fn register(
     db: &State<DbConn>,
     body: Json<RegisterRequest>,
+    _rl: crate::ratelimit::RegisterRateLimit,
 ) -> Result<(Status, Json<serde_json::Value>), (Status, Json<serde_json::Value>)> {
     let username = validate_username(&body.username).map_err(|e| {
         (Status::UnprocessableEntity, Json(json!({"error": e})))
@@ -1034,6 +1035,7 @@ pub fn serve_avatar(
 pub fn get_challenge(
     db: &State<DbConn>,
     username: &str,
+    _rl: crate::ratelimit::ChallengeRateLimit,
 ) -> Result<Json<crate::models::ChallengeResponse>, (Status, Json<serde_json::Value>)> {
     let conn = db.lock().unwrap();
     let profile = load_profile(&conn, &username.to_lowercase())
@@ -1075,6 +1077,7 @@ pub fn verify_signature(
     db: &State<DbConn>,
     username: &str,
     body: Json<crate::models::VerifySignatureRequest>,
+    _rl: crate::ratelimit::VerifyRateLimit,
 ) -> Result<Json<crate::models::VerifyResponse>, (Status, Json<serde_json::Value>)> {
     let username = username.to_lowercase();
     let conn = db.lock().unwrap();

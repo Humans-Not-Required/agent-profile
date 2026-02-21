@@ -1,18 +1,26 @@
 # Agent Profile Service - Status
 
-**Version:** 0.4.0   (backend + frontend complete)
-**Stage:** Frontend feature-complete — polish + rate limiting next
+**Version:** 0.4.0   (production-ready)
+**Stage:** Rate limiting, responsive UI, OG meta — all done. Rate limiting: ✅ Python SDK next.
 **Last updated:** 2026-02-21
 
 ---
 
 ## What's Next (priority order)
 
-1. **Rate limiting** — protect register + verify endpoints (Rocket fairings or middleware)
-2. **Responsive polish** — mobile layout improvements, test on small screens
-3. **Python SDK** — easy registration and profile management for Python agents
-4. **Particle effects tuning** — adjust density/speed per effect, test aesthetics
-5. **OG meta tags** — dynamic open graph (title/description/image set by React on load)
+1. **Python SDK** — `pip install agent-profile` for easy registration + profile management
+2. **Production domain** — wait for Jordan's signal on public DNS
+3. **Particle effects tuning** — fine-tune density/speed per effect, user testing
+
+## ✅ Done (v0.4.0 production polish — Feb 21)
+
+- **Rate limiting** — sliding-window in-memory limiter (per-IP): register 5/hr, verify 3/5min, challenge 10/min
+- **Custom 429 catcher** — JSON `{ "error": ..., "retry_after_seconds": 60 }`
+- **Custom 404 catcher** — JSON error body for API 404s
+- **Responsive CSS** — mobile layout (stacked header, full-width links, hidden copy hints), reduced-motion support
+- **Dynamic OG meta tags** — title/description/image populated from profile on React load
+- **System color-scheme** — respects `prefers-color-scheme: light` when no localStorage preference set
+- **62 tests total** (13 unit + 49 integration) — all passing
 
 ## ✅ Done (v0.4.0 frontend — Feb 21)
 
@@ -67,6 +75,6 @@ See DESIGN.md for full spec. Key points:
 
 | Scope | Count | Status |
 |-------|-------|--------|
-| Unit | 9 | ✅ |
-| Integration | 47 | ✅ |
-| **Total** | **56** | ✅ |
+| Unit | 13 | ✅ |
+| Integration | 49 | ✅ |
+| **Total** | **62** | ✅ |
