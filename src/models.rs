@@ -9,7 +9,6 @@ static USERNAME_REGEX: Lazy<Regex> = Lazy::new(|| {
 const RESERVED_USERNAMES: &[&str] = &[
     "api", "admin", "static", "health", "agents", "profiles",
     "register", "avatars", "openapi", "llms", "well-known",
-    "nanook", // reserved for system profile
 ];
 
 pub const VALID_THEMES: &[&str] = &["dark", "light", "midnight", "forest", "ocean", "desert", "aurora"];
