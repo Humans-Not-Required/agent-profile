@@ -847,11 +847,11 @@ fn test_openapi_json() {
     let resp = client.get("/openapi.json").dispatch();
     assert_eq!(resp.status(), Status::Ok);
     let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
-    // Verify it's a valid OpenAPI 3.1 spec for v0.4.0
+    // Verify it's a valid OpenAPI 3.1 spec for v0.4.3
     assert_eq!(body["openapi"], "3.1.0");
-    assert_eq!(body["info"]["version"], "0.4.0");
+    assert_eq!(body["info"]["version"], "0.4.3");
     assert!(body["paths"].is_object());
-    // All key paths present
+    // Core API paths present
     let paths = body["paths"].as_object().unwrap();
     assert!(paths.contains_key("/health"));
     assert!(paths.contains_key("/register"));
@@ -861,6 +861,13 @@ fn test_openapi_json() {
     assert!(paths.contains_key("/profiles/{username}/sections"));
     assert!(paths.contains_key("/profiles/{username}/score"));
     assert!(paths.contains_key("/profiles/{username}/avatar"));
+    assert!(paths.contains_key("/profiles/{username}/endorsements"));
+    assert!(paths.contains_key("/skills"));
+    assert!(paths.contains_key("/stats"));
+    // Discovery paths present
+    assert!(paths.contains_key("/.well-known/webfinger"));
+    assert!(paths.contains_key("/robots.txt"));
+    assert!(paths.contains_key("/sitemap.xml"));
 }
 
 // ===== Rate Limiting =====
