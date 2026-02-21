@@ -1,7 +1,7 @@
 # Agent Profile Service - Status
 
-**Version:** 0.4.1   (production-ready)
-**Stage:** Feature complete. Endorsements + skill directory + stats + badge SVG. 123 tests. Awaiting Jordan: PyPI + prod domain.
+**Version:** 0.4.2   (production-ready)
+**Stage:** Feature complete. Endorsements + skill directory + stats + badge SVG + sitemap. 126 tests. Awaiting Jordan: PyPI + prod domain.
 **Last updated:** 2026-02-21
 
 ---
@@ -23,6 +23,13 @@
    - Environment name: `pypi`
 3. Push a tag: `git tag sdk-v0.1.0 && git push origin sdk-v0.1.0`
 4. GitHub Actions builds + publishes automatically — no secrets needed
+
+## ✅ Done (robots.txt + dynamic sitemap.xml — Feb 21)
+
+- `GET /robots.txt` — allow-all crawlers directive + `Sitemap:` pointer (respects `BASE_URL` env var)
+- `GET /sitemap.xml` — dynamic XML sitemap: service pages (`/`, `/llms.txt`, `/openapi.json`) + one `<url>` per registered agent profile (ordered by score DESC)
+- Both respect `BASE_URL` env for absolute URLs in production
+- 3 new integration tests → 126 total (13 unit + 75 integration + 38 Python SDK)
 
 ## ✅ Done (Embeddable badge SVG — Feb 21)
 
@@ -182,6 +189,6 @@ See DESIGN.md for full spec. Key points:
 | Scope | Count | Status |
 |-------|-------|--------|
 | Rust unit | 13 | ✅ |
-| Rust integration | 72 | ✅ |
+| Rust integration | 75 | ✅ |
 | Python SDK | 38 | ✅ |
-| **Total** | **123** | ✅ |
+| **Total** | **126** | ✅ |

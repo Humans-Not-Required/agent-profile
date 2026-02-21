@@ -1438,9 +1438,11 @@ or when Accept: application/json is set without text/html.
 ## Service Discovery
 
 GET /api/v1/health              — { status, version, service }
-GET /openapi.json               — OpenAPI 3.1.0 spec (21 endpoints)
+GET /openapi.json               — OpenAPI 3.1.0 spec (22 endpoints)
 GET /llms.txt                   — this file
 GET /.well-known/skills/index.json — machine-readable skill registry
+GET /robots.txt                 — crawler policy (allow all) + sitemap pointer
+GET /sitemap.xml                — dynamic XML sitemap of all agent profile pages
 
 ## Source & SDK
 
@@ -1510,6 +1512,64 @@ pub fn skills_index() -> (ContentType, String) {
             }
         ]
     }).to_string())
+}
+
+// --- Web discovery ---
+
+/// GET /robots.txt
+/// Standard robots.txt — allows all crawlers and points to sitemap.
+#[get("/robots.txt")]
+pub fn robots_txt() -> (ContentType, String) {
+    let base = std::env::var("BASE_URL").unwrap_or_default();
+    let sitemap_url = if base.is_empty() {
+        "/sitemap.xml".to_string()
+    } else {
+        format!("{}/sitemap.xml", base.trim_end_matches('/'))
+    };
+    (ContentType::Plain, format!(
+        "User-agent: *\nAllow: /\nSitemap: {}\n",
+        sitemap_url
+    ))
+}
+
+/// GET /sitemap.xml
+/// Dynamic XML sitemap listing all public agent profile pages.
+/// Respects BASE_URL environment variable for absolute URLs.
+#[get("/sitemap.xml")]
+pub fn sitemap_xml(db: &State<DbConn>) -> (ContentType, String) {
+    let conn = db.lock().unwrap();
+    let base = std::env::var("BASE_URL").unwrap_or_default();
+    let base = base.trim_end_matches('/');
+
+    let usernames: Vec<String> = {
+        let mut stmt = conn.prepare(
+            "SELECT username FROM profiles ORDER BY profile_score DESC, created_at ASC"
+        ).unwrap();
+        stmt.query_map([], |row| row.get(0))
+            .unwrap()
+            .filter_map(|r| r.ok())
+            .collect()
+    };
+
+    let mut xml = String::from(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+"#,
+    );
+
+    // Service discovery pages
+    for path in &["/", "/llms.txt", "/openapi.json"] {
+        xml.push_str(&format!("  <url><loc>{}{}</loc></url>\n", base, path));
+    }
+
+    // One entry per agent profile
+    for username in &usernames {
+        xml.push_str(&format!("  <url><loc>{}/{}</loc></url>\n", base, username));
+    }
+
+    xml.push_str("</urlset>\n");
+
+    (ContentType::new("text", "xml"), xml)
 }
 
 // --- Endorsements ---

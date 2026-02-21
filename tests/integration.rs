@@ -1410,3 +1410,44 @@ fn test_badge_svg_high_score_is_green() {
     assert!(body.contains("4c1") || body.contains("dfb317"),
         "high score should produce green or yellow badge, got: {}", &body[..200.min(body.len())]);
 }
+
+// ===== Web Discovery (robots.txt, sitemap.xml) =====
+
+#[test]
+fn test_robots_txt() {
+    let client = test_client();
+    let resp = client.get("/robots.txt").dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let ct = resp.content_type().unwrap();
+    assert!(ct.to_string().contains("text/plain"), "content-type should be text/plain");
+    let body = resp.into_string().unwrap();
+    assert!(body.contains("User-agent: *"), "should have User-agent directive");
+    assert!(body.contains("Allow: /"), "should allow all");
+    assert!(body.contains("Sitemap:"), "should reference sitemap");
+    assert!(body.contains("sitemap.xml"), "sitemap URL should mention sitemap.xml");
+}
+
+#[test]
+fn test_sitemap_xml_structure() {
+    let client = test_client();
+    let resp = client.get("/sitemap.xml").dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let ct = resp.content_type().unwrap();
+    assert_eq!(ct.to_string(), "text/xml");
+    let body = resp.into_string().unwrap();
+    assert!(body.contains(r#"<?xml version="1.0""#), "should be valid XML prologue");
+    assert!(body.contains("urlset"), "should have urlset element");
+    assert!(body.contains("sitemaps.org"), "should reference sitemap schema");
+    assert!(body.contains("<url>"), "should have at least one url entry");
+    assert!(body.contains("/llms.txt"), "should include discovery pages");
+    assert!(body.contains("/openapi.json"), "should include openapi");
+}
+
+#[test]
+fn test_sitemap_xml_includes_profiles() {
+    let client = test_client();
+    register(&client, "sitemap-test-agent-xyz");
+    let resp = client.get("/sitemap.xml").dispatch();
+    let body = resp.into_string().unwrap();
+    assert!(body.contains("sitemap-test-agent-xyz"), "newly registered profile should appear in sitemap");
+}
