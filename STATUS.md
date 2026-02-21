@@ -1,7 +1,7 @@
 # Agent Profile Service - Status
 
 **Version:** 0.4.0   (production-ready)
-**Stage:** Feature complete. Endorsements system live. 104 tests. Awaiting Jordan: PyPI + prod domain.
+**Stage:** Feature complete. Endorsements + skill search live. 112 tests. Awaiting Jordan: PyPI + prod domain.
 **Last updated:** 2026-02-21
 
 ---
@@ -23,6 +23,16 @@
    - Environment name: `pypi`
 3. Push a tag: `git tag sdk-v0.1.0 && git push origin sdk-v0.1.0`
 4. GitHub Actions builds + publishes automatically — no secrets needed
+
+## ✅ Done (Skill-based profile search + has_pubkey filter — Feb 21)
+
+- `GET /api/v1/profiles?skill=Rust` — find agents by capability (case-insensitive, subquery into profile_skills)
+- `GET /api/v1/profiles?has_pubkey=true` — find crypto-identity-enabled agents
+- Compose with existing `?q=` and `?theme=` filters (all AND-combined)
+- Python SDK: `list_profiles(skill=..., has_pubkey=...)` added
+- OpenAPI: both params documented on GET /profiles
+- README: search section updated, API table completed (skills + endorsements were missing)
+- 5+3 = 8 new tests → 112 total (13 unit + 64 integration + 35 Python SDK)
 
 ## ✅ Done (Python SDK endorsement methods — Feb 21)
 
@@ -155,6 +165,6 @@ See DESIGN.md for full spec. Key points:
 | Scope | Count | Status |
 |-------|-------|--------|
 | Rust unit | 13 | ✅ |
-| Rust integration | 59 | ✅ |
-| Python SDK | 32 | ✅ |
-| **Total** | **104** | ✅ |
+| Rust integration | 64 | ✅ |
+| Python SDK | 35 | ✅ |
+| **Total** | **112** | ✅ |
