@@ -7,16 +7,26 @@ pub fn init_db(conn: &Connection) -> Result<()> {
 
         CREATE TABLE IF NOT EXISTS profiles (
             id TEXT PRIMARY KEY,
-            slug TEXT UNIQUE NOT NULL,
-            display_name TEXT NOT NULL,
+            username TEXT UNIQUE NOT NULL,
+            display_name TEXT NOT NULL DEFAULT '',
+            tagline TEXT NOT NULL DEFAULT '',
             bio TEXT NOT NULL DEFAULT '',
+            third_line TEXT NOT NULL DEFAULT '',
             avatar_url TEXT NOT NULL DEFAULT '',
-            manage_token TEXT NOT NULL,
+            avatar_data BLOB,
+            avatar_mime TEXT NOT NULL DEFAULT '',
+            theme TEXT NOT NULL DEFAULT 'dark',
+            particle_effect TEXT NOT NULL DEFAULT 'none',
+            particle_enabled INTEGER NOT NULL DEFAULT 0,
+            particle_seasonal INTEGER NOT NULL DEFAULT 0,
+            pubkey TEXT NOT NULL DEFAULT '',
+            api_key_hash TEXT NOT NULL,
+            profile_score INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
         );
 
-        CREATE INDEX IF NOT EXISTS idx_profiles_slug ON profiles(slug);
+        CREATE INDEX IF NOT EXISTS idx_profiles_username ON profiles(username);
 
         CREATE TABLE IF NOT EXISTS crypto_addresses (
             id TEXT PRIMARY KEY,
@@ -24,7 +34,6 @@ pub fn init_db(conn: &Connection) -> Result<()> {
             network TEXT NOT NULL,
             address TEXT NOT NULL,
             label TEXT NOT NULL DEFAULT '',
-            verified INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL
         );
 
@@ -33,13 +42,26 @@ pub fn init_db(conn: &Connection) -> Result<()> {
         CREATE TABLE IF NOT EXISTS profile_links (
             id TEXT PRIMARY KEY,
             profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-            link_type TEXT NOT NULL,
+            url TEXT NOT NULL,
             label TEXT NOT NULL,
-            value TEXT NOT NULL,
+            platform TEXT NOT NULL DEFAULT 'website',
+            display_order INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL
         );
 
         CREATE INDEX IF NOT EXISTS idx_links_profile ON profile_links(profile_id);
+
+        CREATE TABLE IF NOT EXISTS profile_sections (
+            id TEXT PRIMARY KEY,
+            profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+            section_type TEXT NOT NULL DEFAULT 'custom',
+            title TEXT NOT NULL DEFAULT '',
+            content TEXT NOT NULL DEFAULT '',
+            display_order INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_sections_profile ON profile_sections(profile_id);
 
         CREATE TABLE IF NOT EXISTS profile_skills (
             id TEXT PRIMARY KEY,
@@ -49,6 +71,15 @@ pub fn init_db(conn: &Connection) -> Result<()> {
         );
 
         CREATE INDEX IF NOT EXISTS idx_skills_profile ON profile_skills(profile_id);
+
+        CREATE TABLE IF NOT EXISTS identity_challenges (
+            id TEXT PRIMARY KEY,
+            profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+            challenge TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            used INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL
+        );
     ")?;
     Ok(())
 }
