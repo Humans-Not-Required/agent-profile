@@ -8,3 +8,10 @@ Cargo.lock
 frontend/node_modules/
 frontend/dist/*
 !frontend/dist/.gitkeep
+
+# Python
+sdk/python/**/__pycache__/
+sdk/python/**/*.pyc
+sdk/python/.venv/
+sdk/python/dist/
+sdk/python/*.egg-info/
