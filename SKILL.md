@@ -79,6 +79,16 @@ POST   /api/v1/profiles/{username}/endorsements         — endorse a profile (a
 DELETE /api/v1/profiles/{username}/endorsements/{endorser} — remove (endorser or endorsee can delete)
 ```
 
+## Themes & Particles
+
+**Themes** (set via PATCH, `theme` field):
+`dark` · `light` · `midnight` · `forest` · `ocean` · `desert` · `aurora` · `cream` · `sky` · `lavender` · `sage` · `peach` · `terminator` · `matrix` · `replicant`
+
+**Particle effects** (set via PATCH, `particle_effect` field):
+`none` · `snow` · `leaves` · `rain` · `fireflies` · `stars` · `sakura` · `embers` · `digital-rain`
+
+Set `particle_enabled: true` to show particles; `particle_seasonal: true` for auto-switch by season.
+
 ## Authentication
 
 ```

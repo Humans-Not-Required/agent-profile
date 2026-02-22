@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'none'
+export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'embers' | 'digital-rain' | 'none'
 
 interface Props {
   effect: EffectName
@@ -109,6 +109,92 @@ function drawSakura(ctx: CanvasRenderingContext2D, p: Particle) {
   ctx.restore()
 }
 
+function drawEmber(ctx: CanvasRenderingContext2D, p: Particle, t: number) {
+  // Glowing ember/spark that drifts upward with flickering intensity
+  const flicker = Math.sin((p.phase ?? 0) + t * 0.006) * 0.3 + 0.7
+  const r = p.size * 0.6 * flicker
+  const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 4)
+  // Core: bright white-yellow, halo: orange-red
+  gradient.addColorStop(0, `rgba(255, 200, 80, ${p.opacity * flicker})`)
+  gradient.addColorStop(0.3, `rgba(255, 100, 20, ${p.opacity * flicker * 0.7})`)
+  gradient.addColorStop(1, 'rgba(200, 40, 0, 0)')
+  ctx.beginPath()
+  ctx.arc(p.x, p.y, r * 4, 0, Math.PI * 2)
+  ctx.fillStyle = gradient
+  ctx.fill()
+  // Bright core dot
+  ctx.beginPath()
+  ctx.arc(p.x, p.y, r * 0.5, 0, Math.PI * 2)
+  ctx.fillStyle = `rgba(255, 220, 140, ${p.opacity * flicker})`
+  ctx.fill()
+}
+
+// ── Digital rain (Matrix) helpers ──
+const MATRIX_CHARS = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEF'
+
+interface RainColumn {
+  x: number
+  chars: string[]
+  y: number         // head position
+  speed: number
+  length: number
+  charSize: number
+}
+
+function initRainColumns(w: number, h: number): RainColumn[] {
+  const charSize = 14
+  const cols = Math.floor(w / (charSize * 0.85))
+  return Array.from({ length: cols }, (_, i) => ({
+    x: i * (charSize * 0.85) + charSize * 0.4,
+    chars: Array.from({ length: Math.floor(h / charSize) + 10 }, () =>
+      MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)]
+    ),
+    y: Math.random() * h * 2 - h,      // start at random offset
+    speed: Math.random() * 2 + 1.5,
+    length: Math.floor(Math.random() * 12) + 8,
+    charSize,
+  }))
+}
+
+function drawDigitalRain(ctx: CanvasRenderingContext2D, columns: RainColumn[], h: number, t: number) {
+  for (const col of columns) {
+    const headY = col.y
+    for (let i = 0; i < col.length; i++) {
+      const cy = headY - i * col.charSize
+      if (cy < -col.charSize || cy > h + col.charSize) continue
+      const charIdx = (Math.floor(cy / col.charSize) + col.chars.length * 10) % col.chars.length
+
+      // Occasionally randomize character for flicker
+      let ch = col.chars[charIdx]
+      if (Math.random() < 0.01) {
+        ch = MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)]
+        col.chars[charIdx] = ch
+      }
+
+      if (i === 0) {
+        // Head character: bright white-green
+        ctx.fillStyle = 'rgba(180, 255, 180, 0.95)'
+        ctx.font = `bold ${col.charSize}px "Courier New", monospace`
+      } else {
+        // Trail: fade from bright green to dark green
+        const fade = 1 - (i / col.length)
+        const g = Math.floor(180 * fade + 40)
+        ctx.fillStyle = `rgba(0, ${g}, 0, ${fade * 0.8})`
+        ctx.font = `${col.charSize}px "Courier New", monospace`
+      }
+      ctx.fillText(ch, col.x, cy)
+    }
+
+    // Advance column
+    col.y += col.speed
+    if (col.y - col.length * col.charSize > h) {
+      col.y = -col.length * col.charSize * Math.random()
+      col.speed = Math.random() * 2 + 1.5
+      col.length = Math.floor(Math.random() * 12) + 8
+    }
+  }
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export function ParticleEffect({ effect, enabled, seasonal }: Props) {
@@ -138,17 +224,40 @@ export function ParticleEffect({ effect, enabled, seasonal }: Props) {
     resize()
     window.addEventListener('resize', resize)
 
+    // Digital rain uses its own column-based system
+    let rainColumns: RainColumn[] = []
+    if (activeEffect === 'digital-rain') {
+      rainColumns = initRainColumns(canvas.width, canvas.height)
+    }
+
     // Particle count by effect type
     const countMap: Record<EffectName, number> = {
-      snow: 100, leaves: 60, rain: 150, fireflies: 50, stars: 200, sakura: 60, none: 0,
+      snow: 100, leaves: 60, rain: 150, fireflies: 50, stars: 200, sakura: 60,
+      embers: 80, 'digital-rain': 0, none: 0,
     }
     const count = countMap[activeEffect] ?? 80
-    const particles = initParticles(count, canvas.width, canvas.height)
+    const particles = count > 0 ? initParticles(count, canvas.width, canvas.height) : []
+
+    // Embers drift upward — invert their initial velocity
+    if (activeEffect === 'embers') {
+      for (const p of particles) {
+        p.vy = -(Math.random() * 0.8 + 0.2) // drift up
+        p.vx = (Math.random() - 0.5) * 0.6   // gentle sway
+        p.size = Math.random() * 3 + 1        // smaller particles
+      }
+    }
 
     let t = 0
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       t++
+
+      // Digital rain has its own rendering path
+      if (activeEffect === 'digital-rain') {
+        drawDigitalRain(ctx, rainColumns, canvas.height, t)
+        rafRef.current = requestAnimationFrame(animate)
+        return
+      }
 
       for (const p of particles) {
         // Draw
@@ -159,6 +268,7 @@ export function ParticleEffect({ effect, enabled, seasonal }: Props) {
           case 'fireflies': drawFirefly(ctx, p, t); break
           case 'stars':     drawStar(ctx, p, t); break
           case 'sakura':    drawSakura(ctx, p); break
+          case 'embers':    drawEmber(ctx, p, t); break
         }
 
         // Move
@@ -173,6 +283,17 @@ export function ParticleEffect({ effect, enabled, seasonal }: Props) {
         } else if (activeEffect === 'rain') {
           p.x += 1.5  // diagonal slant
           p.y += 12
+        } else if (activeEffect === 'embers') {
+          // Embers drift upward with swaying
+          p.x += p.vx + Math.sin((p.phase ?? 0) + t * 0.015) * 0.3
+          p.y += p.vy
+          // Fade out as they rise
+          p.opacity -= 0.001
+          if (p.opacity < 0.05) {
+            p.opacity = Math.random() * 0.7 + 0.3
+            p.y = canvas.height + 10
+            p.x = Math.random() * canvas.width
+          }
         } else {
           p.x += p.vx
           p.y += p.vy

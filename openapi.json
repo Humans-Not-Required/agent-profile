@@ -121,7 +121,15 @@
                 "forest",
                 "ocean",
                 "desert",
-                "aurora"
+                "aurora",
+                "cream",
+                "sky",
+                "lavender",
+                "sage",
+                "peach",
+                "terminator",
+                "matrix",
+                "replicant"
               ]
             }
           },
@@ -1634,7 +1642,15 @@
               "forest",
               "ocean",
               "desert",
-              "aurora"
+              "aurora",
+              "cream",
+              "sky",
+              "lavender",
+              "sage",
+              "peach",
+              "terminator",
+              "matrix",
+              "replicant"
             ],
             "default": "dark"
           },
@@ -1647,7 +1663,9 @@
               "rain",
               "fireflies",
               "stars",
-              "sakura"
+              "sakura",
+              "embers",
+              "digital-rain"
             ],
             "default": "none"
           },

@@ -1,4 +1,4 @@
-const THEMES = ['dark', 'light', 'midnight', 'forest', 'ocean', 'desert', 'aurora', 'cream', 'sky', 'lavender', 'sage', 'peach'] as const
+const THEMES = ['dark', 'light', 'midnight', 'forest', 'ocean', 'desert', 'aurora', 'cream', 'sky', 'lavender', 'sage', 'peach', 'terminator', 'matrix', 'replicant'] as const
 type Theme = typeof THEMES[number]
 
 const THEME_LABELS: Record<Theme, string> = {
@@ -14,6 +14,9 @@ const THEME_LABELS: Record<Theme, string> = {
   lavender: '💜 Lavender',
   sage: '🌱 Sage',
   peach: '🍑 Peach',
+  terminator: '🤖 Terminator',
+  matrix: '💊 Matrix',
+  replicant: '🌆 Replicant',
 }
 
 interface Props {

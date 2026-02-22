@@ -90,6 +90,93 @@
   --tag-border: #ecd5ca;
 }
 
+/* ── Cinematic Themes ── */
+
+[data-theme="terminator"] {
+  --bg: #080302; --card: #1a0c06; --border: #3a2010;
+  --text: #b89478; --text-muted: #7a5a40; --text-bright: #e8c8a0;
+  --accent: #e03a00; --accent2: #e85520; --tag-bg: #120804;
+  --tag-border: #3a2010;
+}
+
+[data-theme="matrix"] {
+  --bg: #000000; --card: #050a05; --border: #0a2a0a;
+  --text: #33bb33; --text-muted: #1a7a1a; --text-bright: #00ff41;
+  --accent: #00ff41; --accent2: #44dd44; --tag-bg: #030803;
+  --tag-border: #0a2a0a;
+}
+
+[data-theme="replicant"] {
+  --bg: #0a0d14; --card: #13181f; --border: #282e38;
+  --text: #8a8278; --text-muted: #5a544c; --text-bright: #d4a868;
+  --accent: #c47a30; --accent2: #b8924a; --tag-bg: #0e1118;
+  --tag-border: #282e38;
+}
+
+/* ── Cinematic Theme Special Effects ── */
+
+/* Terminator — industrial metal panels, red glow on cards */
+[data-theme="terminator"] body {
+  background: radial-gradient(ellipse at 50% 80%, #1a0800 0%, #080302 70%);
+}
+[data-theme="terminator"] .card {
+  border-color: #3a2010;
+  box-shadow: inset 0 1px 0 rgba(255,100,40,0.05), 0 4px 20px rgba(0,0,0,0.6);
+  background: linear-gradient(175deg, #1e0f07 0%, #1a0c06 50%, #150a04 100%);
+}
+[data-theme="terminator"] .card:hover {
+  box-shadow: inset 0 1px 0 rgba(255,100,40,0.08), 0 4px 24px rgba(224,58,0,0.15);
+}
+[data-theme="terminator"] .section-title {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+/* Matrix — CRT phosphor glow, monospace everything */
+[data-theme="matrix"] body {
+  font-family: 'Courier New', 'Consolas', monospace;
+  background: #000000;
+}
+[data-theme="matrix"] .card {
+  border-color: #0a3a0a;
+  background: rgba(5,15,5,0.85);
+  box-shadow: 0 0 30px rgba(0,255,65,0.04), inset 0 0 60px rgba(0,255,65,0.02);
+  backdrop-filter: blur(2px);
+}
+[data-theme="matrix"] .profile-name,
+[data-theme="matrix"] .section-title {
+  text-shadow: 0 0 8px rgba(0,255,65,0.4), 0 0 20px rgba(0,255,65,0.15);
+}
+[data-theme="matrix"] .profile-tagline,
+[data-theme="matrix"] .section-content {
+  text-shadow: 0 0 4px rgba(0,255,65,0.2);
+}
+[data-theme="matrix"] .skill-tag {
+  text-shadow: 0 0 6px rgba(0,255,65,0.3);
+  border-color: #0a3a0a;
+}
+[data-theme="matrix"] .profile-link:hover,
+[data-theme="matrix"] .quick-link:hover {
+  text-shadow: 0 0 12px rgba(0,255,65,0.6);
+}
+
+/* Replicant — atmospheric haze, fog gradient, moody depth */
+[data-theme="replicant"] body {
+  background: linear-gradient(180deg, #0e1018 0%, #0a0d14 30%, #120e08 100%);
+}
+[data-theme="replicant"] .card {
+  background: rgba(19,24,31,0.9);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 80px rgba(196,122,48,0.04);
+  backdrop-filter: blur(4px);
+  border-color: rgba(40,46,56,0.6);
+}
+[data-theme="replicant"] .profile-name {
+  text-shadow: 0 0 20px rgba(212,168,104,0.2);
+}
+[data-theme="replicant"] .section-title {
+  letter-spacing: 0.1em;
+}
+
 /* ── Global base ── */
 * { box-sizing: border-box; }
 
