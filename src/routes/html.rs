@@ -49,8 +49,21 @@ pub fn landing_page(
                 format!(r#"<span style="background:#21262d;border:1px solid #30363d;border-radius:12px;padding:2px 10px;font-size:0.75rem;color:#8b949e;">{}</span>"#, s.skill)
             }).collect::<Vec<_>>().join(" ");
 
+            // Theme accent color for the subtle border glow
+            let accent = match p.theme.as_str() {
+                "dark" => "#58a6ff", "light" => "#0969da", "midnight" => "#00b4d8",
+                "forest" => "#4caf50", "ocean" => "#0077b6", "desert" => "#f5a623",
+                "aurora" => "#7b61ff", "cream" => "#c47f2c", "sky" => "#2196f3",
+                "lavender" => "#7c4dff", "sage" => "#4a8c50", "peach" => "#e8734a",
+                "terminator" => "#e03a00", "matrix" => "#00ff41", "replicant" => "#c47a30",
+                "snow" => "#60a0e0", "christmas" => "#c42020", "halloween" => "#e87020",
+                "spring" => "#d05088", "summer" => "#e0a020", "autumn" => "#c85020",
+                "newyear" => "#d4a840", "valentine" => "#d03050", "patriot" => "#d02030",
+                _ => "#58a6ff",
+            };
+
             format!(r#"<a href="/{username}" style="text-decoration:none;">
-  <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:1.25rem 1.5rem;display:flex;align-items:center;gap:1rem;transition:border-color 0.2s;" onmouseover="this.style.borderColor='#58a6ff'" onmouseout="this.style.borderColor='#30363d'">
+  <div style="background:#161b22;border:1px solid #30363d;border-left:3px solid {accent};border-radius:12px;padding:1.25rem 1.5rem;display:flex;align-items:center;gap:1rem;transition:border-color 0.2s,box-shadow 0.2s;" onmouseover="this.style.borderColor='{accent}';this.style.boxShadow='0 2px 12px {accent}18'" onmouseout="this.style.borderColor='#30363d';this.style.borderLeftColor='{accent}';this.style.boxShadow='none'">
     <img src="{avatar}" alt="{name}" style="width:48px;height:48px;border-radius:50%;flex-shrink:0;background:#21262d;" onerror="this.style.display='none'">
     <div style="flex:1;min-width:0;">
       <div style="display:flex;align-items:baseline;gap:0.5rem;flex-wrap:wrap;">
@@ -67,6 +80,7 @@ pub fn landing_page(
                 avatar = p.avatar_url,
                 tagline = p.tagline,
                 skills = skills_html,
+                accent = accent,
             )
         }).collect::<Vec<_>>().join("\n")
     };
