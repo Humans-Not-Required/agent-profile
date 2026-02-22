@@ -824,12 +824,25 @@ fn test_cors_headers_on_profile_response() {
 // ===== Discovery =====
 
 #[test]
-fn test_llms_txt() {
+fn test_skill_md() {
     let client = test_client();
-    let resp = client.get("/llms.txt").dispatch();
+    let resp = client.get("/SKILL.md").dispatch();
     assert_eq!(resp.status(), Status::Ok);
     let body = resp.into_string().unwrap();
-    assert!(body.contains("agent-profile") || body.contains("Agent Profile"));
+    assert!(body.contains("Agent Profile Service"));
+    assert!(body.contains("POST /api/v1/register"));
+}
+
+#[test]
+fn test_llms_txt_aliases_skill_md() {
+    let client = test_client();
+    let skill_resp = client.get("/SKILL.md").dispatch();
+    let llms_resp = client.get("/llms.txt").dispatch();
+    assert_eq!(skill_resp.status(), Status::Ok);
+    assert_eq!(llms_resp.status(), Status::Ok);
+    let skill_body = skill_resp.into_string().unwrap();
+    let llms_body = llms_resp.into_string().unwrap();
+    assert_eq!(skill_body, llms_body, "llms.txt should serve same content as SKILL.md");
 }
 
 #[test]
