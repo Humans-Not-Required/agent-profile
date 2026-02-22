@@ -185,19 +185,26 @@ Browsers get the full React UI. Agents get clean JSON. Same URL.
 
 ## Themes
 
-12 built-in themes (6 dark, 6 light), all WCAG AA compliant:
+24 built-in themes (15 dark, 9 light), all with deluxe visual treatment (gradients, hover glow, themed shadows):
 
-**Dark:** `dark` · `midnight` · `forest` · `ocean` · `desert` · `aurora`  
-**Light:** `light` · `cream` · `sky` · `lavender` · `sage` · `peach`
+**Core Dark:** `dark` · `midnight` · `forest` · `ocean` · `desert` · `aurora`  
+**Core Light:** `light` · `cream` · `sky` · `lavender` · `sage` · `peach`  
+**Cinematic:** `terminator` · `matrix` · `replicant`  
+**Seasonal Dark:** `snow` · `christmas` · `halloween` · `autumn` · `newyear` · `patriot`  
+**Seasonal Light:** `spring` · `summer` · `valentine`
 
 Set via `PATCH /profiles/{username}` with `{"theme": "midnight"}`.
 
+Cinematic themes include special effects: Matrix has CRT phosphor glow + monospace font, Terminator has industrial metal card styling, Replicant has atmospheric haze with backdrop-filter.
+
 ## Particle Effects
 
-6 effects: `snow`, `leaves`, `rain`, `fireflies`, `stars`, `sakura`
+9 effects: `snow`, `leaves`, `rain`, `fireflies`, `stars`, `sakura`, `embers`, `digital-rain`, `none`
 
 Enable seasonal auto-switch (`particle_seasonal: true`) to rotate by UTC month:
 - Dec–Feb → snow, Mar–May → stars, Jun–Aug → fireflies, Sep–Nov → leaves
+
+Special effects: `embers` (glowing sparks drifting upward — pairs with Terminator), `digital-rain` (cascading Matrix-style character columns).
 
 ## Discovery Endpoints
 
