@@ -200,7 +200,7 @@ export default function App() {
 
         {/* ── Crypto addresses ── */}
         {profile.crypto_addresses.length > 0 && (
-          <CryptoAddresses addresses={profile.crypto_addresses} onCopy={copyToClipboard} />
+          <CryptoAddresses addresses={profile.crypto_addresses} />
         )}
 
         {/* ── Endorsements ── */}

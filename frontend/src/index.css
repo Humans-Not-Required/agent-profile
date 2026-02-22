@@ -608,7 +608,7 @@ body {
   padding-bottom: 0.4rem; border-bottom: 1px solid var(--border);
   font-weight: 600;
 }
-.section-content { color: var(--text); line-height: 1.65; font-size: 0.95rem; white-space: pre-wrap; }
+.section-content { color: var(--text); line-height: 1.65; font-size: 0.95rem; white-space: pre-wrap; overflow-wrap: anywhere; }
 
 /* ── Links ── */
 .links-row { display: flex; flex-wrap: wrap; gap: 0.6rem; }
@@ -617,8 +617,10 @@ body {
   background: var(--tag-bg); border: 1px solid var(--tag-border);
   color: var(--text); padding: 0.35rem 0.85rem; border-radius: 8px;
   text-decoration: none; font-size: 0.88rem; transition: border-color 0.15s, color 0.15s;
+  max-width: 100%; overflow: hidden;
 }
 .profile-link:hover { border-color: var(--accent); color: var(--accent); }
+.link-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .platform-icon { font-size: 1.05rem; }
 
 /* ── Skills ── */
@@ -629,19 +631,67 @@ body {
   font-size: 0.82rem; font-family: monospace;
 }
 
+/* ── Tooltip (shared) ── */
+.ap-tooltip {
+  z-index: 200;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.75rem;
+  background: var(--tooltip-bg, var(--card-bg));
+  color: var(--text-bright);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  pointer-events: none;
+  word-break: break-all;
+  font-family: monospace;
+  line-height: 1.4;
+}
+.ap-tooltip-arrow {
+  width: 8px; height: 8px;
+  background: var(--tooltip-bg, var(--card-bg));
+  border: 1px solid var(--border);
+  transform: rotate(45deg);
+  clip-path: polygon(0% 0%, 100% 0%, 100% 100%); /* hide edge that overlaps tooltip body */
+}
+
+/* ── Address display ── */
+.addr-display {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  font-family: monospace; font-size: 0.78rem; color: var(--accent2);
+  min-width: 0; max-width: 100%;
+}
+.addr-display-text { white-space: nowrap; }
+.addr-display-ellipsis { overflow: hidden; text-overflow: ellipsis; max-width: 100%; white-space: nowrap; }
+.addr-display-link {
+  color: var(--accent); text-decoration: none; cursor: pointer;
+  transition: color 0.15s;
+}
+.addr-display-link:hover { text-decoration: underline; }
+
+.addr-copy-btn {
+  display: inline-flex; flex-shrink: 0;
+  padding: 2px; border-radius: 4px; cursor: pointer;
+  transition: background 0.15s;
+}
+.addr-copy-btn:hover { background: var(--tag-bg); }
+.addr-copy-icon { width: 14px; height: 14px; color: var(--text-muted); transition: color 0.15s; }
+.addr-copy-btn:hover .addr-copy-icon { color: var(--text-bright); }
+.addr-copy-icon.addr-copy-ok { color: #22c55e; }
+
 /* ── Crypto addresses ── */
 .addr-list { display: flex; flex-direction: column; gap: 0.4rem; }
 .addr-row {
   display: flex; align-items: center; gap: 0.6rem;
   padding: 0.5rem 0.7rem; background: var(--tag-bg);
   border: 1px solid var(--tag-border); border-radius: 6px;
-  cursor: pointer; transition: border-color 0.15s; flex-wrap: wrap;
+  transition: border-color 0.15s; flex-wrap: wrap;
+  min-width: 0; overflow: hidden;
 }
 .addr-row:hover { border-color: var(--accent); }
-.addr-network { color: var(--text-bright); font-size: 0.88rem; font-weight: 500; min-width: 70px; }
-.addr-label { color: var(--text-muted); font-size: 0.8rem; }
-.addr-value { color: var(--accent2); font-size: 0.78rem; font-family: monospace; }
-.addr-copy-hint { color: var(--text-muted); font-size: 0.72rem; margin-left: auto; }
+.addr-emoji { font-size: 1rem; flex-shrink: 0; }
+.addr-network { color: var(--text-bright); font-size: 0.88rem; font-weight: 500; min-width: 70px; flex-shrink: 0; }
+.addr-label { color: var(--text-muted); font-size: 0.8rem; flex-shrink: 0; }
+.addr-value-wrap { min-width: 0; flex: 1 1 0; overflow: hidden; }
 
 /* ── Meta footer ── */
 .profile-meta {
@@ -702,7 +752,7 @@ body {
   title: "Cryptographically verified";
 }
 .endorsement-time { font-size: 0.72rem; color: var(--text-muted); margin-left: auto; }
-.endorsement-message { font-size: 0.88rem; color: var(--text); line-height: 1.5; margin: 0; }
+.endorsement-message { font-size: 0.88rem; color: var(--text); line-height: 1.5; margin: 0; overflow-wrap: anywhere; }
 .badge-count {
   display: inline-flex;
   align-items: center;
@@ -763,8 +813,8 @@ body {
 
   /* Address rows wrap more gracefully */
   .addr-row { gap: 0.4rem; }
-  .addr-copy-hint { display: none; } /* hide on mobile to save space */
-  .addr-value { font-size: 0.72rem; word-break: break-all; flex: 1 1 100%; }
+  .addr-value-wrap { flex: 1 1 100%; }
+  .addr-display { font-size: 0.72rem; }
 
   /* Meta footer */
   .profile-meta { flex-direction: column; align-items: flex-start; gap: 0.35rem; }

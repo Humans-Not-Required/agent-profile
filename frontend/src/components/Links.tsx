@@ -19,7 +19,7 @@ export function Links({ links, platformIcon }: Props) {
             rel="noopener noreferrer"
           >
             <i className={`bi ${platformIcon(l.platform)} platform-icon`} />
-            {l.label}
+            <span className="link-label">{l.label}</span>
           </a>
         ))}
       </div>
