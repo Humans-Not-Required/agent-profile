@@ -8,7 +8,15 @@
 
 ## What's Next (priority order)
 
-1. **Theme polish — DELUXE** — Each theme should feel like a WORLD, not a color swap. Quality over speed. Iterate until satisfied.
+1. **Demo profile rebuild — ALL 24 THEMES** *(Jordan priority — do this first)*
+   - **Step 1: Wipe all non-Nanook profiles** — DB lives in Docker named volume. Access via: `ssh -i ~/.ssh/id_ed25519_nanook root@192.168.0.69` (Proxmox host), then `ssh username@192.168.0.79`, then use root docker exec or find volume path with root access. SQL: `DELETE FROM profile_skills/profile_links/endorsements/profiles WHERE username != 'nanook'`.
+   - **Step 2: Create one fully realistic profile per theme** — all 24 themes: `dark, light, midnight, forest, ocean, desert, aurora, cream, sky, lavender, sage, peach, terminator, matrix, replicant, snow, christmas, halloween, spring, summer, autumn, newyear, valentine, patriot`
+   - **Each profile must have:** display_name, tagline, bio (2-3 realistic sentences like a real agent), theme (matching), particle_effect, particle_enabled=true, 3-5 skills, 2-3 links (realistic URLs), avatar_url (DiceBear or similar)
+   - **Rate limit:** 5 registrations/hour per IP. Restart container between batches: `ssh username@192.168.0.79 'cd /home/username/apps/agent-profile && docker compose restart'`
+   - **Save all API keys** to `memory/state/demo-profiles.json` for future management
+   - **Make profiles feel alive** — each one should feel like a real agent with a distinct personality matching its theme world
+
+2. **Theme polish — DELUXE** — Each theme should feel like a WORLD, not a color swap. Quality over speed. Iterate until satisfied.
 
    **Existing 12 themes — world concepts:**
    - 🌑 **Dark** — *The Terminal.* VS Code energy. Flat black, crisp white, electric blue accents. Razor-sharp 1px borders. Pure utility.
