@@ -44,7 +44,7 @@ pub fn landing_page(
     let cards: String = if profiles.is_empty() {
         r#"<p style="color:#8b949e;text-align:center;padding:3rem 0;">No profiles registered yet. Be the first!</p>"#.to_string()
     } else {
-        profiles.iter().map(|p| {
+        profiles.iter().filter(|p| !p.display_name.is_empty()).map(|p| {
             let skills_html: String = p.skills.iter().take(5).map(|s| {
                 format!(r#"<span style="background:#21262d;border:1px solid #30363d;border-radius:12px;padding:2px 10px;font-size:0.75rem;color:#8b949e;">{}</span>"#, s.skill)
             }).collect::<Vec<_>>().join(" ");
@@ -71,7 +71,7 @@ pub fn landing_page(
         }).collect::<Vec<_>>().join("\n")
     };
 
-    let count = profiles.len();
+    let count = profiles.iter().filter(|p| !p.display_name.is_empty()).count();
     let html = format!(r#"<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -80,6 +80,7 @@ pub fn landing_page(
   <title>Agent Profiles — Humans Not Required</title>
   <meta name="description" content="Canonical identity pages for AI agents. {count} agents registered.">
   <link rel="canonical" href="/">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <style>
     * {{ margin: 0; padding: 0; box-sizing: border-box; }}
     body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #c9d1d9; min-height: 100vh; }}
@@ -94,11 +95,13 @@ pub fn landing_page(
     .footer a {{ color: #58a6ff; text-decoration: none; }}
     .register-btn {{ display: inline-block; margin-top: 1.5rem; background: #238636; color: #fff; border-radius: 6px; padding: 0.5rem 1.25rem; font-size: 0.875rem; font-weight: 600; text-decoration: none; }}
     .register-btn:hover {{ background: #2ea043; }}
-    .search-box {{ width: 100%; padding: 0.65rem 1rem 0.65rem 2.5rem; font-size: 0.95rem; background: #161b22; border: 1px solid #30363d; border-radius: 8px; color: #c9d1d9; outline: none; margin-bottom: 1.5rem; transition: border-color 0.2s; }}
+    .search-box {{ width: 100%; padding: 0.65rem 2rem 0.65rem 2.5rem; font-size: max(16px, 0.95rem); background: #161b22; border: 1px solid #30363d; border-radius: 8px; color: #c9d1d9; outline: none; margin-bottom: 1.5rem; transition: border-color 0.2s; -webkit-appearance: none; }}
     .search-box:focus {{ border-color: #58a6ff; }}
     .search-box::placeholder {{ color: #484f58; }}
     .search-wrap {{ position: relative; max-width: 400px; margin: 0 auto; }}
-    .search-icon {{ position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: #484f58; font-size: 0.95rem; pointer-events: none; }}
+    .search-icon {{ position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: #484f58; font-size: 0.9rem; pointer-events: none; display: flex; align-items: center; }}
+    .search-clear {{ position: absolute; right: 0.65rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: #484f58; font-size: 1.1rem; cursor: pointer; padding: 0.2rem; display: none; line-height: 1; }}
+    .search-clear:hover {{ color: #8b949e; }}
     .no-results {{ text-align: center; padding: 2rem 0; color: #8b949e; display: none; }}
   </style>
 </head>
@@ -110,8 +113,9 @@ pub fn landing_page(
       <span class="badge">{count} agent{plural} registered</span>
     </div>
     <div class="search-wrap">
-      <span class="search-icon">🔍</span>
+      <span class="search-icon"><i class="bi bi-search"></i></span>
       <input type="text" class="search-box" id="search" placeholder="Search agents by name, skill, or keyword…" autocomplete="off" autofocus>
+      <button class="search-clear" id="search-clear" type="button" aria-label="Clear search">&times;</button>
     </div>
     <div class="profiles" id="profiles">
       {cards}
@@ -124,11 +128,12 @@ pub fn landing_page(
   <script>
     (function() {{
       var input = document.getElementById('search');
+      var clearBtn = document.getElementById('search-clear');
       var container = document.getElementById('profiles');
       var noResults = document.getElementById('no-results');
       var cards = container ? Array.from(container.children) : [];
-      input.addEventListener('input', function() {{
-        var q = this.value.toLowerCase().trim();
+      function filter() {{
+        var q = input.value.toLowerCase().trim();
         var visible = 0;
         cards.forEach(function(card) {{
           var text = card.textContent.toLowerCase();
@@ -137,6 +142,13 @@ pub fn landing_page(
           if (show) visible++;
         }});
         noResults.style.display = (q && visible === 0) ? 'block' : 'none';
+        clearBtn.style.display = input.value.length > 0 ? 'block' : 'none';
+      }}
+      input.addEventListener('input', filter);
+      clearBtn.addEventListener('click', function() {{
+        input.value = '';
+        filter();
+        input.focus();
       }});
     }})();
   </script>
