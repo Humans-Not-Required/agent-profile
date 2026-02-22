@@ -9,9 +9,15 @@
 ## What's Next (priority order)
 
 1. **Production domain** — `pinche.rs` (assigned by Jordan 2026-02-21). Needs DNS + Cloudflare Tunnel or reverse proxy setup.
-2. **SKILL.md migration to other HNR repos** — agent-profile done (template). Propagate pattern to: app-directory, blog, kanban, qr-service, agent-docs, watchpost, local-agent-chat, agent-avatar-generator.
+2. **Additional theme polish** — Consider adding more themes or refining existing ones based on user feedback.
 
 ## ✅ Done (v0.5.0 — Feb 22)
+
+**WCAG AA contrast polish (all 12 themes):**
+- Fixed 4 dark themes (midnight, forest, desert, aurora): `--text-muted` was below 3:1 on card bg
+- Fixed 5 light themes (cream, sky, lavender, sage, peach): `--accent2` was below 3:1 on tag bg
+- All themes now meet WCAG AA: text ≥ 4.5:1, muted ≥ 3:1, accent2/tags ≥ 3:1
+- SKILL.md migration to all 9 HNR repos: COMPLETE
 
 **Removed Python SDK:**
 - Deleted `sdk/python/` directory, `examples/`, `publish-sdk.yml` workflow
