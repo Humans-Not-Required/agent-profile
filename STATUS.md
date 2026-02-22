@@ -1,219 +1,41 @@
 # Agent Profile Service - Status
 
-**Version:** 0.4.3   (production-ready)
-**Stage:** Feature complete + fully documented. DEPLOYMENT.md ready. 134 tests. Awaiting: prod domain DNS.
-**Queued work (for work loop):** Remove Python SDK, hide public score display (see items 1-2 below).
-**Last updated:** 2026-02-21
+**Version:** 0.5.0   (production-ready)
+**Stage:** Feature complete + fully documented. Awaiting: prod domain DNS (`pinche.rs`).
+**Last updated:** 2026-02-22
 
 ---
 
 ## What's Next (priority order)
 
-1. **Remove Python SDK** — `sdk/python/` directory and related CI job (`test-sdk`) should be deleted. Simple REST API; curl is sufficient. No SDK needed.
-2. **Hide profile score from public display** — Score is a private internal gauge, not a public-facing metric. Remove from HTML profile page, badge SVG endpoint, and frontend ProfileScore widget. Keep the API endpoint for internal/admin use only.
-3. **Production domain** — `pinche.rs` (assigned by Jordan 2026-02-21). Needs DNS + Cloudflare Tunnel or reverse proxy setup.
-3. ~~OpenAPI spec update~~ — ✅ done (22 paths)
+1. **Production domain** — `pinche.rs` (assigned by Jordan 2026-02-21). Needs DNS + Cloudflare Tunnel or reverse proxy setup.
+2. **SKILL.md migration to other HNR repos** — agent-profile done (template). Propagate pattern to: app-directory, blog, kanban, qr-service, agent-docs, watchpost, local-agent-chat, agent-avatar-generator.
 
-## How to Publish to PyPI (for Jordan)
+## ✅ Done (v0.5.0 — Feb 22)
 
-1. Go to https://pypi.org → Your account → Publishing → Add a new publisher
-2. Fill in:
-   - PyPI project name: `agent-profile`
-   - GitHub owner: `Humans-Not-Required`
-   - Repository: `agent-profile`
-   - Workflow filename: `publish-sdk.yml`
-   - Environment name: `pypi`
-3. Push a tag: `git tag sdk-v0.1.0 && git push origin sdk-v0.1.0`
-4. GitHub Actions builds + publishes automatically — no secrets needed
+**Removed Python SDK:**
+- Deleted `sdk/python/` directory, `examples/`, `publish-sdk.yml` workflow
+- Removed `test-sdk` CI job from `ci.yml`
+- Cleaned `.gitignore` of SDK entries
+- Removed all SDK references from README.md (Python SDK section, CLI reference, Stack, test counts)
+- Fixed duplicate skills entries in README API table
 
-## ✅ Done (Documentation sprint — Feb 21)
+**Hidden profile score from public display:**
+- Removed `ProfileScore.tsx` component and its usage from `App.tsx`
+- Removed badge SVG endpoint (`GET /api/v1/profiles/{username}/badge.svg`)
+- Removed 3 badge integration tests
+- Removed badge from `llms.txt`, `skills_index`, `openapi.json`
+- `GET /api/v1/profiles/{username}/score` retained for internal use
 
-**SDK README** — added: endorsements, skill directory/stats, score badge, WebFinger sections + full CLI examples for all 20 commands
-**CHANGELOG.md** — v0.1.0 entry documenting all 30 client methods, CLI commands, error types, deps; added `Changelog` URL to pyproject.toml
-**DEPLOYMENT.md** — full production guide: `BASE_URL` env, Cloudflare Tunnel, nginx reverse proxy, Watchtower auto-update, SQLite backup cron, post-deploy validation checklist, ports reference
-**README.md** — Docker section references DEPLOYMENT.md, adds `BASE_URL` env example
+**SKILL.md as canonical AI guide:**
+- Created `SKILL.md` at repo root with full API reference
+- `GET /SKILL.md` serves content (primary endpoint)
+- `GET /llms.txt` now aliases SKILL.md (backward-compatible)
+- Both use `include_str!` for compile-time embedding
+- Added `/SKILL.md` to sitemap.xml
+- 2 new integration tests
 
-## ✅ Done (SDK get_badge() + webfinger() — Feb 21)
-
-- `client.get_badge(username)` → SVG string; gray "unknown" for non-existent profiles
-- `client.webfinger(username, host=None)` → JRD dict; auto-derives host from base URL
-- `_get_text()` helper for non-JSON responses
-- CLI: `agent-profile badge nanook [--save badge.svg]`
-- CLI: `agent-profile webfinger nanook [--host example.com]`
-- 4 new tests: `test_get_badge`, `test_get_badge_unknown_profile`, `test_webfinger`, `test_webfinger_not_found`
-- **134 total tests** (13 Rust unit + 79 Rust integration + 42 Python SDK)
-
-## ✅ Done (OpenAPI v0.4.3 — Feb 21)
-
-- Bumped `openapi.json` version 0.4.0 → 0.4.3
-- Added 3 discovery endpoints: `/.well-known/webfinger`, `/robots.txt`, `/sitemap.xml`
-- Added `WebFingerResponse` JRD schema + `Discovery` tag group
-- `test_openapi_json` updated: checks v0.4.3, verifies 14 key paths (added endorsements, skills, stats, webfinger, robots.txt, sitemap.xml)
-- Verified BaseUrl fix working on staging: WebFinger/sitemap return absolute URLs from Host header
-- **25 total paths** in spec
-
-## ✅ Done (BaseUrl request guard — Feb 21)
-
-- `BaseUrl` Rocket request guard: checks `BASE_URL` env → falls back to `Host`+`X-Forwarded-Proto` headers
-- WebFinger, sitemap.xml, robots.txt now return absolute URLs even without `BASE_URL` configured
-- Fixes RFC 7033 non-compliance (relative `href` in WebFinger links) on staging
-- Removed stale `use std::net::IpAddr` unused import from `ratelimit.rs`
-- Prefixed `_key_b` in test to silence unused-variable warning → zero compiler warnings
-
-## ✅ Done (WebFinger RFC 7033 — Feb 21)
-
-- `GET /.well-known/webfinger?resource=acct:{username}@{host}` — standard identity lookup
-- Returns `application/jrd+json` with `profile-page` (HTML), `self` (JSON API), and `avatar` links
-- Enables `@username@host` addressing used by Mastodon, ActivityPub, Keyoxide, and other federated systems
-- 400 on malformed resource, 400 if not `acct:` scheme, 404 if profile not found
-- `llms.txt` + `/.well-known/skills/index.json` updated (new `webfinger-lookup` skill)
-- 4 new integration tests → 130 total (13 unit + 79 integration + 38 Python SDK)
-
-## ✅ Done (robots.txt + dynamic sitemap.xml — Feb 21)
-
-- `GET /robots.txt` — allow-all crawlers directive + `Sitemap:` pointer (respects `BASE_URL` env var)
-- `GET /sitemap.xml` — dynamic XML sitemap: service pages (`/`, `/llms.txt`, `/openapi.json`) + one `<url>` per registered agent profile (ordered by score DESC)
-- Both respect `BASE_URL` env for absolute URLs in production
-- 3 new integration tests → 126 total (13 unit + 75 integration + 38 Python SDK)
-
-## ✅ Done (Embeddable badge SVG — Feb 21)
-
-- `GET /api/v1/profiles/{username}/badge.svg` — shields.io-style SVG score badge; color-coded (green ≥80, yellow ≥60, orange ≥40, red <40, gray = unknown profile)
-- Embed in READMEs: `![agent score](https://<host>/api/v1/profiles/<username>/badge.svg)`
-- Returns 200 even for unknown profiles (gray "unknown" badge — no 404 to avoid broken images)
-- OpenAPI: 22 total paths (was 21)
-- `llms.txt` + `/.well-known/skills/index.json` updated (new `get-badge` skill entry)
-- 3 new integration tests → 123 total (13 unit + 72 integration + 38 Python SDK)
-
-## ✅ Done (Skill directory + stats endpoints — Feb 21)
-
-- `GET /api/v1/skills` — ecosystem skill taxonomy sorted by usage count; `?q=` substring search; case-normalized
-- `GET /api/v1/stats` — aggregate counts: profiles (total/with_pubkey/avg_score), skills (total/distinct/top-5), endorsements (total/verified), links, addresses
-- Python SDK: `list_skills()`, `get_stats()`, plus `skills` and `stats` CLI commands
-- OpenAPI: 21 total paths
-- 5+3 = 8 new tests → 120 total (13 unit + 69 integration + 38 Python SDK)
-
-## ✅ Done (Skill-based profile search + has_pubkey filter — Feb 21)
-
-- `GET /api/v1/profiles?skill=Rust` — find agents by capability (case-insensitive, subquery into profile_skills)
-- `GET /api/v1/profiles?has_pubkey=true` — find crypto-identity-enabled agents
-- Compose with existing `?q=` and `?theme=` filters (all AND-combined)
-- Python SDK: `list_profiles(skill=..., has_pubkey=...)` added
-- OpenAPI: both params documented on GET /profiles
-- README: search section updated, API table completed (skills + endorsements were missing)
-- 5+3 = 8 new tests → 112 total (13 unit + 64 integration + 35 Python SDK)
-
-## ✅ Done (Python SDK endorsement methods — Feb 21)
-
-- `client.get_endorsements(username)` — list endorsements (public)
-- `client.add_endorsement(username, from_username, api_key, message, signature=None)` — full docstring, upsert semantics, optional signature
-- `client.delete_endorsement(username, endorser_username, api_key)` — either party can delete
-- CLI: `endorsements`, `endorse`, `delete-endorsement` subcommands with verified badge display
-- 10 new SDK unit tests → 32 total SDK tests
-- Total: **104 tests** (13 unit + 59 integration + 32 Python SDK)
-
-## ✅ Done (OpenAPI spec — 19 paths — Feb 21)
-
-- Added endorsement endpoints to openapi.json: POST/GET `/endorsements`, DELETE `/endorsements/{endorser}`
-- Added `Endorsement`, `AddEndorsementRequest`, `EndorsementListResponse` schemas
-- Profile schema updated with `endorsements[]` array
-- Endorsements tag added to tag list
-- 19 total paths (was 17)
-- JSON validated, integration test `test_openapi_json` passes
-
-## ✅ Done (Endorsements/Attestations — Feb 21)
-
-- **Social trust layer** — any registered agent can endorse another
-- **Endpoints:** POST/GET/DELETE `/api/v1/profiles/{username}/endorsements`
-- **Auth:** Endorser must use their own API key (can't forge endorsements)
-- **Self-endorse guard:** 422 if `from == target`
-- **Upsert semantics:** Re-endorsing updates the message rather than creating a duplicate
-- **Cryptographic attestation (opt-in):** If endorser has a secp256k1 pubkey, they can sign the message; server verifies and marks `verified: true`
-- **Profile JSON:** `endorsements[]` array included in `GET /api/v1/profiles/{username}`
-- **Mutual delete:** Either the endorser OR the endorsee can remove an endorsement
-- **Frontend:** `Endorsements.tsx` — avatar initials, verified badge (🏅), time-ago, links to endorser profiles
-- **9 new integration tests** → 94 total (13 unit + 59 integration + 22 Python SDK)
-- **skills/index.json** updated with `endorse-agent` skill
-
-## ✅ Done (README rewrite — Feb 21)
-
-- Rewrote `README.md` for v0.4.0 (was still v0.1.0 — wrong URLs, field names, missing features)
-- Correct endpoints (register not POST /profiles, username not slug)
-- Documents: themes, particle effects, sections, secp256k1 verify, content negotiation, Python SDK
-- Full API reference table (all 19 route variants), rate limits, discovery endpoints
-- Updated network/platform/section-type valid value lists
-
-## ✅ Done (OpenAPI spec v0.4.0 — Feb 21)
-
-- Rewrote `openapi.json` — v0.1.0 → v0.4.0, `{slug}` → `{username}`, 9 → 17 paths
-- Added all missing endpoints: register, reissue-key, score, avatar, challenge, verify, sections CRUD
-- Updated all schemas: Profile (tagline/bio/theme/particle_*/pubkey/sections), RegisterRequest/Response, Links (`url`+`platform` not `link_type`+`value`), Addresses (11-network enum), TooManyRequests response
-- Security scheme: `ManageToken` (X-Manage-Token) → `ApiKey` (Bearer + X-API-Key)
-- Added `test_openapi_json` integration test — validates spec structure + all 8 key paths
-- **85 total tests** (13 unit + 50 integration + 22 Python SDK)
-
-## ✅ Done (Nanook profile live — Feb 21)
-
-- **Nanook's profile** created on staging (`http://192.168.0.79:3011/nanook`)
-- Profile score: **100/100** (display name, bio, tagline, avatar, pubkey, links, skills, sections, Nostr address)
-- Fixed `nanook` in `RESERVED_USERNAMES` (was blocking self-registration)
-- API key saved to `memory/state/nanook-profile.json`
-- `examples/nanook_profile.py` updated to produce 100/100 score out of the box
-
-## ✅ Done (v0.4.0 Python SDK — Feb 21)
-
-- **`sdk/python/agent_profile/`** — pip-installable package (`agent-profile`)
-- Full `AgentProfileClient` (sync, httpx-based): register, get/update/delete profile, links, addresses, sections, skills, score, challenge/verify, avatar upload, list
-- 6 typed exceptions (`NotFoundError`, `ConflictError`, `RateLimitError`, etc.)
-- CLI (`agent-profile register/get/update/score/list/add-link/...`)
-- 32 unit tests with respx mocking — all passing (includes 10 endorsement tests)
-- CI: parallel `test-sdk` job on Python 3.11
-- README with full API reference, error handling guide, valid value tables
-
-## ✅ Done (v0.4.0 production polish — Feb 21)
-
-- **Rate limiting** — sliding-window in-memory limiter (per-IP): register 5/hr, verify 3/5min, challenge 10/min
-- **Custom 429 catcher** — JSON `{ "error": ..., "retry_after_seconds": 60 }`
-- **Custom 404 catcher** — JSON error body for API 404s
-- **Responsive CSS** — mobile layout (stacked header, full-width links, hidden copy hints), reduced-motion support
-- **Dynamic OG meta tags** — title/description/image populated from profile on React load
-- **System color-scheme** — respects `prefers-color-scheme: light` when no localStorage preference set
-- **62 tests total** (13 unit + 49 integration) — all passing
-
-## ✅ Done (v0.4.0 frontend — Feb 21)
-
-- **Particle effects** — canvas-based, 6 types (snow/leaves/rain/fireflies/stars/sakura), seasonal auto-switch by UTC month, toggle button (localStorage preference)
-- **Theme toggle** — floating palette button cycles all 7 themes, saves to localStorage per-username
-- **Particle toggle** — floating stars button, only shown when profile has an effect set
-- **SVG favicon** — stylized circuit-node "A" design, readable at 16x16
-- **OG meta + theme-color** in index.html
-
-## ✅ Done (v0.4.0 frontend scaffold — Feb 21)
-
-- React/TS/Tailwind + Bootstrap Icons CDN
-- Components: Avatar (initials fallback + deterministic hue), Hero, Sections, Links, Skills, CryptoAddresses, ProfileScore
-- 7-theme system via CSS variables
-- Profile score badge (green/yellow/red by threshold)
-- rust-embed: frontend/dist/ baked into binary
-- 3-stage Dockerfile (node→rust→slim)
-- CI: builds frontend before cargo test
-
-## ✅ Done (v0.4.0 backend — Feb 21)
-
-- Fixed all compilation bugs from v0.2→v0.3 migration
-- Content negotiation at `/{username}` — JSON for agents, React SPA for humans
-- secp256k1 challenge/verify (DER or compact hex)
-- Avatar upload (raw binary ≤100KB, served at `/avatars/{username}`)
-- API key reissue, profile score, profile sections — all endpoints working
-- Discovery: `/llms.txt`, `/openapi.json`, `/.well-known/skills/index.json`
-
-## ✅ Done (v0.3.0)
-
-- Full profile CRUD + crypto addresses + links + skills + sections
-- API key auth (SHA-256 hashed, Bearer or X-API-Key)
-- CORS fairing, OpenAPI 3.1.0 spec
-- GitHub Actions CI + Docker image (`ghcr.io/humans-not-required/agent-profile:dev`)
-- Added to HNR App Directory (app_id: e22e907d)
+**Version bump:** 0.4.3 → 0.5.0, OpenAPI updated to match (24 paths)
 
 ## Architecture
 
@@ -222,18 +44,19 @@ See DESIGN.md for full spec. Key points:
 - React SPA fetches `/api/v1/profiles/{username}` on load and renders everything client-side
 - Assets embedded via rust-embed (single binary, no static file serving config)
 - secp256k1 identity verification available for any agent with a pubkey
+- SKILL.md embedded at compile time, served at `/SKILL.md` and `/llms.txt`
 
 ## Deployment
 
-- **Port:** 8003 (staging at `http://192.168.0.79:8003`)
+- **Port:** 8003 (staging at `http://192.168.0.79:3011`)
 - **Docker:** `ghcr.io/humans-not-required/agent-profile:dev` (Watchtower auto-pull)
 - **CI/CD:** Push to main → GitHub Actions (build frontend + test + docker) → Watchtower pulls
+- **Production:** See DEPLOYMENT.md
 
 ## Test Count
 
 | Scope | Count | Status |
 |-------|-------|--------|
 | Rust unit | 13 | ✅ |
-| Rust integration | 79 | ✅ |
-| Python SDK | 42 | ✅ |
-| **Total** | **134** | ✅ |
+| Rust integration | 77 | ✅ |
+| **Total** | **90** | ✅ |
