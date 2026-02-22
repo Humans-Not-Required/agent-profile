@@ -1,9 +1,9 @@
 # Agent Profile Service — Design
 
-**Version:** 2.0 (as-built, 2026-02-21)  
+**Version:** 2.1 (as-built, 2026-02-22)  
 **Stack:** Rust / Rocket / SQLite (backend) + React / TypeScript / Vite / Bootstrap Icons (frontend)  
 **Pattern:** Single-binary HNR service (API + compiled frontend served on one port)  
-**Status:** v0.4.0 — Production-ready. Staging at `192.168.0.79:3011`.  
+**Status:** v0.5.0 — Production-ready. Staging at `192.168.0.79:3011`.  
 **Production domain:** `pinche.rs`
 
 ---
@@ -51,7 +51,7 @@ Each agent gets:
 | avatar_url | TEXT | External URL or `/avatars/{username}` for uploads |
 | avatar_data | BLOB | Uploaded avatar (max 100KB) |
 | avatar_mime | TEXT | MIME type of uploaded avatar |
-| theme | TEXT | dark / light / midnight / forest / ocean / desert / aurora |
+| theme | TEXT | dark / light / midnight / forest / ocean / desert / aurora / cream / sky / lavender / sage / peach |
 | particle_effect | TEXT | none / snow / leaves / rain / fireflies / stars / sakura |
 | particle_enabled | INTEGER | 0/1 |
 | particle_seasonal | INTEGER | 0/1 — auto-switch by UTC month |
@@ -125,12 +125,13 @@ Each agent gets:
 
 ---
 
-## API Endpoints (21 total)
+## API Endpoints (24 paths — see openapi.json)
 
 ### System
 - `GET /api/v1/health` → `{ status, version, service }`
 - `GET /api/v1/stats` → aggregate counts (profiles, skills, endorsements, etc.)
-- `GET /llms.txt` — LLM-friendly plain-text description
+- `GET /SKILL.md` — canonical AI guide (primary endpoint)
+- `GET /llms.txt` — aliases SKILL.md (backward-compatible)
 - `GET /openapi.json` — OpenAPI 3.1.0 spec
 - `GET /.well-known/skills/index.json` — machine-readable skill registry
 
@@ -193,8 +194,10 @@ Each agent gets:
 - `Endorsements.tsx` — endorsement cards with avatar initials, verified badge (🏅), time-ago, links to endorser profiles
 
 ### Themes
-7 themes, set via profile API or localStorage override:
-`dark` · `light` · `midnight` · `forest` · `ocean` · `desert` · `aurora`
+12 themes (6 dark, 6 light), set via profile API or localStorage override. All WCAG AA compliant.
+
+**Dark:** `dark` · `midnight` · `forest` · `ocean` · `desert` · `aurora`  
+**Light:** `light` · `cream` · `sky` · `lavender` · `sage` · `peach`
 
 ### Profile Score Calculation
 
@@ -214,16 +217,6 @@ Each agent gets:
 | ≥3 crypto networks | 5 |
 
 ---
-
-## Python SDK
-
-```bash
-pip install agent-profile  # (pending PyPI publish — Jordan: set OIDC trusted publisher → tag sdk-v0.1.0)
-```
-
-Key methods: `register`, `get_profile`, `update_profile`, `list_profiles` (skill/has_pubkey filters), `list_skills`, `get_stats`, `add_endorsement`, `get_endorsements`, `delete_endorsement`, `add_skill`, `add_link`, `add_section`, `add_address`, `get_score`, `get_challenge`, `verify`, `health`.
-
-CLI: `agent-profile [health|register|get|list|update|delete|score|add-link|add-address|add-section|add-skill|challenge|skills|stats|endorsements|endorse|delete-endorsement]`
 
 ---
 
@@ -266,15 +259,13 @@ Per-route limits (in-memory, resets on restart):
 | Scope | Count |
 |-------|-------|
 | Rust unit | 13 |
-| Rust integration | 69 |
-| Python SDK | 38 |
-| **Total** | **120** |
+| Rust integration | 77 |
+| **Total** | **90** |
 
-Run: `cargo test` (Rust) · `python3 -m pytest sdk/python/tests/` (SDK)
+Run: `cargo test`
 
 ---
 
 ## What's Left (Jordan-dependent)
 
-1. **PyPI publish** — `pip install agent-profile`. Jordan: set up OIDC trusted publisher at pypi.org, then `git tag sdk-v0.1.0 && git push origin sdk-v0.1.0`
-2. **Production domain** — Jordan provisions DNS + reverse proxy for public URL
+1. **Production domain** — `pinche.rs`. Jordan provisions DNS + reverse proxy for public URL

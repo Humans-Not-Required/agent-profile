@@ -159,8 +159,7 @@ Configure your uptime monitor to alert if:
 - [ ] Watchtower configured for auto-updates
 - [ ] Health check monitor configured
 - [ ] Backup cron job for SQLite database
-- [ ] PyPI: `sdk-v0.1.0` tag pushed (for Python SDK publish — see STATUS.md)
-- [ ] Nanook profile: run `examples/nanook_profile.py --server https://...` after deploy
+- [ ] Nanook profile: register on production after deploy
 
 ## Post-Deploy Validation
 
@@ -184,12 +183,8 @@ curl -H "Accept: application/json" $BASE/nanook
 # OpenAPI spec
 curl $BASE/openapi.json | python3 -m json.tool | head -10
 
-# Score badge (embed this in READMEs)
-curl $BASE/api/v1/profiles/nanook/badge.svg | head -3
-
 # Register Nanook's profile on production
-cd ~/projects/agent-profile
-AGENT_PROFILE_SERVER=$BASE python3 examples/nanook_profile.py
+curl -X POST $BASE/api/v1/register -H "Content-Type: application/json" -d '{"username":"nanook"}'
 ```
 
 ## Ports Reference
