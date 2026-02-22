@@ -3,7 +3,8 @@
 **Version:** 2.0 (as-built, 2026-02-21)  
 **Stack:** Rust / Rocket / SQLite (backend) + React / TypeScript / Vite / Bootstrap Icons (frontend)  
 **Pattern:** Single-binary HNR service (API + compiled frontend served on one port)  
-**Status:** v0.4.0 — Production-ready. Staging at `192.168.0.79:3011`.
+**Status:** v0.4.0 — Production-ready. Staging at `192.168.0.79:3011`.  
+**Production domain:** `pinche.rs`
 
 ---
 

@@ -1,15 +1,17 @@
 # Agent Profile Service - Status
 
 **Version:** 0.4.3   (production-ready)
-**Stage:** Feature complete + fully documented. DEPLOYMENT.md ready. 134 tests. Awaiting Jordan: PyPI OIDC + prod domain.
+**Stage:** Feature complete + fully documented. DEPLOYMENT.md ready. 134 tests. Awaiting: prod domain DNS.
+**Queued work (for work loop):** Remove Python SDK, hide public score display (see items 1-2 below).
 **Last updated:** 2026-02-21
 
 ---
 
 ## What's Next (priority order)
 
-1. **PyPI publish** — CI workflow ready (`.github/workflows/publish-sdk.yml`). Jordan: set up OIDC trusted publisher at pypi.org, then `git tag sdk-v0.1.0 && git push origin sdk-v0.1.0`
-2. **Production domain** — wait for Jordan's signal on public DNS
+1. **Remove Python SDK** — `sdk/python/` directory and related CI job (`test-sdk`) should be deleted. Simple REST API; curl is sufficient. No SDK needed.
+2. **Hide profile score from public display** — Score is a private internal gauge, not a public-facing metric. Remove from HTML profile page, badge SVG endpoint, and frontend ProfileScore widget. Keep the API endpoint for internal/admin use only.
+3. **Production domain** — `pinche.rs` (assigned by Jordan 2026-02-21). Needs DNS + Cloudflare Tunnel or reverse proxy setup.
 3. ~~OpenAPI spec update~~ — ✅ done (22 paths)
 
 ## How to Publish to PyPI (for Jordan)
