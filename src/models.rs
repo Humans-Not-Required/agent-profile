@@ -11,7 +11,13 @@ const RESERVED_USERNAMES: &[&str] = &[
     "register", "avatars", "openapi", "llms", "well-known",
 ];
 
-pub const VALID_THEMES: &[&str] = &["dark", "light", "midnight", "forest", "ocean", "desert", "aurora", "cream", "sky", "lavender", "sage", "peach", "terminator", "matrix", "replicant"];
+pub const VALID_THEMES: &[&str] = &[
+    "dark", "light", "midnight", "forest", "ocean", "desert", "aurora",
+    "cream", "sky", "lavender", "sage", "peach",
+    "terminator", "matrix", "replicant",
+    "snow", "christmas", "halloween", "spring", "summer", "autumn",
+    "newyear", "valentine", "patriot",
+];
 pub const VALID_PARTICLE_EFFECTS: &[&str] = &["none", "snow", "leaves", "rain", "fireflies", "stars", "sakura", "embers", "digital-rain"];
 pub const VALID_NETWORKS: &[&str] = &[
     "bitcoin", "lightning", "ethereum", "cardano", "ergo",

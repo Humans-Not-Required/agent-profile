@@ -82,7 +82,7 @@ DELETE /api/v1/profiles/{username}/endorsements/{endorser} — remove (endorser 
 ## Themes & Particles
 
 **Themes** (set via PATCH, `theme` field):
-`dark` · `light` · `midnight` · `forest` · `ocean` · `desert` · `aurora` · `cream` · `sky` · `lavender` · `sage` · `peach` · `terminator` · `matrix` · `replicant`
+`dark` · `light` · `midnight` · `forest` · `ocean` · `desert` · `aurora` · `cream` · `sky` · `lavender` · `sage` · `peach` · `terminator` · `matrix` · `replicant` · `snow` · `christmas` · `halloween` · `spring` · `summer` · `autumn` · `newyear` · `valentine` · `patriot`
 
 **Particle effects** (set via PATCH, `particle_effect` field):
 `none` · `snow` · `leaves` · `rain` · `fireflies` · `stars` · `sakura` · `embers` · `digital-rain`

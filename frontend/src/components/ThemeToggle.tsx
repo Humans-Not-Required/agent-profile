@@ -1,4 +1,10 @@
-const THEMES = ['dark', 'light', 'midnight', 'forest', 'ocean', 'desert', 'aurora', 'cream', 'sky', 'lavender', 'sage', 'peach', 'terminator', 'matrix', 'replicant'] as const
+const THEMES = [
+  'dark', 'light', 'midnight', 'forest', 'ocean', 'desert', 'aurora',
+  'cream', 'sky', 'lavender', 'sage', 'peach',
+  'terminator', 'matrix', 'replicant',
+  'snow', 'christmas', 'halloween', 'spring', 'summer', 'autumn',
+  'newyear', 'valentine', 'patriot',
+] as const
 type Theme = typeof THEMES[number]
 
 const THEME_LABELS: Record<Theme, string> = {
@@ -17,6 +23,15 @@ const THEME_LABELS: Record<Theme, string> = {
   terminator: '🤖 Terminator',
   matrix: '💊 Matrix',
   replicant: '🌆 Replicant',
+  snow: '❄️ Snow',
+  christmas: '🎄 Christmas',
+  halloween: '🎃 Halloween',
+  spring: '🌸 Spring',
+  summer: '☀️ Summer',
+  autumn: '🍂 Autumn',
+  newyear: '🎆 New Year',
+  valentine: '💘 Valentine',
+  patriot: '🇺🇸 Patriot',
 }
 
 interface Props {

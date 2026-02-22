@@ -113,6 +113,71 @@
   --tag-border: #282e38;
 }
 
+/* ── Seasonal & Holiday Themes ── */
+
+[data-theme="snow"] {
+  --bg: #0a1020; --card: #101828; --border: #1e2e48;
+  --text: #a8b8d0; --text-muted: #5e7090; --text-bright: #dce8f8;
+  --accent: #60a0e0; --accent2: #88c0f0; --tag-bg: #0c1424;
+  --tag-border: #1e2e48;
+}
+
+[data-theme="christmas"] {
+  --bg: #0a1208; --card: #101e0e; --border: #1e3518;
+  --text: #a8c0a0; --text-muted: #5e7a55; --text-bright: #d8e8d0;
+  --accent: #c42020; --accent2: #d4a030; --tag-bg: #0c1608;
+  --tag-border: #1e3518;
+}
+
+[data-theme="halloween"] {
+  --bg: #0c0614; --card: #140c20; --border: #2a1a40;
+  --text: #a090b8; --text-muted: #604878; --text-bright: #d0c0e0;
+  --accent: #e87020; --accent2: #f09840; --tag-bg: #100818;
+  --tag-border: #2a1a40;
+}
+
+[data-theme="spring"] {
+  --bg: #f8f0f4; --card: #ffffff; --border: #e0c8d4;
+  --text: #4a3040; --text-muted: #8a6878; --text-bright: #2c1820;
+  --accent: #d05088; --accent2: #c04878; --tag-bg: #f4e8ee;
+  --tag-border: #e0c8d4;
+}
+
+[data-theme="summer"] {
+  --bg: #fdf8ee; --card: #ffffff; --border: #e0d4b8;
+  --text: #4a3e28; --text-muted: #8a7e60; --text-bright: #2c2010;
+  --accent: #e0a020; --accent2: #20a0a0; --tag-bg: #f8f0e0;
+  --tag-border: #e0d4b8;
+}
+
+[data-theme="autumn"] {
+  --bg: #140c04; --card: #1e1208; --border: #3a2810;
+  --text: #b89068; --text-muted: #7a5838; --text-bright: #e0c098;
+  --accent: #c85020; --accent2: #e08040; --tag-bg: #180e06;
+  --tag-border: #3a2810;
+}
+
+[data-theme="newyear"] {
+  --bg: #050508; --card: #0c0c14; --border: #20202e;
+  --text: #a0a0b0; --text-muted: #606070; --text-bright: #e0e0f0;
+  --accent: #d4a840; --accent2: #c0c0d0; --tag-bg: #08080e;
+  --tag-border: #20202e;
+}
+
+[data-theme="valentine"] {
+  --bg: #fdf0f2; --card: #ffffff; --border: #ecc8d0;
+  --text: #5a2830; --text-muted: #a06070; --text-bright: #3e1018;
+  --accent: #d03050; --accent2: #c03048; --tag-bg: #f8e4e8;
+  --tag-border: #ecc8d0;
+}
+
+[data-theme="patriot"] {
+  --bg: #060818; --card: #0c1028; --border: #1a2040;
+  --text: #90a0c0; --text-muted: #506080; --text-bright: #d0d8e8;
+  --accent: #d02030; --accent2: #e8e8f0; --tag-bg: #080c20;
+  --tag-border: #1a2040;
+}
+
 /* ── Deluxe Theme Treatments ── */
 
 /* Dark — The Terminal: flat black with subtle blue vignette, crisp 1px borders */
@@ -278,6 +343,136 @@
 }
 [data-theme="peach"] .card:hover {
   box-shadow: 0 2px 8px rgba(232,115,74,0.1), 0 4px 20px rgba(60,30,20,0.06);
+  transform: translateY(-1px);
+}
+
+/* ── Seasonal & Holiday Theme Effects ── */
+
+/* Snow — The Blizzard: frosted glass cards, icy blue palette */
+[data-theme="snow"] body {
+  background: radial-gradient(ellipse at 50% 20%, #122040 0%, #0a1020 60%);
+}
+[data-theme="snow"] .card {
+  background: rgba(16,24,40,0.8);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 30px rgba(0,0,0,0.4), inset 0 1px 0 rgba(136,192,240,0.06);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+[data-theme="snow"] .card:hover {
+  box-shadow: 0 4px 30px rgba(96,160,224,0.1), inset 0 1px 0 rgba(136,192,240,0.1);
+  transform: translateY(-1px);
+}
+
+/* Christmas — The Fireplace: warm green with red/gold accents */
+[data-theme="christmas"] body {
+  background: radial-gradient(ellipse at 50% 90%, #1a2a14 0%, #0a1208 70%);
+}
+[data-theme="christmas"] .card {
+  box-shadow: inset 0 1px 0 rgba(212,160,48,0.05), 0 4px 24px rgba(0,0,0,0.5);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+[data-theme="christmas"] .card:hover {
+  box-shadow: inset 0 1px 0 rgba(212,160,48,0.1), 0 4px 28px rgba(196,32,32,0.1);
+  transform: translateY(-1px);
+}
+[data-theme="christmas"] .profile-name {
+  text-shadow: 0 0 15px rgba(212,160,48,0.15);
+}
+
+/* Halloween — The Haunting: purple-black with pumpkin orange glow */
+[data-theme="halloween"] body {
+  background: radial-gradient(ellipse at 50% 80%, #1a0c28 0%, #0c0614 60%);
+}
+[data-theme="halloween"] .card {
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 40px rgba(232,112,32,0.04);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+[data-theme="halloween"] .card:hover {
+  box-shadow: 0 4px 28px rgba(232,112,32,0.12), 0 0 50px rgba(232,112,32,0.06);
+  transform: translateY(-1px);
+}
+[data-theme="halloween"] .profile-name {
+  text-shadow: 0 0 15px rgba(232,112,32,0.2);
+}
+
+/* Spring — The Blossom: soft pink gradient, airy */
+[data-theme="spring"] body {
+  background: linear-gradient(180deg, #f0e0ea 0%, #f8f0f4 40%);
+}
+[data-theme="spring"] .card {
+  box-shadow: 0 1px 4px rgba(208,80,136,0.06), 0 4px 16px rgba(0,0,0,0.03);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+[data-theme="spring"] .card:hover {
+  box-shadow: 0 2px 8px rgba(208,80,136,0.12), 0 4px 20px rgba(0,0,0,0.05);
+  transform: translateY(-1px);
+}
+
+/* Summer — The Solstice: warm golden light */
+[data-theme="summer"] body {
+  background: linear-gradient(180deg, #f8f0dc 0%, #fdf8ee 40%);
+}
+[data-theme="summer"] .card {
+  box-shadow: 0 1px 4px rgba(224,160,32,0.08), 0 4px 16px rgba(0,0,0,0.03);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+[data-theme="summer"] .card:hover {
+  box-shadow: 0 2px 8px rgba(224,160,32,0.15), 0 4px 20px rgba(0,0,0,0.05);
+  transform: translateY(-1px);
+}
+
+/* Autumn — The Harvest: warm amber radial glow */
+[data-theme="autumn"] body {
+  background: radial-gradient(ellipse at 50% 80%, #2a1a08 0%, #140c04 60%);
+}
+[data-theme="autumn"] .card {
+  box-shadow: inset 0 1px 0 rgba(200,80,32,0.05), 0 4px 24px rgba(0,0,0,0.5);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+[data-theme="autumn"] .card:hover {
+  box-shadow: inset 0 1px 0 rgba(200,80,32,0.1), 0 4px 28px rgba(200,80,32,0.1);
+  transform: translateY(-1px);
+}
+
+/* New Year — The Countdown: midnight black with gold sparkle */
+[data-theme="newyear"] body {
+  background: radial-gradient(ellipse at 50% 40%, #10101e 0%, #050508 60%);
+}
+[data-theme="newyear"] .card {
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 40px rgba(212,168,64,0.03);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+[data-theme="newyear"] .card:hover {
+  box-shadow: 0 4px 28px rgba(212,168,64,0.1), 0 0 50px rgba(212,168,64,0.06);
+  transform: translateY(-1px);
+}
+[data-theme="newyear"] .profile-name {
+  text-shadow: 0 0 15px rgba(212,168,64,0.2);
+}
+
+/* Valentine — The Love Letter: soft rose, warm cream-pink */
+[data-theme="valentine"] body {
+  background: linear-gradient(180deg, #f4dce0 0%, #fdf0f2 40%);
+}
+[data-theme="valentine"] .card {
+  box-shadow: 0 1px 4px rgba(208,48,80,0.06), 0 4px 16px rgba(0,0,0,0.03);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+[data-theme="valentine"] .card:hover {
+  box-shadow: 0 2px 8px rgba(208,48,80,0.12), 0 4px 20px rgba(0,0,0,0.05);
+  transform: translateY(-1px);
+}
+
+/* Patriot — The Fourth: red white blue, bold */
+[data-theme="patriot"] body {
+  background: radial-gradient(ellipse at 50% 20%, #101830 0%, #060818 60%);
+}
+[data-theme="patriot"] .card {
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(208,32,48,0.04);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+[data-theme="patriot"] .card:hover {
+  box-shadow: 0 4px 28px rgba(208,32,48,0.1), inset 0 1px 0 rgba(208,32,48,0.08);
   transform: translateY(-1px);
 }
 

@@ -48,7 +48,7 @@
    - Accent consistency: one signature color through links, tags, hover, particles
 
 2. **Fix demo profiles** — All 15 themes (12 existing + 3 cinematic) need a complete demo profile with display name, bio, tagline, skills, links. Current 5 light-theme demos are empty shells. Several dark-theme demos lost content after container restart. Rebuild all from scratch.
-3. **Add search to landing page** — The API supports `?q=` search but the frontend landing page (`/`) has no search UI. Add a search bar so visitors can find profiles by name, skill, or keyword.
+3. ~~**Add search to landing page**~~ — ✅ DONE. Client-side instant search filters profiles by name, skill, or keyword.
 4. **Production domain** — `pinche.rs` (assigned by Jordan 2026-02-21). Needs DNS + Cloudflare Tunnel or reverse proxy setup.
 
 ## ✅ Done (v0.5.0 — Feb 22)
