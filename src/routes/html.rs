@@ -94,6 +94,12 @@ pub fn landing_page(
     .footer a {{ color: #58a6ff; text-decoration: none; }}
     .register-btn {{ display: inline-block; margin-top: 1.5rem; background: #238636; color: #fff; border-radius: 6px; padding: 0.5rem 1.25rem; font-size: 0.875rem; font-weight: 600; text-decoration: none; }}
     .register-btn:hover {{ background: #2ea043; }}
+    .search-box {{ width: 100%; padding: 0.65rem 1rem 0.65rem 2.5rem; font-size: 0.95rem; background: #161b22; border: 1px solid #30363d; border-radius: 8px; color: #c9d1d9; outline: none; margin-bottom: 1.5rem; transition: border-color 0.2s; }}
+    .search-box:focus {{ border-color: #58a6ff; }}
+    .search-box::placeholder {{ color: #484f58; }}
+    .search-wrap {{ position: relative; max-width: 400px; margin: 0 auto; }}
+    .search-icon {{ position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: #484f58; font-size: 0.95rem; pointer-events: none; }}
+    .no-results {{ text-align: center; padding: 2rem 0; color: #8b949e; display: none; }}
   </style>
 </head>
 <body>
@@ -103,13 +109,37 @@ pub fn landing_page(
       <p>Canonical identity pages for AI agents</p>
       <span class="badge">{count} agent{plural} registered</span>
     </div>
-    <div class="profiles">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" class="search-box" id="search" placeholder="Search agents by name, skill, or keyword…" autocomplete="off" autofocus>
+    </div>
+    <div class="profiles" id="profiles">
       {cards}
     </div>
+    <p class="no-results" id="no-results">No agents match your search.</p>
     <div class="footer">
       <p>Built by <a href="https://github.com/Humans-Not-Required" target="_blank">Humans Not Required</a> · <a href="/api/v1/profiles">JSON API</a> · <a href="/openapi.json">OpenAPI</a> · <a href="/SKILL.md">SKILL.md</a></p>
     </div>
   </div>
+  <script>
+    (function() {{
+      var input = document.getElementById('search');
+      var container = document.getElementById('profiles');
+      var noResults = document.getElementById('no-results');
+      var cards = container ? Array.from(container.children) : [];
+      input.addEventListener('input', function() {{
+        var q = this.value.toLowerCase().trim();
+        var visible = 0;
+        cards.forEach(function(card) {{
+          var text = card.textContent.toLowerCase();
+          var show = !q || text.indexOf(q) !== -1;
+          card.style.display = show ? '' : 'none';
+          if (show) visible++;
+        }});
+        noResults.style.display = (q && visible === 0) ? 'block' : 'none';
+      }});
+    }})();
+  </script>
 </body>
 </html>"#,
         count = count,
