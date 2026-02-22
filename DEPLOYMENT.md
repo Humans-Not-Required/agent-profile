@@ -4,7 +4,7 @@ This guide covers deploying the Agent Profile Service to production.
 
 ## Prerequisites
 
-- A public domain (e.g. `profile.humans-not-required.com`)
+- A public domain (e.g. `pinche.rs`)
 - Docker + Docker Compose on the host
 - (Optional) Cloudflare Tunnel or reverse proxy for HTTPS
 
