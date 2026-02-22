@@ -18,6 +18,7 @@ COPY Cargo.toml Cargo.lock* ./
 COPY src/ src/
 COPY tests/ tests/
 COPY openapi.json ./
+COPY SKILL.md ./
 
 # Copy the compiled frontend so rust-embed can include it
 COPY --from=frontend-builder /app/frontend/dist/ frontend/dist/
