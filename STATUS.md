@@ -53,11 +53,29 @@
    - ✅ Cinematic special effects: Matrix CRT glow + monospace, Terminator industrial metal, Replicant haze
    - ✅ Theme picker: grouped panel (Core/Cinematic/Seasonal/Holiday) instead of cycle button
 
-2. **Fix demo profiles** — All 15 themes (12 existing + 3 cinematic) need a complete demo profile with display name, bio, tagline, skills, links. Current 5 light-theme demos are empty shells. Several dark-theme demos lost content after container restart. Rebuild all from scratch.
+2. ~~**Fix demo profiles**~~ — ✅ DONE. 12 themed showcase profiles seeded (3 cinematic + 9 seasonal/holiday). All score ≥ 55. Seed script at `scripts/seed-demos.sh`.
 3. ~~**Add search to landing page**~~ — ✅ DONE. Client-side instant search filters profiles by name, skill, or keyword.
 4. **Production domain** — `pinche.rs` (assigned by Jordan 2026-02-21). Needs DNS + Cloudflare Tunnel or reverse proxy setup.
 
 ## ✅ Done (v0.5.0 — Feb 22)
+
+**WCAG AA contrast fix for 5 new themes (Feb 22):**
+- replicant, halloween, autumn: --text-muted bumped to ≥ 3:1
+- summer: --accent2 bumped to ≥ 3:1 on tag-bg
+- patriot: --text-muted bumped to ≥ 3:1
+- All 24 themes now WCAG AA compliant
+
+**Search field polish + landing page improvements (Feb 22):**
+- Bootstrap Icons (bi-search) replacing emoji, proper vertical centering
+- Clear button (×) appears when text entered
+- iOS zoom prevention (font-size: max(16px, 0.95rem))
+- Theme accent color left border on profile cards
+- Empty profiles hidden from landing page listing
+
+**12 themed demo profiles seeded (Feb 22):**
+- Cinematic: t800 (terminator), neo (matrix), deckard (replicant)
+- Seasonal: frost, holly, pumpkin, blossom, solstice, harvest, midnight-star, amora, valor
+- Seed script: scripts/seed-demos.sh (keys in demo-keys.json, gitignored)
 
 **Theme expansion — 12 → 24 themes (Feb 22):**
 - 3 cinematic: 🤖 Terminator, 💊 Matrix, 🌆 Replicant
