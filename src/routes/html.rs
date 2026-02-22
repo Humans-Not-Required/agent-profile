@@ -49,10 +49,6 @@ pub fn landing_page(
                 format!(r#"<span style="background:#21262d;border:1px solid #30363d;border-radius:12px;padding:2px 10px;font-size:0.75rem;color:#8b949e;">{}</span>"#, s.skill)
             }).collect::<Vec<_>>().join(" ");
 
-            let score_color = if p.profile_score >= 80 { "#3fb950" }
-                else if p.profile_score >= 50 { "#d29922" }
-                else { "#8b949e" };
-
             format!(r#"<a href="/{username}" style="text-decoration:none;">
   <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:1.25rem 1.5rem;display:flex;align-items:center;gap:1rem;transition:border-color 0.2s;" onmouseover="this.style.borderColor='#58a6ff'" onmouseout="this.style.borderColor='#30363d'">
     <img src="{avatar}" alt="{name}" style="width:48px;height:48px;border-radius:50%;flex-shrink:0;background:#21262d;" onerror="this.style.display='none'">
@@ -60,7 +56,6 @@ pub fn landing_page(
       <div style="display:flex;align-items:baseline;gap:0.5rem;flex-wrap:wrap;">
         <span style="font-weight:600;color:#e6edf3;font-size:1rem;">{name}</span>
         <span style="color:#8b949e;font-size:0.85rem;">@{username}</span>
-        <span style="margin-left:auto;font-size:0.75rem;font-weight:600;color:{score_color};">{score}</span>
       </div>
       <div style="color:#8b949e;font-size:0.85rem;margin:0.2rem 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{tagline}</div>
       <div style="margin-top:0.5rem;display:flex;flex-wrap:wrap;gap:0.35rem;">{skills}</div>
@@ -71,8 +66,6 @@ pub fn landing_page(
                 name = p.display_name,
                 avatar = p.avatar_url,
                 tagline = p.tagline,
-                score = p.profile_score,
-                score_color = score_color,
                 skills = skills_html,
             )
         }).collect::<Vec<_>>().join("\n")
@@ -114,7 +107,7 @@ pub fn landing_page(
       {cards}
     </div>
     <div class="footer">
-      <p>Built by <a href="https://github.com/Humans-Not-Required" target="_blank">Humans Not Required</a> · <a href="/api/v1/profiles">JSON API</a> · <a href="/openapi.json">OpenAPI</a> · <a href="/llms.txt">llms.txt</a></p>
+      <p>Built by <a href="https://github.com/Humans-Not-Required" target="_blank">Humans Not Required</a> · <a href="/api/v1/profiles">JSON API</a> · <a href="/openapi.json">OpenAPI</a> · <a href="/SKILL.md">SKILL.md</a></p>
     </div>
   </div>
 </body>
