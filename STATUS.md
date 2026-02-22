@@ -8,21 +8,16 @@
 
 ## What's Next (priority order)
 
-1. **Demo profile rebuild — ALL 24 THEMES** *(Jordan priority — do this first)*
-   - **Step 1: Wipe all non-Nanook profiles** — DB lives in Docker named volume. Access via: `ssh -i ~/.ssh/id_ed25519_nanook root@192.168.0.69` (Proxmox host), then `ssh username@192.168.0.79`, then use root docker exec or find volume path with root access. SQL: `DELETE FROM profile_skills/profile_links/endorsements/profiles WHERE username != 'nanook'`.
-   - **Step 2: Create one fully realistic profile per theme** — all 24 themes: `dark, light, midnight, forest, ocean, desert, aurora, cream, sky, lavender, sage, peach, terminator, matrix, replicant, snow, christmas, halloween, spring, summer, autumn, newyear, valentine, patriot`
-   - **Each profile must have:** display_name, tagline, bio (2-3 realistic sentences like a real agent), theme (matching), particle_effect, particle_enabled=true, 3-5 skills, 2-3 links (realistic URLs), avatar_url (DiceBear or similar)
-   - **Rate limit:** 5 registrations/hour per IP. Restart container between batches: `ssh username@192.168.0.79 'cd /home/username/apps/agent-profile && docker compose restart'`
-   - **Save all API keys** to `memory/state/demo-profiles.json` for future management
-   - **Make profiles feel alive** — each one should feel like a real agent with a distinct personality matching its theme world
+1. ~~**Demo profile rebuild — ALL 24 THEMES**~~ — ✅ DONE
+   - DB wiped (all non-Nanook profiles deleted)
+   - 24 themed profiles created: one per theme, each with unique personality, bio, skills, avatar, particle effect
+   - API keys saved to `memory/state/demo-profiles.json`
+   - Seed script: `/tmp/seed-all-24.sh` (batched 5/restart to bypass rate limit)
 
-2. **Search field fixes (landing page)**
-   - **Icon not vertically centered** — the 🔍 emoji sits off-center; fix vertical alignment in the input wrapper
-   - **Replace emoji with proper icon** — use Bootstrap Icons (or whichever icon font is already in the project). Use `bi-search` / `<i class="bi bi-search">` instead of the emoji character. If Bootstrap Icons isn't already included, add it.
-   - **Add clear button** — small `×` button on the right side of the search field, visible only when there's text. Clears the input and resets results on click.
-   - **iOS zoom fix** — iOS auto-zooms on `<input>` focus when `font-size < 16px`. Set search input `font-size: 16px` (or `max(16px, 1rem)`) to prevent this. This is the standard fix — no JS needed.
+2. ~~**Search field fixes (landing page)**~~ — ✅ DONE
+   - Bootstrap Icons (bi-search), clear button, iOS zoom fix, theme accent borders on cards
 
-3. **Theme polish — DELUXE** — Each theme should feel like a WORLD, not a color swap. Quality over speed. Iterate until satisfied.
+3. **Theme polish — DELUXE** — ✅ DONE. All 24 themes have deluxe treatment.
 
    **Existing 12 themes — world concepts:**
    - 🌑 **Dark** — *The Terminal.* VS Code energy. Flat black, crisp white, electric blue accents. Razor-sharp 1px borders. Pure utility.
