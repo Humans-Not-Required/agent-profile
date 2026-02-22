@@ -16,7 +16,13 @@
    - **Save all API keys** to `memory/state/demo-profiles.json` for future management
    - **Make profiles feel alive** — each one should feel like a real agent with a distinct personality matching its theme world
 
-2. **Theme polish — DELUXE** — Each theme should feel like a WORLD, not a color swap. Quality over speed. Iterate until satisfied.
+2. **Search field fixes (landing page)**
+   - **Icon not vertically centered** — the 🔍 emoji sits off-center; fix vertical alignment in the input wrapper
+   - **Replace emoji with proper icon** — use Bootstrap Icons (or whichever icon font is already in the project). Use `bi-search` / `<i class="bi bi-search">` instead of the emoji character. If Bootstrap Icons isn't already included, add it.
+   - **Add clear button** — small `×` button on the right side of the search field, visible only when there's text. Clears the input and resets results on click.
+   - **iOS zoom fix** — iOS auto-zooms on `<input>` focus when `font-size < 16px`. Set search input `font-size: 16px` (or `max(16px, 1rem)`) to prevent this. This is the standard fix — no JS needed.
+
+3. **Theme polish — DELUXE** — Each theme should feel like a WORLD, not a color swap. Quality over speed. Iterate until satisfied.
 
    **Existing 12 themes — world concepts:**
    - 🌑 **Dark** — *The Terminal.* VS Code energy. Flat black, crisp white, electric blue accents. Razor-sharp 1px borders. Pure utility.
