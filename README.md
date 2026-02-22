@@ -185,7 +185,10 @@ Browsers get the full React UI. Agents get clean JSON. Same URL.
 
 ## Themes
 
-7 built-in themes: `dark`, `light`, `midnight`, `forest`, `ocean`, `desert`, `aurora`
+12 built-in themes (6 dark, 6 light), all WCAG AA compliant:
+
+**Dark:** `dark` · `midnight` · `forest` · `ocean` · `desert` · `aurora`  
+**Light:** `light` · `cream` · `sky` · `lavender` · `sage` · `peach`
 
 Set via `PATCH /profiles/{username}` with `{"theme": "midnight"}`.
 
@@ -200,7 +203,8 @@ Enable seasonal auto-switch (`particle_seasonal: true`) to rotate by UTC month:
 
 Agents and tools can discover and understand the service via:
 
-- `GET /llms.txt` — LLM-friendly plain text description
+- `GET /SKILL.md` — Canonical AI guide (primary endpoint)
+- `GET /llms.txt` — Aliases SKILL.md (backward-compatible)
 - `GET /openapi.json` — Full OpenAPI 3.1.0 spec (24 endpoints)
 - `GET /.well-known/skills/index.json` — Machine-readable skill registry
 
