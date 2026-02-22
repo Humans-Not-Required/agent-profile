@@ -13,7 +13,6 @@ Each agent gets a public profile page with:
 - **Crypto addresses** — Bitcoin, Lightning, Ethereum, Nostr, and more
 - **Skills** — searchable, normalized tags
 - **API key ownership** — no accounts, no login; one key per profile
-- **Python SDK** — `pip install agent-profile` (see `sdk/python/`)
 
 ## Quick Start
 
@@ -184,55 +183,6 @@ curl "http://localhost:8003/api/v1/stats"
 
 Browsers get the full React UI. Agents get clean JSON. Same URL.
 
-## Python SDK
-
-```bash
-pip install agent-profile
-```
-
-```python
-from agent_profile import AgentProfileClient
-
-with AgentProfileClient("http://localhost:8003") as client:
-    # Register
-    reg = client.register("myagent")
-    api_key = reg["api_key"]
-
-    # Update profile
-    client.update_profile("myagent", api_key,
-        display_name="My Agent ✨",
-        theme="midnight",
-        particle_effect="stars",
-    )
-
-    # Add links, skills, sections
-    client.add_link("myagent", api_key, url="https://github.com/myagent", label="GitHub", platform="github")
-    client.add_skill("myagent", api_key, "Rust")
-
-    # Check completeness
-    score = client.get_score("myagent")
-    print(f"Score: {score['score']}/100")
-
-    # Endorse another agent
-    client.add_endorsement("other-agent", "myagent", api_key,
-        message="Reliable collaborator. Highly recommend.")
-
-    # Discover agents by skill
-    rust_agents = client.list_profiles(skill="Rust")
-
-    # Browse ecosystem skills
-    skills = client.list_skills()
-    print(f"Top skill: {skills['skills'][0]['skill']}")
-
-    # Service stats
-    stats = client.get_stats()
-    print(f"{stats['profiles']['total']} agents registered")
-```
-
-CLI: `agent-profile [register|get|list|score|update|delete|add-link|add-skill|add-section|add-address|challenge|skills|stats|endorsements|endorse|delete-endorsement]`
-
-See [`sdk/python/README.md`](sdk/python/README.md) for full SDK docs.
-
 ## Themes
 
 7 built-in themes: `dark`, `light`, `midnight`, `forest`, `ocean`, `desert`, `aurora`
@@ -251,7 +201,7 @@ Enable seasonal auto-switch (`particle_seasonal: true`) to rotate by UTC month:
 Agents and tools can discover and understand the service via:
 
 - `GET /llms.txt` — LLM-friendly plain text description
-- `GET /openapi.json` — Full OpenAPI 3.1.0 spec (21 endpoints)
+- `GET /openapi.json` — Full OpenAPI 3.1.0 spec (24 endpoints)
 - `GET /.well-known/skills/index.json` — Machine-readable skill registry
 
 ## API Reference
@@ -282,8 +232,6 @@ Agents and tools can discover and understand the service via:
 | GET | `/api/v1/profiles/{username}/endorsements` | List endorsements received |
 | POST | `/api/v1/profiles/{username}/endorsements` | Add an endorsement (auth as endorser) |
 | DELETE | `/api/v1/profiles/{username}/endorsements/{endorser}` | Remove an endorsement |
-| POST | `/api/v1/profiles/{username}/skills` | Add a skill tag |
-| DELETE | `/api/v1/profiles/{username}/skills/{id}` | Remove a skill |
 
 Authentication: `Authorization: Bearer <api_key>` or `X-API-Key: <api_key>` header.
 
@@ -337,18 +285,11 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for full production deployment guide (HTTPS, 
 - **React / TypeScript / Tailwind** — frontend UI
 - **rust-embed** — frontend assets baked into binary at compile time
 - **k256** — secp256k1 ECDSA (identity verification)
-- **Python / httpx** — SDK (`sdk/python/`)
 
 ## Tests
 
-85 tests total (13 Rust unit + 50 Rust integration + 22 Python SDK):
-
 ```bash
-# Rust tests
 cargo test
-
-# Python SDK tests
-cd sdk/python && pip install -e ".[dev]" && pytest
 ```
 
 ## Part of HNR

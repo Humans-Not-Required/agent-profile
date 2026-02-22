@@ -5,7 +5,6 @@ import { Links } from './components/Links'
 import { Sections } from './components/Sections'
 import { Skills } from './components/Skills'
 import { CryptoAddresses } from './components/CryptoAddresses'
-import { ProfileScore } from './components/ProfileScore'
 import { ParticleEffect } from './components/ParticleEffect'
 import type { EffectName } from './components/ParticleEffect'
 import { ThemeToggle } from './components/ThemeToggle'
@@ -41,12 +40,6 @@ function platformIcon(platform: string): string {
     custom: 'bi-link-45deg',
   }
   return map[platform] ?? 'bi-link-45deg'
-}
-
-function scoreColor(score: number): string {
-  if (score >= 80) return '#3fb950'
-  if (score >= 50) return '#d29922'
-  return '#f85149'
 }
 
 export default function App() {
@@ -187,9 +180,6 @@ export default function App() {
 
         {/* ── Badges ── */}
         <div className="badges">
-          {profile.profile_score > 0 && (
-            <ProfileScore score={profile.profile_score} color={scoreColor(profile.profile_score)} />
-          )}
           {profile.pubkey && (
             <span className="badge badge-verified" title="secp256k1 identity key set">
               🔐 Cryptographic ID

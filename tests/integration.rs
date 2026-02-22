@@ -847,9 +847,9 @@ fn test_openapi_json() {
     let resp = client.get("/openapi.json").dispatch();
     assert_eq!(resp.status(), Status::Ok);
     let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
-    // Verify it's a valid OpenAPI 3.1 spec for v0.4.3
+    // Verify it's a valid OpenAPI 3.1 spec for v0.5.0
     assert_eq!(body["openapi"], "3.1.0");
-    assert_eq!(body["info"]["version"], "0.4.3");
+    assert_eq!(body["info"]["version"], "0.5.0");
     assert!(body["paths"].is_object());
     // Core API paths present
     let paths = body["paths"].as_object().unwrap();
@@ -1354,68 +1354,6 @@ fn test_get_stats_counts() {
     assert!(body["profiles"]["total"].as_i64().unwrap() >= 2);
     assert!(body["skills"]["total_tags"].as_i64().unwrap() >= 1);
     assert!(body["endorsements"]["total"].as_i64().unwrap() >= 1);
-}
-
-// ===== Badge SVG =====
-
-#[test]
-fn test_badge_svg_existing_profile() {
-    let client = test_client();
-    let (_, reg) = register(&client, "badge-test-agent");
-    let key = reg["api_key"].as_str().unwrap();
-
-    // Add display name so score is non-zero
-    client.patch("/api/v1/profiles/badge-test-agent")
-        .header(ContentType::JSON)
-        .header(Header::new("X-API-Key", key.to_string()))
-        .body(r#"{"display_name": "Badge Test Agent", "bio": "A test agent", "tagline": "Testing badges"}"#)
-        .dispatch();
-
-    let resp = client.get("/api/v1/profiles/badge-test-agent/badge.svg").dispatch();
-    assert_eq!(resp.status(), Status::Ok);
-    let ct = resp.content_type().unwrap();
-    assert_eq!(ct.to_string(), "image/svg+xml");
-    let body = resp.into_string().unwrap();
-    assert!(body.contains("<svg"), "should return SVG");
-    assert!(body.contains("agent score"), "label should be present");
-    assert!(body.contains("/100"), "score /100 should be present");
-    assert!(!body.contains("unknown"), "existing profile should not show unknown");
-}
-
-#[test]
-fn test_badge_svg_not_found() {
-    let client = test_client();
-    let resp = client.get("/api/v1/profiles/nonexistent-badge-agent-xyz/badge.svg").dispatch();
-    assert_eq!(resp.status(), Status::Ok);
-    let body = resp.into_string().unwrap();
-    assert!(body.contains("<svg"), "should return SVG even for unknown profiles");
-    assert!(body.contains("unknown"), "missing profile should show unknown");
-    assert!(body.contains("9f9f9f"), "unknown badge should use gray color");
-}
-
-#[test]
-fn test_badge_svg_high_score_is_green() {
-    let client = test_client();
-    let (_, reg) = register(&client, "badge-highscore-agent");
-    let key = reg["api_key"].as_str().unwrap();
-
-    // Boost score: display_name, bio, tagline, pubkey, skill
-    let pubkey = "03b3e35e88e04bb22f30a9e98c5d2fabadf21da9d8b0e5b95e4e5f2d6c8a7b5c91";
-    client.patch("/api/v1/profiles/badge-highscore-agent")
-        .header(ContentType::JSON)
-        .header(Header::new("X-API-Key", key.to_string()))
-        .body(serde_json::json!({"display_name":"High Score Agent","bio":"A reliable and capable autonomous agent.","tagline":"The best","pubkey":pubkey}).to_string())
-        .dispatch();
-    client.post("/api/v1/profiles/badge-highscore-agent/skills")
-        .header(ContentType::JSON)
-        .header(Header::new("X-API-Key", key.to_string()))
-        .body(r#"{"skill":"Rust"}"#).dispatch();
-
-    let resp = client.get("/api/v1/profiles/badge-highscore-agent/badge.svg").dispatch();
-    let body = resp.into_string().unwrap();
-    // Score should be ≥60 with name+bio+tagline+pubkey+skill → green or yellow
-    assert!(body.contains("4c1") || body.contains("dfb317"),
-        "high score should produce green or yellow badge, got: {}", &body[..200.min(body.len())]);
 }
 
 // ===== Web Discovery (robots.txt, sitemap.xml) =====
