@@ -108,7 +108,7 @@
 
 [data-theme="replicant"] {
   --bg: #0a0d14; --card: #13181f; --border: #282e38;
-  --text: #8a8278; --text-muted: #5a544c; --text-bright: #d4a868;
+  --text: #8a8278; --text-muted: #6e665c; --text-bright: #d4a868;
   --accent: #c47a30; --accent2: #b8924a; --tag-bg: #0e1118;
   --tag-border: #282e38;
 }
@@ -131,7 +131,7 @@
 
 [data-theme="halloween"] {
   --bg: #0c0614; --card: #140c20; --border: #2a1a40;
-  --text: #a090b8; --text-muted: #604878; --text-bright: #d0c0e0;
+  --text: #a090b8; --text-muted: #7a5e98; --text-bright: #d0c0e0;
   --accent: #e87020; --accent2: #f09840; --tag-bg: #100818;
   --tag-border: #2a1a40;
 }
@@ -146,13 +146,13 @@
 [data-theme="summer"] {
   --bg: #fdf8ee; --card: #ffffff; --border: #e0d4b8;
   --text: #4a3e28; --text-muted: #8a7e60; --text-bright: #2c2010;
-  --accent: #e0a020; --accent2: #20a0a0; --tag-bg: #f8f0e0;
+  --accent: #e0a020; --accent2: #0e8080; --tag-bg: #f8f0e0;
   --tag-border: #e0d4b8;
 }
 
 [data-theme="autumn"] {
   --bg: #140c04; --card: #1e1208; --border: #3a2810;
-  --text: #b89068; --text-muted: #7a5838; --text-bright: #e0c098;
+  --text: #b89068; --text-muted: #8a6440; --text-bright: #e0c098;
   --accent: #c85020; --accent2: #e08040; --tag-bg: #180e06;
   --tag-border: #3a2810;
 }
@@ -173,7 +173,7 @@
 
 [data-theme="patriot"] {
   --bg: #060818; --card: #0c1028; --border: #1a2040;
-  --text: #90a0c0; --text-muted: #506080; --text-bright: #d0d8e8;
+  --text: #90a0c0; --text-muted: #5a6e90; --text-bright: #d0d8e8;
   --accent: #d02030; --accent2: #e8e8f0; --tag-bg: #080c20;
   --tag-border: #1a2040;
 }
