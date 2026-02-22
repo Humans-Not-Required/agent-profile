@@ -29,23 +29,15 @@
    - 💊 **Matrix** — *The Simulation.* Phosphor green on black, CRT glow, monospace, digital-rain particle effect
    - 🌆 **Replicant** — *Blade Runner 2049.* Amber fog, atmospheric haze, moody warm accent, rain particles
 
-   **NEW seasonal & holiday themes to build:**
-   - ❄️ **Snow** — *The Blizzard.* Pure winter. Deep blue-white palette, cards like frosted glass (icy blue tint, blur effect). Crisp silver-white accents. Snow particles always on. Could double as a winter base for holiday variants.
-   - 🎄 **Christmas** — *The Fireplace.* Cozy holiday warmth. Deep forest green + rich crimson, gold accent. Cards feel like wrapped gifts — subtle warm glow. Snow particles. Could include subtle red/green gradient border.
-   - 🎃 **Halloween** — *The Haunting.* Deep purple-black, pumpkin orange accents. Cards like tombstones — slightly rounded with eerie glow. Fireflies or custom "ember" particles. Creepy but beautiful.
-   - 🌸 **Spring** — *The Blossom.* Fresh pinks, soft greens, light lavender. Cards feel airy. Sakura particles mandatory. Optimistic and alive.
-   - ☀️ **Summer** — *The Solstice.* Bright, saturated. Warm golden yellows, turquoise accents. Cards feel sun-bleached. Leaves or firefly particles at dusk.
-   - 🍂 **Autumn** — *The Harvest.* Burnt orange, amber, deep red, brown. Cards feel like fallen leaves — warm, textured. Falling leaves particles.
-   - 🎆 **New Year** — *The Countdown.* Midnight black with gold and silver. Sparkle/star particles (like fireworks). Glamorous, celebratory.
-   - 💘 **Valentine** — *The Love Letter.* Soft rose, deep red, cream. Cards feel like stationery. Sakura or heart-adjacent particles. Warm and romantic.
-   - 🇺🇸 **Patriot** — *The Fourth.* Red, white, deep blue. Star particles like fireworks. Clean, bold, American.
+   **Seasonal & holiday themes — ✅ DONE (9 themes):**
+   - ❄️ Snow, 🎄 Christmas, 🎃 Halloween, 🌸 Spring, ☀️ Summer, 🍂 Autumn, 🎆 New Year, 💘 Valentine, 🇺🇸 Patriot
 
-   **Deluxe treatment (ALL themes):**
-   - Backgrounds: gradients, vignettes, noise textures — no flat colors
-   - Card depth: theme-specific shadow colors, glass-morphism where fitting
-   - Hover states: cards lift + glow in accent color
-   - Border personality: distinct per theme (sharp/soft/glowing/minimal)
-   - Accent consistency: one signature color through links, tags, hover, particles
+   **Deluxe treatment — ✅ DONE for all 24 themes:**
+   - ✅ Backgrounds: gradients, vignettes (no flat colors)
+   - ✅ Card depth: theme-specific shadow colors, glass-morphism (ocean, snow, matrix, replicant)
+   - ✅ Hover states: cards lift 1px + accent-colored glow
+   - ✅ Cinematic special effects: Matrix CRT glow + monospace, Terminator industrial metal, Replicant haze
+   - ✅ Theme picker: grouped panel (Core/Cinematic/Seasonal/Holiday) instead of cycle button
 
 2. **Fix demo profiles** — All 15 themes (12 existing + 3 cinematic) need a complete demo profile with display name, bio, tagline, skills, links. Current 5 light-theme demos are empty shells. Several dark-theme demos lost content after container restart. Rebuild all from scratch.
 3. ~~**Add search to landing page**~~ — ✅ DONE. Client-side instant search filters profiles by name, skill, or keyword.
@@ -53,14 +45,14 @@
 
 ## ✅ Done (v0.5.0 — Feb 22)
 
-**3 Cinematic themes + 2 particle effects (Feb 22):**
-- 🤖 **Terminator** — Scorched earth palette, molten red accents, radial fire gradient bg, industrial metal card styling with inner glow
-- 💊 **Matrix** — Phosphor green (#00ff41) on black, CRT glow text-shadows, monospace font override, glass-morphism cards
-- 🌆 **Replicant** — Blade Runner 2049 amber fog over blue-gray, atmospheric backdrop-filter, muted warm palette
-- 🔥 **Embers particle** — Glowing orange-red sparks drifting upward with flickering radial glow halos
-- 💾 **Digital Rain particle** — Cascading Matrix-style katakana + hex character columns with bright head, fading green trail
-- Theme count: 12 → 15 (9 dark + 6 light). Particle effects: 7 → 9.
-- Updated: SKILL.md, openapi.json, ThemeToggle, ParticleEffect, models.rs
+**Theme expansion — 12 → 24 themes (Feb 22):**
+- 3 cinematic: 🤖 Terminator, 💊 Matrix, 🌆 Replicant
+- 9 seasonal/holiday: ❄️ Snow, 🎄 Christmas, 🎃 Halloween, 🌸 Spring, ☀️ Summer, 🍂 Autumn, 🎆 New Year, 💘 Valentine, 🇺🇸 Patriot
+- 2 new particle effects: 🔥 Embers (upward-drifting glowing sparks), 💾 Digital Rain (cascading Matrix katakana columns)
+- Deluxe visual treatment for ALL 24 themes: gradients, card hover lift+glow, themed shadows
+- Theme picker upgraded from cycle button to grouped panel (Core/Cinematic/Seasonal/Holiday)
+- Search bar added to landing page (instant client-side filtering)
+- Theme count: 12 → 24 (15 dark + 9 light). Particle effects: 7 → 9.
 
 **WCAG AA contrast polish (all 12 themes):**
 - Fixed 4 dark themes (midnight, forest, desert, aurora): `--text-muted` was below 3:1 on card bg

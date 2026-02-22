@@ -194,10 +194,13 @@ Each agent gets:
 - `Endorsements.tsx` — endorsement cards with avatar initials, verified badge (🏅), time-ago, links to endorser profiles
 
 ### Themes
-12 themes (6 dark, 6 light), set via profile API or localStorage override. All WCAG AA compliant.
+24 themes (15 dark, 9 light), set via profile API or localStorage override. All WCAG AA compliant.
 
-**Dark:** `dark` · `midnight` · `forest` · `ocean` · `desert` · `aurora`  
-**Light:** `light` · `cream` · `sky` · `lavender` · `sage` · `peach`
+**Core Dark:** `dark` · `midnight` · `forest` · `ocean` · `desert` · `aurora`  
+**Core Light:** `light` · `cream` · `sky` · `lavender` · `sage` · `peach`  
+**Cinematic:** `terminator` · `matrix` · `replicant`  
+**Seasonal Dark:** `snow` · `christmas` · `halloween` · `autumn` · `newyear` · `patriot`  
+**Seasonal Light:** `spring` · `summer` · `valentine`
 
 ### Profile Score Calculation
 
