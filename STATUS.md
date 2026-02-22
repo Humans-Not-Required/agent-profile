@@ -24,10 +24,10 @@
    - 🌱 **Sage** — *The Greenhouse.* Sunlit garden morning. Barely-there green tint. Rich herb green accents.
    - 🍑 **Peach** — *The Golden Hour.* 30 min before sunset. Soft cream-pink. Coral/orange accents. Warm and social.
 
-   **3 NEW cinematic themes to build:**
-   - 🤖 **Terminator** — *The Wasteland.* Post-apocalyptic. Scorched earth tones — charred blacks, molten red/orange, metallic grays. Industrial. Cards like dented metal panels. Red glow accents (Skynet eyes). HUD/targeting reticle energy. Ember/ash particles or heat distortion.
-   - 💊 **Matrix** — *The Simulation.* Iconic green-on-black. Background: streaming/falling character rain (CSS or canvas animated green chars cascading). Translucent dark cards, green-tinted borders. Monospace energy. Phosphor green (#00FF41). Everything = reading the code behind reality.
-   - 🌆 **Replicant** — *Blade Runner 2049 / The Off-World.* Hazy, atmospheric. Muted orange/amber fog over dark blue-gray. Vegas scene energy — dusty golden light. Cards emerge from haze. Desaturated palette, one warm accent cutting through. Moody, melancholic, beautiful. Rain particles mandatory.
+   **3 cinematic themes — ✅ DONE:**
+   - 🤖 **Terminator** — *The Wasteland.* Scorched earth, molten red glow, industrial metal cards, embers particle effect
+   - 💊 **Matrix** — *The Simulation.* Phosphor green on black, CRT glow, monospace, digital-rain particle effect
+   - 🌆 **Replicant** — *Blade Runner 2049.* Amber fog, atmospheric haze, moody warm accent, rain particles
 
    **NEW seasonal & holiday themes to build:**
    - ❄️ **Snow** — *The Blizzard.* Pure winter. Deep blue-white palette, cards like frosted glass (icy blue tint, blur effect). Crisp silver-white accents. Snow particles always on. Could double as a winter base for holiday variants.
@@ -52,6 +52,15 @@
 4. **Production domain** — `pinche.rs` (assigned by Jordan 2026-02-21). Needs DNS + Cloudflare Tunnel or reverse proxy setup.
 
 ## ✅ Done (v0.5.0 — Feb 22)
+
+**3 Cinematic themes + 2 particle effects (Feb 22):**
+- 🤖 **Terminator** — Scorched earth palette, molten red accents, radial fire gradient bg, industrial metal card styling with inner glow
+- 💊 **Matrix** — Phosphor green (#00ff41) on black, CRT glow text-shadows, monospace font override, glass-morphism cards
+- 🌆 **Replicant** — Blade Runner 2049 amber fog over blue-gray, atmospheric backdrop-filter, muted warm palette
+- 🔥 **Embers particle** — Glowing orange-red sparks drifting upward with flickering radial glow halos
+- 💾 **Digital Rain particle** — Cascading Matrix-style katakana + hex character columns with bright head, fading green trail
+- Theme count: 12 → 15 (9 dark + 6 light). Particle effects: 7 → 9.
+- Updated: SKILL.md, openapi.json, ThemeToggle, ParticleEffect, models.rs
 
 **WCAG AA contrast polish (all 12 themes):**
 - Fixed 4 dark themes (midnight, forest, desert, aurora): `--text-muted` was below 3:1 on card bg
