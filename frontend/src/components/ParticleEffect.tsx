@@ -136,69 +136,130 @@ function drawFirefly(ctx: CanvasRenderingContext2D, p: Particle, t: number) {
   ctx.fill()
 }
 
-// ── Starfield: parallax drift through space, depth layers, cross twinkle ──
+// ── 3D Starfield: perspective projection, warp-speed with motion trails ──
 
-function drawStarfield(ctx: CanvasRenderingContext2D, p: Particle, t: number) {
-  const layer = p.layer ?? 0 // 0=far, 1=mid, 2=near
-  const sizeMult = [0.3, 0.7, 1.2][layer]
-  const baseBright = [0.35, 0.6, 1.0][layer]
+interface Star3D {
+  x: number   // 3D position (-spread..+spread)
+  y: number
+  z: number   // depth (1..maxZ)
+  prevX: number  // previous projected position for streak
+  prevY: number
+  color: number  // color temperature index
+}
 
-  const twinkle = Math.sin((p.phase ?? 0) + t * (0.003 + layer * 0.001)) * 0.3 + 0.7
-  const brightness = baseBright * twinkle
-  const r = p.size * sizeMult
+const STAR_MAX_Z = 1200
+const STAR_SPREAD = 1200  // how wide the 3D space is
+const STAR_FOCAL = 180    // focal length — controls FOV
+const STAR_SPEED = 2.5    // z units per frame (background)
+const STAR_SPEED_FG = 0.8 // slower for foreground layer
 
-  // Color temperature by color index
+function initStars3D(count: number): Star3D[] {
+  return Array.from({ length: count }, () => {
+    const x = Math.random() * STAR_SPREAD * 2 - STAR_SPREAD
+    const y = Math.random() * STAR_SPREAD * 2 - STAR_SPREAD
+    const z = Math.random() * STAR_MAX_Z
+    const k = STAR_FOCAL / Math.max(z, 1)
+    return {
+      x, y, z,
+      prevX: x * k,
+      prevY: y * k,
+      color: Math.floor(Math.random() * 5),
+    }
+  })
+}
+
+function drawStarfield3D(
+  ctx: CanvasRenderingContext2D,
+  stars: Star3D[],
+  cx: number, cy: number,
+  w: number, h: number,
+  speed: number,
+) {
+  // Semi-transparent clear for motion trails
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.15)'
+  ctx.fillRect(0, 0, w, h)
+
   const colors = [
     [220, 230, 255],  // cool white
     [170, 200, 255],  // blue-white
     [255, 240, 210],  // warm white
-    [190, 210, 255],  // pale blue
-    [255, 210, 180],  // warm orange
+    [190, 215, 255],  // pale blue
+    [255, 215, 185],  // warm orange
   ]
-  const [cr, cg, cb] = colors[p.color ?? 0]
 
-  // Glow halo for mid and near stars
-  if (layer >= 1) {
-    const haloR = r * (layer === 2 ? 6 : 4)
-    const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, haloR)
-    gradient.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, ${p.opacity * brightness * 0.25})`)
-    gradient.addColorStop(0.5, `rgba(${cr}, ${cg}, ${cb}, ${p.opacity * brightness * 0.08})`)
-    gradient.addColorStop(1, `rgba(${cr}, ${cg}, ${cb}, 0)`)
+  for (const s of stars) {
+    // Save previous screen position for streak
+    const oldK = STAR_FOCAL / Math.max(s.z, 1)
+    s.prevX = s.x * oldK + cx
+    s.prevY = s.y * oldK + cy
+
+    // Move toward camera
+    s.z -= speed
+
+    // Reset if past camera
+    if (s.z < 1) {
+      s.x = Math.random() * STAR_SPREAD * 2 - STAR_SPREAD
+      s.y = Math.random() * STAR_SPREAD * 2 - STAR_SPREAD
+      s.z = STAR_MAX_Z
+      s.color = Math.floor(Math.random() * 5)
+      // Reset prev so no streak from old position
+      const nk = STAR_FOCAL / s.z
+      s.prevX = s.x * nk + cx
+      s.prevY = s.y * nk + cy
+      continue
+    }
+
+    // Project to 2D
+    const k = STAR_FOCAL / s.z
+    const sx = s.x * k + cx
+    const sy = s.y * k + cy
+
+    // Skip if off screen
+    if (sx < -20 || sx > w + 20 || sy < -20 || sy > h + 20) continue
+
+    // Size and brightness based on depth (closer = bigger + brighter)
+    const depthRatio = 1 - s.z / STAR_MAX_Z  // 0 = far, 1 = close
+    const size = Math.max(0.3, depthRatio * 3.5)
+    const brightness = 0.2 + depthRatio * 0.8
+
+    const [cr, cg, cb] = colors[s.color]
+    const r = Math.floor(cr * brightness)
+    const g = Math.floor(cg * brightness)
+    const b = Math.floor(cb * brightness)
+
+    // Draw streak line (motion trail from previous to current position)
+    const dx = sx - s.prevX
+    const dy = sy - s.prevY
+    const streakLen = Math.sqrt(dx * dx + dy * dy)
+
+    if (streakLen > 1.5 && depthRatio > 0.15) {
+      // Streak gets longer and brighter as stars get closer
+      ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${brightness * 0.6})`
+      ctx.lineWidth = Math.max(0.3, size * 0.4)
+      ctx.beginPath()
+      ctx.moveTo(s.prevX, s.prevY)
+      ctx.lineTo(sx, sy)
+      ctx.stroke()
+    }
+
+    // Star dot
     ctx.beginPath()
-    ctx.arc(p.x, p.y, haloR, 0, Math.PI * 2)
-    ctx.fillStyle = gradient
+    ctx.arc(sx, sy, size, 0, Math.PI * 2)
+    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${brightness})`
     ctx.fill()
-  }
 
-  // Cross/diamond spikes on near stars when bright
-  if (layer === 2 && twinkle > 0.7) {
-    const spikeLen = r * 4 * twinkle
-    const spikeOp = p.opacity * brightness * 0.35
-    ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${spikeOp})`
-    ctx.lineWidth = 0.6
-    // Horizontal + vertical cross
-    ctx.beginPath()
-    ctx.moveTo(p.x - spikeLen, p.y)
-    ctx.lineTo(p.x + spikeLen, p.y)
-    ctx.moveTo(p.x, p.y - spikeLen)
-    ctx.lineTo(p.x, p.y + spikeLen)
-    ctx.stroke()
-    // Diagonal cross (smaller)
-    const diagLen = spikeLen * 0.5
-    ctx.lineWidth = 0.4
-    ctx.beginPath()
-    ctx.moveTo(p.x - diagLen, p.y - diagLen)
-    ctx.lineTo(p.x + diagLen, p.y + diagLen)
-    ctx.moveTo(p.x + diagLen, p.y - diagLen)
-    ctx.lineTo(p.x - diagLen, p.y + diagLen)
-    ctx.stroke()
+    // Glow on close stars
+    if (depthRatio > 0.6) {
+      const glowR = size * 4
+      const gradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, glowR)
+      gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${brightness * 0.25})`)
+      gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`)
+      ctx.beginPath()
+      ctx.arc(sx, sy, glowR, 0, Math.PI * 2)
+      ctx.fillStyle = gradient
+      ctx.fill()
+    }
   }
-
-  // Core dot
-  ctx.beginPath()
-  ctx.arc(p.x, p.y, r, 0, Math.PI * 2)
-  ctx.fillStyle = `rgba(${cr}, ${cg}, ${cb}, ${p.opacity * brightness})`
-  ctx.fill()
 }
 
 // ── Sakura: teardrop petals with pink gradient ──
@@ -456,6 +517,13 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
       rainColumns = initRainColumns(canvas.width, canvas.height)
     }
 
+    // 3D starfield has its own system
+    let stars3D: Star3D[] = []
+    if (activeEffect === 'stars') {
+      const starCount = foreground ? 60 : 600
+      stars3D = initStars3D(starCount)
+    }
+
     // Background counts — generous for immersion
     const bgCountMap: Record<EffectName, number> = {
       snow: 160, leaves: 100, rain: 250, fireflies: 90, stars: 500, sakura: 80,
@@ -492,17 +560,6 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
         p.vx = (Math.random() - 0.5) * 0.3  // slight drift
         p.vr = (Math.random() - 0.5) * 0.008  // slow rotation
       }
-    } else if (activeEffect === 'stars') {
-      // Starfield: depth layers with parallax drift (flying through space)
-      for (const p of particles) {
-        const layer = p.layer ?? 0
-        p.size = [1.0, 1.8, 3.0][layer] + Math.random() * [0.5, 1.0, 2.0][layer]
-        p.opacity = [0.3, 0.55, 0.85][layer] + Math.random() * 0.15
-        // Slow downward drift — far stars barely move, near stars drift faster
-        const speed = [0.03, 0.12, 0.35][layer]
-        p.vx = (Math.random() - 0.5) * speed * 0.3  // very slight horizontal
-        p.vy = speed + Math.random() * speed * 0.5   // mostly downward
-      }
     } else if (activeEffect === 'sakura') {
       for (const p of particles) {
         p.size = Math.random() * 3 + 2
@@ -535,6 +592,14 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
         return
       }
 
+      // 3D starfield has its own complete render path
+      if (activeEffect === 'stars') {
+        const speed = foreground ? STAR_SPEED_FG : STAR_SPEED
+        drawStarfield3D(ctx, stars3D, w / 2, h / 2, w, h, speed)
+        rafRef.current = requestAnimationFrame(animate)
+        return
+      }
+
       // Flames use a batch draw (base glow + tongues together)
       if (activeEffect === 'flames') {
         drawFlames(ctx, particles, t, w, h)
@@ -562,7 +627,7 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
           case 'leaves':    drawLeaf(ctx, p); break
           case 'rain':      drawRain(ctx, p, w); break
           case 'fireflies': drawFirefly(ctx, p, t); break
-          case 'stars':     drawStarfield(ctx, p, t); break
+          // stars handled above via 3D system
           case 'sakura':    drawSakuraPetal(ctx, p); break
           case 'embers':    drawEmber(ctx, p, t); break
         }
@@ -571,14 +636,6 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
         if (activeEffect === 'fireflies') {
           p.x += Math.sin((p.phase ?? 0) + t * 0.01) * 0.5
           p.y += Math.sin((p.phase ?? 0) * 1.3 + t * 0.008) * 0.4
-        } else if (activeEffect === 'stars') {
-          // Parallax drift — slow travel through space
-          p.x += p.vx
-          p.y += p.vy
-          // Wrap with seamless re-entry
-          if (p.y > h + 10)  { p.y = -10; p.x = Math.random() * w }
-          if (p.x > w + 10)  p.x = -10
-          if (p.x < -10)     p.x = w + 10
         } else if (activeEffect === 'rain') {
           p.x += 1.5
           p.y += 12
@@ -597,8 +654,8 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
           if (p.rotation !== undefined && p.vr !== undefined) p.rotation += p.vr
         }
 
-        // Wrap (stars/embers handle their own)
-        if (activeEffect !== 'stars' && activeEffect !== 'embers') {
+        // Wrap (embers handle their own)
+        if (activeEffect !== 'embers') {
           if (p.y > h + 20) p.y = -20
           if (p.y < -20)    p.y = h + 20
           if (p.x > w + 20) p.x = -20
