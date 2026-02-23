@@ -1,4 +1,33 @@
 import { useState, useRef, useEffect } from 'react'
+import type { EffectName } from './ParticleEffect'
+
+/** Maps each theme to its natural particle effect. */
+export const THEME_EFFECT_MAP: Record<string, EffectName> = {
+  dark: 'none',
+  light: 'none',
+  midnight: 'stars',
+  forest: 'fireflies',
+  ocean: 'rain',
+  desert: 'embers',
+  aurora: 'stars',
+  cream: 'none',
+  sky: 'none',
+  lavender: 'stars',
+  sage: 'leaves',
+  peach: 'fireflies',
+  terminator: 'embers',
+  matrix: 'digital-rain',
+  replicant: 'rain',
+  snow: 'snow',
+  spring: 'sakura',
+  summer: 'fireflies',
+  autumn: 'leaves',
+  christmas: 'snow',
+  halloween: 'flames',
+  newyear: 'stars',
+  valentine: 'sakura',
+  patriot: 'stars',
+}
 
 const THEME_GROUPS = [
   {
@@ -51,9 +80,10 @@ interface Props {
   current: string
   username: string
   onChange: (theme: string) => void
+  onEffectChange?: (effect: EffectName) => void
 }
 
-export function ThemeToggle({ current, username, onChange }: Props) {
+export function ThemeToggle({ current, username, onChange, onEffectChange }: Props) {
   const [open, setOpen] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -83,6 +113,20 @@ export function ThemeToggle({ current, username, onChange }: Props) {
     onChange(id)
     localStorage.setItem(`theme:${username}`, id)
     document.documentElement.setAttribute('data-theme', id)
+
+    // Switch particle effect to match the new theme
+    const mappedEffect = THEME_EFFECT_MAP[id] ?? 'none'
+    if (onEffectChange) {
+      onEffectChange(mappedEffect)
+      if (mappedEffect === 'none') {
+        localStorage.setItem(`particles:${username}`, '0')
+        localStorage.removeItem(`particle-effect:${username}`)
+      } else {
+        localStorage.setItem(`particles:${username}`, '1')
+        localStorage.setItem(`particle-effect:${username}`, mappedEffect)
+      }
+    }
+
     setOpen(false)
   }
 

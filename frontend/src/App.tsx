@@ -237,7 +237,14 @@ export default function App() {
         username={username}
         onChange={changeParticles}
       />
-      <ThemeToggle current={theme} username={username} onChange={changeTheme} />
+      <ThemeToggle current={theme} username={username} onChange={changeTheme} onEffectChange={(eff) => {
+        if (eff === 'none') {
+          setParticlesEnabled(false)
+        } else {
+          setParticlesEnabled(true)
+          setParticleEffect(eff)
+        }
+      }} />
 
       {/* ── Toast ── */}
       <div className={`toast ${toast ? 'show' : ''}`} style={{ zIndex: 200 }}>Copied!</div>
