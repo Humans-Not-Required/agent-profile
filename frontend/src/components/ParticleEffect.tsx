@@ -73,10 +73,7 @@ function drawSnowflake(ctx: CanvasRenderingContext2D, p: Particle) {
 
 // ── Leaf (Unicode characters) ──
 
-const LEAF_CHARS = ['🍂', '🍁', '🍃', '🌿', '☘']
-
 function drawLeaf(ctx: CanvasRenderingContext2D, p: Particle) {
-  const ch = LEAF_CHARS[(p.phase ?? 0) * 1000 % LEAF_CHARS.length | 0]
   ctx.save()
   ctx.translate(p.x, p.y)
   ctx.rotate(p.rotation ?? 0)
@@ -84,7 +81,7 @@ function drawLeaf(ctx: CanvasRenderingContext2D, p: Particle) {
   ctx.font = `${p.size * 3}px serif`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.fillText(ch, 0, 0)
+  ctx.fillText('🍁', 0, 0)
   ctx.restore()
 }
 
