@@ -25,7 +25,7 @@ export const THEME_EFFECT_MAP: Record<string, EffectName> = {
   christmas: 'snow',
   halloween: 'flames',
   newyear: 'stars',
-  valentine: 'sakura',
+  valentine: 'hearts',
   patriot: 'stars',
   boba: 'boba',
   fruitsalad: 'fruit',
