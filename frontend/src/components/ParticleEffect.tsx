@@ -18,6 +18,29 @@ function seasonalEffect(): EffectName {
   return 'leaves'                                    // Autumn: Sep-Nov
 }
 
+// ── Emoji sprite cache (pre-render to offscreen canvas for fast drawImage) ───
+
+const emojiSpriteCache = new Map<string, HTMLCanvasElement>()
+
+/** Pre-render an emoji glyph at a given pixel size; returns cached canvas. */
+function getEmojiSprite(emoji: string, sizePx: number): HTMLCanvasElement {
+  const key = `${emoji}@${sizePx}`
+  const cached = emojiSpriteCache.get(key)
+  if (cached) return cached
+
+  const pad = Math.ceil(sizePx * 0.3)          // padding for emoji overflow
+  const dim = sizePx + pad * 2
+  const c = document.createElement('canvas')
+  c.width = dim; c.height = dim
+  const cx = c.getContext('2d')!
+  cx.font = `${sizePx}px serif`
+  cx.textAlign = 'center'
+  cx.textBaseline = 'middle'
+  cx.fillText(emoji, dim / 2, dim / 2)
+  emojiSpriteCache.set(key, c)
+  return c
+}
+
 // ── Particle definitions ──────────────────────────────────────────────────────
 
 interface Particle {
@@ -55,33 +78,29 @@ function initParticles(count: number, w: number, h: number): Particle[] {
 const SNOWFLAKE_CHARS = ['❄', '❅', '❆']
 
 function drawSnowflake(ctx: CanvasRenderingContext2D, p: Particle) {
+  const glyph = SNOWFLAKE_CHARS[(p.color ?? 0) % SNOWFLAKE_CHARS.length]
+  const fontSize = Math.round(p.size * 3)
+  const sprite = getEmojiSprite(glyph, fontSize)
+
   ctx.save()
   ctx.translate(p.x, p.y)
   ctx.rotate(p.rotation ?? 0)
-
-  const glyph = SNOWFLAKE_CHARS[(p.color ?? 0) % SNOWFLAKE_CHARS.length]
-  const fontSize = p.size * 3
-
-  ctx.font = `${fontSize}px sans-serif`
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.fillStyle = `rgba(120, 180, 220, ${p.opacity})`
-  ctx.fillText(glyph, 0, 0)
-
+  ctx.globalAlpha = p.opacity
+  ctx.drawImage(sprite, -sprite.width / 2, -sprite.height / 2)
   ctx.restore()
 }
 
 // ── Leaf (Unicode characters) ──
 
 function drawLeaf(ctx: CanvasRenderingContext2D, p: Particle) {
+  const fontSize = Math.round(p.size * 3)
+  const sprite = getEmojiSprite('🍁', fontSize)
+
   ctx.save()
   ctx.translate(p.x, p.y)
   ctx.rotate(p.rotation ?? 0)
   ctx.globalAlpha = p.opacity
-  ctx.font = `${p.size * 3}px serif`
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.fillText('🍁', 0, 0)
+  ctx.drawImage(sprite, -sprite.width / 2, -sprite.height / 2)
   ctx.restore()
 }
 
@@ -997,14 +1016,14 @@ const FRUIT_CHARS = ['🍎', '🍊', '🍋', '🍇', '🍓', '🍑', '🍌', '�
 
 function drawFruit(ctx: CanvasRenderingContext2D, p: Particle) {
   const ch = FRUIT_CHARS[Math.abs(Math.floor((p.phase ?? 0) * 1000)) % FRUIT_CHARS.length]
+  const fontSize = Math.round(p.size * 3.5)
+  const sprite = getEmojiSprite(ch, fontSize)
+
   ctx.save()
   ctx.translate(p.x, p.y)
   ctx.rotate(p.rotation ?? 0)
   ctx.globalAlpha = p.opacity
-  ctx.font = `${p.size * 3.5}px serif`
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.fillText(ch, 0, 0)
+  ctx.drawImage(sprite, -sprite.width / 2, -sprite.height / 2)
   ctx.restore()
 }
 
@@ -1018,13 +1037,13 @@ const JUNKFOOD_CHARS = [
 
 function drawJunkFood(ctx: CanvasRenderingContext2D, p: Particle) {
   const ch = JUNKFOOD_CHARS[Math.abs(Math.floor((p.phase ?? 0) * 1000)) % JUNKFOOD_CHARS.length]
+  const fontSize = Math.round(p.size * 3.5)
+  const sprite = getEmojiSprite(ch, fontSize)
+
   ctx.save()
   ctx.translate(p.x, p.y)
   ctx.globalAlpha = p.opacity
-  ctx.font = `${p.size * 3.5}px serif`
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.fillText(ch, 0, 0)
+  ctx.drawImage(sprite, -sprite.width / 2, -sprite.height / 2)
   ctx.restore()
 }
 
@@ -1329,7 +1348,7 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
 
     // Background counts — generous for immersion
     const bgCountMap: Record<EffectName, number> = {
-      snow: 40, leaves: 100, rain: 250, fireflies: 90, stars: 800, sakura: 80,
+      snow: 40, leaves: 35, rain: 250, fireflies: 90, stars: 800, sakura: 80,
       embers: 250, 'digital-rain': 0, flames: 200, water: 0, boba: 0, clouds: 0, fruit: 60, junkfood: 70, warzone: 0, none: 0,
     }
     // Foreground: ~15% of background for subtle depth
