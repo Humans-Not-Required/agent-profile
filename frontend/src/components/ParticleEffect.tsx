@@ -690,11 +690,11 @@ function drawWater(
   }
 }
 
-// ── Boba (milk tea with tapioca pearls + swirling liquid) ──
+// ── Boba (milk tea with tapioca pearls + swirling liquid + accelerometer) ──
 
 interface BobaPearl {
-  x: number; y: number; r: number; speed: number
-  wobblePhase: number; shade: number; opacity: number
+  x: number; y: number; vx: number; vy: number
+  r: number; shade: number; wobblePhase: number
 }
 
 interface BobaSwirl {
@@ -704,24 +704,26 @@ interface BobaSwirl {
 interface BobaState {
   pearls: BobaPearl[]
   swirls: BobaSwirl[]
+  accelX: number   // current accelerometer tilt (-1 to 1)
+  accelY: number
+  motionCleanup: (() => void) | null
 }
 
 function initBobaState(w: number, h: number, foreground: boolean): BobaState {
-  const pearlCount = foreground ? 8 : 45
+  const pearlCount = foreground ? 10 : 50
+  // Spawn pearls mostly in bottom 40% of screen
   const pearls: BobaPearl[] = Array.from({ length: pearlCount }, () => {
-    const r = foreground ? 12 + Math.random() * 18 : 6 + Math.random() * 12
+    const r = foreground ? 14 + Math.random() * 20 : 7 + Math.random() * 13
     return {
       x: Math.random() * w,
-      y: Math.random() * (h + 200) - 100,
+      y: h * 0.6 + Math.random() * h * 0.4,  // bottom 40%
+      vx: 0, vy: 0,
       r,
-      speed: 0.15 + Math.random() * 0.4,
+      shade: Math.random(),
       wobblePhase: Math.random() * Math.PI * 2,
-      shade: Math.random(),  // 0=dark, 1=lighter
-      opacity: foreground ? 0.5 + Math.random() * 0.4 : 0.6 + Math.random() * 0.3,
     }
   })
 
-  // Swirling milk/tea streams (background only)
   const swirls: BobaSwirl[] = foreground ? [] : Array.from({ length: 6 }, () => ({
     cx: Math.random() * w,
     cy: Math.random() * h,
@@ -731,7 +733,50 @@ function initBobaState(w: number, h: number, foreground: boolean): BobaState {
     opacity: 0.12 + Math.random() * 0.1,
   }))
 
-  return { pearls, swirls }
+  const state: BobaState = { pearls, swirls, accelX: 0, accelY: 0, motionCleanup: null }
+
+  // ── Accelerometer setup ──
+  const handleMotion = (e: DeviceMotionEvent) => {
+    const ag = e.accelerationIncludingGravity
+    if (!ag) return
+    // Normalize: x tilts left/right, y tilts forward/back
+    // On phones in portrait: x = lateral, y = vertical tilt
+    state.accelX = (ag.x ?? 0) / 9.8   // -1 to 1 range roughly
+    state.accelY = (ag.y ?? 0) / 9.8
+  }
+
+  // Try to listen for motion events
+  if (typeof window !== 'undefined' && 'DeviceMotionEvent' in window) {
+    const DME = DeviceMotionEvent as unknown as {
+      requestPermission?: () => Promise<string>
+    }
+    if (typeof DME.requestPermission === 'function') {
+      // iOS 13+ — needs user gesture, so we listen for first touch
+      const requestOnTouch = () => {
+        DME.requestPermission!().then((perm: string) => {
+          if (perm === 'granted') {
+            window.addEventListener('devicemotion', handleMotion)
+          }
+        }).catch(() => {})
+        window.removeEventListener('touchstart', requestOnTouch)
+      }
+      window.addEventListener('touchstart', requestOnTouch, { once: true })
+      state.motionCleanup = () => {
+        window.removeEventListener('devicemotion', handleMotion)
+        window.removeEventListener('touchstart', requestOnTouch)
+      }
+    } else {
+      // Android / other — just listen
+      window.addEventListener('devicemotion', handleMotion)
+      state.motionCleanup = () => window.removeEventListener('devicemotion', handleMotion)
+    }
+  }
+
+  return state
+}
+
+function cleanupBobaState(state: BobaState) {
+  if (state.motionCleanup) state.motionCleanup()
 }
 
 function drawBoba(
@@ -747,11 +792,9 @@ function drawBoba(
     ctx.save()
     for (const s of state.swirls) {
       const angle = t * s.speed + s.phase
-      // Drift the swirl center slowly
       const sx = s.cx + Math.sin(angle * 0.7) * 40
       const sy = s.cy + Math.cos(angle * 0.5) * 30
 
-      // Draw a swirling arc of creamy color
       ctx.beginPath()
       ctx.arc(sx, sy, s.radius, angle, angle + Math.PI * 1.2)
       ctx.lineWidth = 25 + Math.sin(t * 0.001 + s.phase) * 10
@@ -759,7 +802,6 @@ function drawBoba(
       ctx.lineCap = 'round'
       ctx.stroke()
 
-      // Second inner swirl (darker tea color)
       ctx.beginPath()
       ctx.arc(sx, sy, s.radius * 0.6, angle + Math.PI * 0.5, angle + Math.PI * 1.5)
       ctx.lineWidth = 18 + Math.sin(t * 0.0015 + s.phase) * 8
@@ -769,25 +811,80 @@ function drawBoba(
     ctx.restore()
   }
 
-  // ── Tapioca pearls ──
-  for (const p of state.pearls) {
-    const wobble = Math.sin(t * 0.0015 + p.wobblePhase) * 3
-    const bx = p.x + wobble
-    const by = p.y
+  // ── Physics constants ──
+  const gravity = 0.12          // settle downward
+  const friction = 0.97         // damping
+  const accelForce = 1.8        // how strongly tilt affects pearls
+  const floorBounce = 0.3       // bounciness off bottom
+  const wallBounce = 0.5
 
+  // ── Tapioca pearls with physics ──
+  for (const p of state.pearls) {
+    // Apply forces
+    p.vy += gravity                                       // gravity pulls down
+    p.vx += state.accelX * accelForce                     // tilt pushes sideways
+    p.vy -= state.accelY * accelForce                     // tilt pushes up/down (inverted)
+
+    // Gentle wobble
+    p.vx += Math.sin(t * 0.002 + p.wobblePhase) * 0.02
+
+    // Damping (viscous liquid)
+    p.vx *= friction
+    p.vy *= friction
+
+    // Move
+    p.x += p.vx
+    p.y += p.vy
+
+    // Bounce off walls
+    if (p.x - p.r < 0) { p.x = p.r; p.vx = Math.abs(p.vx) * wallBounce }
+    if (p.x + p.r > w) { p.x = w - p.r; p.vx = -Math.abs(p.vx) * wallBounce }
+
+    // Bounce off floor + settle
+    if (p.y + p.r > h) {
+      p.y = h - p.r
+      p.vy = -Math.abs(p.vy) * floorBounce
+      // Stop micro-bouncing
+      if (Math.abs(p.vy) < 0.3) p.vy = 0
+    }
+    // Ceiling
+    if (p.y - p.r < 0) { p.y = p.r; p.vy = Math.abs(p.vy) * floorBounce }
+
+    // Simple pearl-pearl collision (push apart)
+    for (const q of state.pearls) {
+      if (q === p) continue
+      const dx = q.x - p.x, dy = q.y - p.y
+      const dist = Math.sqrt(dx * dx + dy * dy)
+      const minDist = p.r + q.r
+      if (dist < minDist && dist > 0) {
+        const overlap = (minDist - dist) * 0.5
+        const nx = dx / dist, ny = dy / dist
+        p.x -= nx * overlap
+        p.y -= ny * overlap
+        q.x += nx * overlap
+        q.y += ny * overlap
+        // Transfer some velocity
+        p.vx -= nx * 0.3
+        p.vy -= ny * 0.3
+        q.vx += nx * 0.3
+        q.vy += ny * 0.3
+      }
+    }
+
+    // ── Draw pearl (fully opaque) ──
+    const bx = p.x, by = p.y
     ctx.save()
 
-    // Pearl body — dark brown/black sphere
-    const baseR = Math.floor(30 + p.shade * 30)   // 30-60
-    const baseG = Math.floor(20 + p.shade * 20)   // 20-40
-    const baseB = Math.floor(10 + p.shade * 15)   // 10-25
+    const baseR = Math.floor(30 + p.shade * 30)
+    const baseG = Math.floor(20 + p.shade * 20)
+    const baseB = Math.floor(10 + p.shade * 15)
     const grad = ctx.createRadialGradient(
       bx - p.r * 0.25, by - p.r * 0.25, p.r * 0.05,
       bx, by, p.r
     )
-    grad.addColorStop(0, `rgba(${baseR + 40}, ${baseG + 30}, ${baseB + 20}, ${p.opacity})`)
-    grad.addColorStop(0.6, `rgba(${baseR}, ${baseG}, ${baseB}, ${p.opacity})`)
-    grad.addColorStop(1, `rgba(${baseR - 10}, ${baseG - 10}, ${baseB - 5}, ${p.opacity * 0.8})`)
+    grad.addColorStop(0, `rgb(${baseR + 50}, ${baseG + 40}, ${baseB + 30})`)
+    grad.addColorStop(0.5, `rgb(${baseR + 10}, ${baseG + 5}, ${baseB})`)
+    grad.addColorStop(1, `rgb(${Math.max(0, baseR - 15)}, ${Math.max(0, baseG - 12)}, ${Math.max(0, baseB - 8)})`)
     ctx.fillStyle = grad
     ctx.beginPath()
     ctx.arc(bx, by, p.r, 0, Math.PI * 2)
@@ -796,24 +893,16 @@ function drawBoba(
     // Glossy highlight
     const hlGrad = ctx.createRadialGradient(
       bx - p.r * 0.3, by - p.r * 0.3, 0,
-      bx - p.r * 0.3, by - p.r * 0.3, p.r * 0.5
+      bx - p.r * 0.3, by - p.r * 0.3, p.r * 0.45
     )
-    hlGrad.addColorStop(0, `rgba(255, 255, 240, ${p.opacity * 0.5})`)
-    hlGrad.addColorStop(1, 'rgba(255, 255, 240, 0)')
+    hlGrad.addColorStop(0, 'rgba(255, 255, 245, 0.6)')
+    hlGrad.addColorStop(1, 'rgba(255, 255, 245, 0)')
     ctx.fillStyle = hlGrad
     ctx.beginPath()
-    ctx.arc(bx - p.r * 0.3, by - p.r * 0.3, p.r * 0.5, 0, Math.PI * 2)
+    ctx.arc(bx - p.r * 0.3, by - p.r * 0.3, p.r * 0.45, 0, Math.PI * 2)
     ctx.fill()
 
     ctx.restore()
-
-    // Animate — slow float upward
-    p.y -= p.speed
-    p.x += wobble * 0.008
-    if (p.y < -p.r * 2) {
-      p.y = h + p.r * 2 + Math.random() * 80
-      p.x = Math.random() * w
-    }
   }
 }
 
@@ -1018,6 +1107,7 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
     return () => {
       cancelAnimationFrame(rafRef.current)
       window.removeEventListener('resize', resize)
+      if (bobaState) cleanupBobaState(bobaState)
     }
   }, [activeEffect])
 

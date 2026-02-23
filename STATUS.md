@@ -8,7 +8,7 @@
 
 ## What's Next (priority order)
 
-1. **Fix horizontal scroll from long Nostr address** — `/nanook` (and likely other profiles with long crypto addresses / npub strings) causes horizontal scroll on mobile and desktop. Fix: apply `word-break: break-all` or `overflow-wrap: anywhere` to the Nostr/crypto address display elements. Also check any other long unbreakable strings (links, pubkeys) that could cause the same issue. Affects the profile page HTML template.
+1. ~~**Fix horizontal scroll from long Nostr address**~~ — ✅ DONE (a4ec636). Added overflow:hidden to .card, overflow-wrap:anywhere to profile-name/tagline/third-line, overflow+ellipsis to .addr-display-text.
 
 2. ~~**Demo profile rebuild — ALL 24 THEMES**~~ — ✅ DONE
    - DB wiped (all non-Nanook profiles deleted)
