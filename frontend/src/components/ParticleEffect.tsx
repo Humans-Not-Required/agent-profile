@@ -415,21 +415,65 @@ interface RainColumn {
   speed: number
   length: number
   charSize: number
+  opacity: number   // base opacity for this column
 }
 
-function initRainColumns(w: number, h: number): RainColumn[] {
-  const charSize = 14
-  const cols = Math.floor(w / (charSize * 0.85))
-  return Array.from({ length: cols }, (_, i) => ({
-    x: i * (charSize * 0.85) + charSize * 0.4,
-    chars: Array.from({ length: Math.floor(h / charSize) + 10 }, () =>
-      MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)]
-    ),
-    y: Math.random() * h * 2 - h,
-    speed: Math.random() * 2 + 1.5,
-    length: Math.floor(Math.random() * 12) + 8,
-    charSize,
-  }))
+function initRainColumns(w: number, h: number, layer: 'bg' | 'fg' = 'bg'): RainColumn[] {
+  if (layer === 'bg') {
+    // Background: normal dense grid of columns
+    const charSize = 14
+    const cols = Math.floor(w / (charSize * 0.85))
+    return Array.from({ length: cols }, (_, i) => ({
+      x: i * (charSize * 0.85) + charSize * 0.4,
+      chars: Array.from({ length: Math.floor(h / charSize) + 10 }, () =>
+        MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)]
+      ),
+      y: Math.random() * h * 2 - h,
+      speed: Math.random() * 2 + 1.5,
+      length: Math.floor(Math.random() * 12) + 8,
+      charSize,
+      opacity: 0.8,
+    }))
+  }
+
+  // Foreground: sparse, larger columns at random positions
+  const fgColumns: RainColumn[] = []
+
+  // Regular foreground columns: ~8-12, slightly larger (22-28px), semi-transparent
+  const fgCount = 8 + Math.floor(Math.random() * 5)
+  for (let i = 0; i < fgCount; i++) {
+    const charSize = 22 + Math.random() * 6
+    fgColumns.push({
+      x: Math.random() * w,
+      chars: Array.from({ length: Math.floor(h / charSize) + 10 }, () =>
+        MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)]
+      ),
+      y: Math.random() * h * 2 - h,
+      speed: Math.random() * 3 + 2.5,   // faster (closer = faster)
+      length: Math.floor(Math.random() * 8) + 5,
+      charSize,
+      opacity: 0.4,   // softer so they don't dominate
+    })
+  }
+
+  // Extreme close-up columns: 1-2 very rare, very large (48-72px)
+  const extremeCount = Math.random() < 0.6 ? 1 : 2
+  for (let i = 0; i < extremeCount; i++) {
+    const charSize = 48 + Math.random() * 24
+    fgColumns.push({
+      x: Math.random() * w,
+      chars: Array.from({ length: Math.floor(h / charSize) + 10 }, () =>
+        MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)]
+      ),
+      y: Math.random() * h * 2 - h,
+      speed: Math.random() * 4 + 4,     // fastest (very close)
+      length: Math.floor(Math.random() * 5) + 3,  // shorter trails
+      charSize,
+      opacity: 0.18,  // very faint — ghostly
+    })
+  }
+
+  return fgColumns
 }
 
 function drawDigitalRain(ctx: CanvasRenderingContext2D, columns: RainColumn[], h: number, _t: number) {
@@ -447,12 +491,12 @@ function drawDigitalRain(ctx: CanvasRenderingContext2D, columns: RainColumn[], h
       }
 
       if (i === 0) {
-        ctx.fillStyle = 'rgba(180, 255, 180, 0.95)'
+        ctx.fillStyle = `rgba(180, 255, 180, ${col.opacity})`
         ctx.font = `bold ${col.charSize}px "Courier New", monospace`
       } else {
         const fade = 1 - (i / col.length)
         const g = Math.floor(180 * fade + 40)
-        ctx.fillStyle = `rgba(0, ${g}, 0, ${fade * 0.8})`
+        ctx.fillStyle = `rgba(0, ${g}, 0, ${fade * col.opacity})`
         ctx.font = `${col.charSize}px "Courier New", monospace`
       }
       ctx.fillText(ch, col.x, cy)
@@ -461,8 +505,16 @@ function drawDigitalRain(ctx: CanvasRenderingContext2D, columns: RainColumn[], h
     col.y += col.speed
     if (col.y - col.length * col.charSize > h) {
       col.y = -col.length * col.charSize * Math.random()
-      col.speed = Math.random() * 2 + 1.5
-      col.length = Math.floor(Math.random() * 12) + 8
+      col.speed = col.charSize > 40
+        ? Math.random() * 4 + 4          // extreme: fast
+        : col.charSize > 20
+          ? Math.random() * 3 + 2.5      // foreground: medium-fast
+          : Math.random() * 2 + 1.5      // background: normal
+      col.length = col.charSize > 40
+        ? Math.floor(Math.random() * 5) + 3
+        : col.charSize > 20
+          ? Math.floor(Math.random() * 8) + 5
+          : Math.floor(Math.random() * 12) + 8
     }
   }
 }
@@ -496,7 +548,7 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
 
     let rainColumns: RainColumn[] = []
     if (activeEffect === 'digital-rain') {
-      rainColumns = initRainColumns(canvas.width, canvas.height)
+      rainColumns = initRainColumns(canvas.width, canvas.height, foreground ? 'fg' : 'bg')
     }
 
     // 3D starfield has its own system — skip foreground (depth is built into z-projection)
