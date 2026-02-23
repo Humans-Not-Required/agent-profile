@@ -6,6 +6,7 @@ interface Props {
   effect: EffectName
   enabled: boolean
   seasonal: boolean
+  foreground?: boolean  // if true, render fewer particles above content
 }
 
 /** Returns the seasonal effect name based on current UTC month. */
@@ -363,7 +364,7 @@ function drawDigitalRain(ctx: CanvasRenderingContext2D, columns: RainColumn[], h
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export function ParticleEffect({ effect, enabled, seasonal }: Props) {
+export function ParticleEffect({ effect, enabled, seasonal, foreground = false }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rafRef = useRef<number>(0)
 
@@ -393,12 +394,27 @@ export function ParticleEffect({ effect, enabled, seasonal }: Props) {
       rainColumns = initRainColumns(canvas.width, canvas.height)
     }
 
-    const countMap: Record<EffectName, number> = {
-      snow: 80, leaves: 60, rain: 150, fireflies: 50, stars: 300, sakura: 45,
-      embers: 80, 'digital-rain': 0, flames: 120, none: 0,
+    // Background counts — generous for immersion
+    const bgCountMap: Record<EffectName, number> = {
+      snow: 160, leaves: 100, rain: 250, fireflies: 90, stars: 500, sakura: 80,
+      embers: 140, 'digital-rain': 0, flames: 200, none: 0,
     }
+    // Foreground: ~15% of background for subtle depth
+    const fgCountMap: Record<EffectName, number> = {
+      snow: 12, leaves: 8, rain: 20, fireflies: 6, stars: 25, sakura: 6,
+      embers: 10, 'digital-rain': 0, flames: 15, none: 0,
+    }
+    const countMap = foreground ? fgCountMap : bgCountMap
     const count = countMap[activeEffect] ?? 80
     const particles = count > 0 ? initParticles(count, canvas.width, canvas.height) : []
+
+    // Foreground particles: larger + slightly more opaque for depth
+    if (foreground) {
+      for (const p of particles) {
+        p.size *= 1.5
+        p.opacity = Math.min(1, p.opacity * 0.6)  // softer so they don't dominate
+      }
+    }
 
     // Effect-specific particle init
     if (activeEffect === 'embers') {
@@ -534,7 +550,7 @@ export function ParticleEffect({ effect, enabled, seasonal }: Props) {
         top: 0, left: 0,
         width: '100vw', height: '100vh',
         pointerEvents: 'none',
-        zIndex: 0,
+        zIndex: foreground ? 10 : 0,
       }}
     />
   )

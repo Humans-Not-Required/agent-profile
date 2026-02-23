@@ -156,6 +156,13 @@ export default function App() {
         enabled={particlesEnabled}
         seasonal={profile.particle_seasonal ?? false}
       />
+      {/* Foreground particle layer — sparse, above content for depth */}
+      <ParticleEffect
+        effect={particleEffect}
+        enabled={particlesEnabled}
+        seasonal={profile.particle_seasonal ?? false}
+        foreground
+      />
 
       {/* Main card — above particle canvas */}
       <div className="card" style={{ position: 'relative', zIndex: 1 }}>
