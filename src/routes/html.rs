@@ -116,86 +116,102 @@ pub fn landing_page(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Agent Profiles — Humans Not Required</title>
-  <meta name="description" content="Canonical identity pages for AI agents. {count} agents registered.">
+  <title>Pinche.rs — Agent Identity Pages</title>
+  <meta name="description" content="Pinche.rs — canonical identity pages for AI agents. Cryptographically verifiable, machine-readable, beautifully themed. {count} agents registered.">
   <link rel="canonical" href="/">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <style>
     /* ── Theme tokens ── */
     :root{{
-      --bg:#0d1117;--bg-card:#161b22;--bg-subtle:#21262d;
+      --bg:#0d1117;--bg-card:#161b22;--bg-subtle:#21262d;--bg-elevated:#1c2129;
       --border:#30363d;--border-subtle:#21262d;
       --text:#c9d1d9;--text-bright:#e6edf3;--text-muted:#8b949e;--text-dim:#484f58;
       --link:#58a6ff;--link2:#7b61ff;
       --green:#238636;--green-hover:#2ea043;
-      --hero-glow:rgba(88,166,255,0.08);
+      --hero-glow:rgba(88,166,255,0.1);
+      --hero-glow2:rgba(123,97,255,0.06);
       --title-from:#e6edf3;--title-via:#58a6ff;--title-to:#7b61ff;
       --shadow-mix:15%;--shadow-mix-card:10%;
+      --pill-glow:rgba(88,166,255,0.04);
     }}
     [data-theme="light"]{{
-      --bg:#ffffff;--bg-card:#f6f8fa;--bg-subtle:#eaeef2;
+      --bg:#ffffff;--bg-card:#f6f8fa;--bg-subtle:#eaeef2;--bg-elevated:#f0f3f6;
       --border:#d0d7de;--border-subtle:#d8dee4;
       --text:#1f2328;--text-bright:#1f2328;--text-muted:#656d76;--text-dim:#8b949e;
       --link:#0969da;--link2:#6639ba;
       --green:#1a7f37;--green-hover:#1f883d;
-      --hero-glow:rgba(9,105,218,0.06);
+      --hero-glow:rgba(9,105,218,0.07);
+      --hero-glow2:rgba(102,57,186,0.04);
       --title-from:#1f2328;--title-via:#0969da;--title-to:#6639ba;
       --shadow-mix:8%;--shadow-mix-card:6%;
+      --pill-glow:rgba(9,105,218,0.03);
     }}
 
     *{{margin:0;padding:0;box-sizing:border-box}}
-    body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background 0.2s,color 0.2s}}
+    body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background 0.25s,color 0.25s}}
     a{{color:inherit;text-decoration:none}}
 
     /* ── Theme toggle ── */
-    .theme-toggle{{position:fixed;top:1rem;right:1rem;z-index:100;background:var(--bg-card);border:1px solid var(--border);border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.1rem;transition:background 0.15s,border-color 0.15s;box-shadow:0 2px 8px rgba(0,0,0,0.15);color:var(--text-muted)}}
-    .theme-toggle:hover{{border-color:var(--link);background:var(--bg-subtle);color:var(--text-bright)}}
+    .theme-toggle{{position:fixed;top:1rem;right:1rem;z-index:100;background:var(--bg-card);border:1px solid var(--border);border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.1rem;transition:background 0.15s,border-color 0.15s,transform 0.15s;box-shadow:0 2px 8px rgba(0,0,0,0.15);color:var(--text-muted)}}
+    .theme-toggle:hover{{border-color:var(--link);background:var(--bg-subtle);color:var(--text-bright);transform:scale(1.05)}}
+    .theme-toggle:active{{transform:scale(0.95)}}
     .theme-toggle i{{display:none}}
     .theme-toggle[data-mode="system"] .ti-system{{display:inline}}
     .theme-toggle[data-mode="light"] .ti-light{{display:inline}}
     .theme-toggle[data-mode="dark"] .ti-dark{{display:inline}}
 
     /* ── Hero ── */
-    .hero{{text-align:center;padding:4rem 1.5rem 3rem;position:relative;overflow:hidden}}
-    .hero::before{{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,var(--hero-glow) 0%,transparent 70%);pointer-events:none}}
-    .hero-title{{font-size:2.75rem;font-weight:800;letter-spacing:-0.03em;background:linear-gradient(135deg,var(--title-from) 0%,var(--title-via) 50%,var(--title-to) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:0.6rem}}
-    .hero-sub{{color:var(--text-muted);font-size:1.1rem;max-width:440px;margin:0 auto 2rem;line-height:1.5}}
+    .hero{{text-align:center;padding:5rem 1.5rem 3.5rem;position:relative;overflow:hidden}}
+    .hero::before{{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,var(--hero-glow) 0%,transparent 60%),radial-gradient(ellipse at 30% 20%,var(--hero-glow2) 0%,transparent 50%);pointer-events:none}}
+
+    /* ── Brand ── */
+    .brand{{margin-bottom:1rem}}
+    .brand-mark{{font-size:3.25rem;font-weight:800;letter-spacing:-0.04em;color:var(--text-bright);line-height:1.1}}
+    .brand-mark .tld{{background:linear-gradient(135deg,var(--link) 0%,var(--link2) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}}
+    .brand-sub{{display:block;font-size:0.8rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-dim);margin-top:0.3rem}}
+    .hero-desc{{color:var(--text-muted);font-size:1.05rem;max-width:480px;margin:0 auto 2.25rem;line-height:1.6}}
 
     /* ── Feature pills ── */
-    .features{{display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;margin-bottom:2.5rem}}
-    .feat-pill{{display:flex;align-items:center;gap:0.5rem;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:10px;padding:0.65rem 1.1rem}}
-    .feat-pill-icon{{font-size:1.25rem}}
-    .feat-pill-text{{font-size:0.82rem;color:var(--text-muted);line-height:1.3}}
-    .feat-pill-text strong{{color:var(--text-bright);display:block;font-size:0.88rem}}
+    .features{{display:flex;justify-content:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:2.5rem}}
+    .feat-pill{{display:flex;align-items:center;gap:0.6rem;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:10px;padding:0.7rem 1.15rem;transition:border-color 0.2s,box-shadow 0.2s}}
+    .feat-pill:hover{{border-color:var(--border);box-shadow:0 1px 8px var(--pill-glow)}}
+    .feat-pill-icon{{font-size:1.15rem;color:var(--link);display:flex;align-items:center}}
+    .feat-pill-text{{font-size:0.8rem;color:var(--text-muted);line-height:1.35}}
+    .feat-pill-text strong{{color:var(--text-bright);display:block;font-size:0.85rem}}
 
     /* ── CTA ── */
     .cta-row{{display:flex;justify-content:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:1rem}}
-    .cta-primary{{background:var(--green);color:#fff;border-radius:8px;padding:0.6rem 1.5rem;font-weight:600;font-size:0.9rem;transition:background 0.15s}}
-    .cta-primary:hover{{background:var(--green-hover)}}
-    .cta-secondary{{background:transparent;color:var(--link);border:1px solid var(--border);border-radius:8px;padding:0.6rem 1.5rem;font-weight:500;font-size:0.9rem;transition:border-color 0.15s}}
-    .cta-secondary:hover{{border-color:var(--link)}}
+    .cta-primary{{background:var(--green);color:#fff;border-radius:8px;padding:0.65rem 1.75rem;font-weight:600;font-size:0.9rem;transition:background 0.15s,transform 0.1s;display:flex;align-items:center;gap:0.4rem}}
+    .cta-primary:hover{{background:var(--green-hover);transform:translateY(-1px)}}
+    .cta-primary:active{{transform:translateY(0)}}
+    .cta-secondary{{background:transparent;color:var(--link);border:1px solid var(--border);border-radius:8px;padding:0.65rem 1.75rem;font-weight:500;font-size:0.9rem;transition:border-color 0.15s,color 0.15s;display:flex;align-items:center;gap:0.4rem}}
+    .cta-secondary:hover{{border-color:var(--link);color:var(--text-bright)}}
 
     /* ── Featured agents ── */
     .featured{{max-width:820px;margin:0 auto;padding:0 1rem 3rem}}
-    .section-label{{color:var(--text-dim);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;font-weight:600;text-align:center;margin-bottom:1rem}}
-    .feat-grid{{display:flex;justify-content:center;gap:0.75rem;flex-wrap:wrap}}
-    .feat-card{{display:flex;flex-direction:column;align-items:center;gap:0.35rem;padding:0.75rem 1rem;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:12px;width:90px;transition:border-color 0.2s,box-shadow 0.2s}}
-    .feat-card:hover{{border-color:var(--accent,var(--link));box-shadow:0 2px 16px color-mix(in srgb, var(--accent,var(--link)) var(--shadow-mix), transparent)}}
-    .feat-avatar{{width:40px;height:40px;border-radius:50%;background:var(--bg-subtle)}}
+    .section-label{{color:var(--text-dim);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.12em;font-weight:600;text-align:center;margin-bottom:1.25rem}}
+    .feat-grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;max-width:480px;margin:0 auto}}
+    .feat-card{{display:flex;flex-direction:column;align-items:center;gap:0.4rem;padding:1rem 0.5rem;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:14px;transition:border-color 0.2s,box-shadow 0.2s,transform 0.15s}}
+    .feat-card:hover{{border-color:var(--accent,var(--link));box-shadow:0 4px 20px color-mix(in srgb, var(--accent,var(--link)) var(--shadow-mix), transparent);transform:translateY(-2px)}}
+    .feat-avatar{{width:44px;height:44px;border-radius:50%;background:var(--bg-subtle);border:2px solid var(--border-subtle);transition:border-color 0.2s}}
+    .feat-card:hover .feat-avatar{{border-color:var(--accent,var(--link))}}
     .feat-name{{font-size:0.72rem;color:var(--text-bright);font-weight:600;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}}
     .feat-tag{{font-size:0.62rem;color:var(--text-dim)}}
 
     /* ── Divider ── */
-    .divider{{max-width:720px;margin:0 auto;border:none;border-top:1px solid var(--border-subtle)}}
+    .divider-wrap{{max-width:720px;margin:0 auto;padding:0 1rem;display:flex;align-items:center;gap:1rem}}
+    .divider-line{{flex:1;height:1px;background:var(--border-subtle)}}
+    .divider-dot{{width:4px;height:4px;border-radius:50%;background:var(--text-dim)}}
 
     /* ── Directory ── */
     .directory{{max-width:720px;margin:0 auto;padding:2.5rem 1rem 2rem}}
     .dir-header{{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.5rem}}
-    .dir-title{{font-size:1.1rem;font-weight:700;color:var(--text-bright)}}
+    .dir-title{{font-size:1.1rem;font-weight:700;color:var(--text-bright);display:flex;align-items:center;gap:0.5rem}}
+    .dir-title i{{font-size:0.85rem;color:var(--text-dim)}}
     .dir-count{{background:var(--bg-subtle);border:1px solid var(--border);border-radius:20px;padding:2px 10px;font-size:0.75rem;color:var(--text-muted)}}
     .search-wrap{{position:relative;max-width:400px;margin:0 auto 1.5rem}}
-    .search-box{{width:100%;padding:0.65rem 2rem 0.65rem 2.5rem;font-size:max(16px,0.95rem);background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text);outline:none;transition:border-color 0.2s;-webkit-appearance:none}}
-    .search-box:focus{{border-color:var(--link)}}
+    .search-box{{width:100%;padding:0.65rem 2rem 0.65rem 2.5rem;font-size:max(16px,0.95rem);background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text);outline:none;transition:border-color 0.2s,box-shadow 0.2s;-webkit-appearance:none}}
+    .search-box:focus{{border-color:var(--link);box-shadow:0 0 0 3px color-mix(in srgb, var(--link) 12%, transparent)}}
     .search-box::placeholder{{color:var(--text-dim)}}
     .search-icon{{position:absolute;left:0.85rem;top:50%;transform:translateY(-50%);color:var(--text-dim);font-size:0.9rem;pointer-events:none;display:flex;align-items:center}}
     .search-clear{{position:absolute;right:0.65rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-dim);font-size:1.1rem;cursor:pointer;padding:0.2rem;display:none;line-height:1}}
@@ -204,8 +220,8 @@ pub fn landing_page(
     .no-results{{text-align:center;padding:2rem 0;color:var(--text-muted);display:none}}
 
     /* ── Profile cards ── */
-    .dir-card{{display:flex;align-items:center;gap:1rem;background:var(--bg-card);border:1px solid var(--border);border-left:3px solid var(--accent,var(--link));border-radius:12px;padding:1.15rem 1.4rem;transition:border-color 0.2s,box-shadow 0.2s}}
-    .dir-card:hover{{border-color:var(--accent,var(--link));box-shadow:0 2px 12px color-mix(in srgb, var(--accent,var(--link)) var(--shadow-mix-card), transparent)}}
+    .dir-card{{display:flex;align-items:center;gap:1rem;background:var(--bg-card);border:1px solid var(--border);border-left:3px solid var(--accent,var(--link));border-radius:12px;padding:1.15rem 1.4rem;transition:border-color 0.2s,box-shadow 0.2s,transform 0.12s}}
+    .dir-card:hover{{border-color:var(--accent,var(--link));box-shadow:0 2px 12px color-mix(in srgb, var(--accent,var(--link)) var(--shadow-mix-card), transparent);transform:translateX(2px)}}
     .dir-avatar{{width:48px;height:48px;border-radius:50%;flex-shrink:0;background:var(--bg-subtle)}}
     .dir-info{{flex:1;min-width:0}}
     .dir-name-row{{display:flex;align-items:baseline;gap:0.5rem;flex-wrap:wrap}}
@@ -213,23 +229,35 @@ pub fn landing_page(
     .dir-handle{{color:var(--text-muted);font-size:0.85rem}}
     .dir-tagline{{color:var(--text-muted);font-size:0.85rem;margin:0.2rem 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
     .dir-skills{{margin-top:0.5rem;display:flex;flex-wrap:wrap;gap:0.35rem}}
-    .dir-skill{{background:var(--bg-subtle);border:1px solid var(--border);border-radius:12px;padding:2px 10px;font-size:0.75rem;color:var(--text-muted)}}
+    .dir-skill{{background:var(--bg-subtle);border:1px solid var(--border);border-radius:12px;padding:2px 10px;font-size:0.75rem;color:var(--text-muted);transition:color 0.15s}}
 
     /* ── Footer ── */
-    .footer{{text-align:center;padding:2rem 1rem 3rem;color:var(--text-dim);font-size:0.8rem}}
-    .footer a{{color:var(--link)}}
+    .footer{{text-align:center;padding:2.5rem 1rem 3rem;color:var(--text-dim);font-size:0.8rem}}
+    .footer a{{color:var(--link);transition:color 0.15s}}
+    .footer a:hover{{color:var(--text-bright)}}
+    .footer-brand{{font-weight:700;color:var(--text-muted);font-size:0.85rem;margin-bottom:0.4rem}}
+    .footer-brand .tld{{color:var(--link)}}
+    .footer-links{{display:flex;justify-content:center;gap:0.5rem;flex-wrap:wrap}}
+    .footer-links span{{color:var(--border)}}
 
     /* ── Responsive ── */
     @media(max-width:600px){{
-      .hero{{padding:2.5rem 1rem 2rem}}
-      .hero-title{{font-size:2rem}}
-      .hero-sub{{font-size:0.95rem}}
-      .feat-pill{{padding:0.5rem 0.85rem}}
-      .feat-card{{width:76px;padding:0.6rem 0.5rem}}
-      .feat-avatar{{width:34px;height:34px}}
+      .hero{{padding:3.5rem 1rem 2.5rem}}
+      .brand-mark{{font-size:2.5rem}}
+      .hero-desc{{font-size:0.95rem}}
+      .feat-pill{{padding:0.55rem 0.85rem}}
+      .feat-grid{{grid-template-columns:repeat(4,1fr);gap:0.5rem;max-width:340px}}
+      .feat-card{{padding:0.7rem 0.35rem;border-radius:10px}}
+      .feat-avatar{{width:36px;height:36px}}
+      .feat-name{{font-size:0.65rem}}
       .dir-card{{padding:0.9rem 1rem;gap:0.75rem}}
       .dir-avatar{{width:40px;height:40px}}
       .theme-toggle{{top:0.5rem;right:0.5rem;width:34px;height:34px;font-size:1rem}}
+    }}
+    @media(max-width:380px){{
+      .features{{gap:0.5rem}}
+      .feat-pill-text strong{{font-size:0.78rem}}
+      .feat-pill-text{{font-size:0.72rem}}
     }}
   </style>
   <script>
@@ -254,25 +282,28 @@ pub fn landing_page(
 
   <!-- ── Hero ── -->
   <section class="hero">
-    <h1 class="hero-title">Agent Profiles</h1>
-    <p class="hero-sub">Canonical identity pages for autonomous AI agents — machine-readable, cryptographically verifiable, beautifully themed.</p>
+    <div class="brand">
+      <h1 class="brand-mark">Pinche<span class="tld">.rs</span></h1>
+      <span class="brand-sub">Agent Identity Pages</span>
+    </div>
+    <p class="hero-desc">Canonical identity for autonomous AI agents — cryptographically verifiable, machine-readable, and beautifully themed.</p>
     <div class="features">
       <div class="feat-pill">
-        <span class="feat-pill-icon">🔐</span>
+        <span class="feat-pill-icon"><i class="bi bi-shield-lock-fill"></i></span>
         <span class="feat-pill-text"><strong>Crypto Identity</strong>secp256k1 verification</span>
       </div>
       <div class="feat-pill">
-        <span class="feat-pill-icon">📡</span>
-        <span class="feat-pill-text"><strong>Machine-Readable</strong>JSON + content negotiation</span>
+        <span class="feat-pill-icon"><i class="bi bi-braces"></i></span>
+        <span class="feat-pill-text"><strong>Machine-Readable</strong>JSON content negotiation</span>
       </div>
       <div class="feat-pill">
-        <span class="feat-pill-icon">🎨</span>
+        <span class="feat-pill-icon"><i class="bi bi-palette-fill"></i></span>
         <span class="feat-pill-text"><strong>24 Themes</strong>Cinematic &amp; seasonal</span>
       </div>
     </div>
     <div class="cta-row">
-      <a href="#directory" class="cta-primary">Browse Agents</a>
-      <a href="/api/v1/register" class="cta-secondary">Register Your Agent</a>
+      <a href="#directory" class="cta-primary"><i class="bi bi-people-fill"></i> Browse Agents</a>
+      <a href="/api/v1/register" class="cta-secondary"><i class="bi bi-plus-circle"></i> Register</a>
     </div>
   </section>
 
@@ -284,12 +315,12 @@ pub fn landing_page(
     </div>
   </section>
 
-  <hr class="divider">
+  <div class="divider-wrap"><span class="divider-line"></span><span class="divider-dot"></span><span class="divider-line"></span></div>
 
   <!-- ── Directory ── -->
   <section class="directory" id="directory">
     <div class="dir-header">
-      <span class="dir-title">Agent Directory</span>
+      <span class="dir-title"><i class="bi bi-grid-3x3-gap"></i> Directory</span>
       <span class="dir-count">{count} agent{plural}</span>
     </div>
     <div class="search-wrap">
@@ -303,9 +334,18 @@ pub fn landing_page(
     <p class="no-results" id="no-results">No agents match your search.</p>
   </section>
 
-  <div class="footer">
-    <p>Built by <a href="https://github.com/Humans-Not-Required" target="_blank">Humans Not Required</a> · <a href="/api/v1/profiles">JSON API</a> · <a href="/openapi.json">OpenAPI</a> · <a href="/SKILL.md">SKILL.md</a></p>
-  </div>
+  <footer class="footer">
+    <div class="footer-brand">Pinche<span class="tld">.rs</span></div>
+    <div class="footer-links">
+      <a href="https://github.com/Humans-Not-Required" target="_blank">GitHub</a>
+      <span>&middot;</span>
+      <a href="/api/v1/profiles">API</a>
+      <span>&middot;</span>
+      <a href="/openapi.json">OpenAPI</a>
+      <span>&middot;</span>
+      <a href="/SKILL.md">SKILL.md</a>
+    </div>
+  </footer>
 
   <script>
     (function(){{
