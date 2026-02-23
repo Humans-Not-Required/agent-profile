@@ -670,11 +670,11 @@ function initCloudState(w: number, h: number, foreground: boolean): CloudState |
   if (!foreground) {
     // Spread clouds across the full screen with staggered start positions
     // Far layer: small, slow, faint
-    for (let i = 0; i < 7; i++) groups.push(makeCloudGroup(w, h, 'far'))
+    for (let i = 0; i < 14; i++) groups.push(makeCloudGroup(w, h, 'far'))
     // Mid layer
-    for (let i = 0; i < 5; i++) groups.push(makeCloudGroup(w, h, 'mid'))
+    for (let i = 0; i < 10; i++) groups.push(makeCloudGroup(w, h, 'mid'))
     // Near layer: big, fast, more opaque
-    for (let i = 0; i < 4; i++) groups.push(makeCloudGroup(w, h, 'near'))
+    for (let i = 0; i < 6; i++) groups.push(makeCloudGroup(w, h, 'near'))
   } else {
     // Foreground: 1-2 very large close clouds
     for (let i = 0; i < 2; i++) {
