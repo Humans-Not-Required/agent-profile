@@ -1179,7 +1179,7 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
     // Effect-specific particle init
     if (activeEffect === 'embers') {
       for (const p of particles) {
-        p.y = h * 0.7 + Math.random() * h * 0.3  // spawn in bottom 30%
+        p.y = canvas.height * 0.7 + Math.random() * canvas.height * 0.3  // spawn in bottom 30%
         p.vy = -(Math.random() * 1.5 + 0.5)       // rise upward (faster)
         p.vx = (Math.random() - 0.5) * 0.6
         p.size = Math.random() * 3 + 1.5
