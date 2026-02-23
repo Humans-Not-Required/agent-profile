@@ -134,6 +134,20 @@ export function CSSParticleEffect({ effect, foreground = false }: Props) {
             transform: translateY(110vh) translateX(calc(var(--sway) * -0.3)) rotate(calc(var(--rot-start) + var(--rot-delta)));
           }
         }
+        @keyframes cssDrift {
+          from {
+            transform: translateY(0) translateX(0) rotate(var(--rot-start));
+          }
+          33% {
+            transform: translateY(36vh) translateX(var(--sway)) rotate(calc(var(--rot-start) + var(--rot-delta) * 0.33));
+          }
+          66% {
+            transform: translateY(72vh) translateX(calc(var(--sway) * 0.4)) rotate(calc(var(--rot-start) + var(--rot-delta) * 0.66));
+          }
+          to {
+            transform: translateY(110vh) translateX(var(--sway)) rotate(calc(var(--rot-start) + var(--rot-delta)));
+          }
+        }
       `}</style>
       {particles.map(p => {
         // Snow gets a bright glow so flakes pop on any background
@@ -152,7 +166,7 @@ export function CSSParticleEffect({ effect, foreground = false }: Props) {
               fontSize: `${p.size}px`,
               opacity: p.opacity,
               willChange: 'transform',
-              animation: `cssFall ${p.duration}s linear ${p.delay}s infinite`,
+              animation: `${effect === 'fruit' ? 'cssDrift' : 'cssFall'} ${p.duration}s linear ${p.delay}s infinite`,
               '--sway': `${p.sway}vw`,
               '--rot-start': `${p.rotation}deg`,
               '--rot-delta': `${p.rotationEnd}deg`,
