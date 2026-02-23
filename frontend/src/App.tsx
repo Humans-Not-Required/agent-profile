@@ -52,8 +52,9 @@ export default function App() {
   // Theme: localStorage overrides profile default
   const [theme, setTheme] = useState<string>('dark')
 
-  // Particles: localStorage can override
+  // Particles: localStorage can override both enabled state and effect choice
   const [particlesEnabled, setParticlesEnabled] = useState<boolean>(true)
+  const [particleEffect, setParticleEffect] = useState<EffectName>('none')
 
   // ── Fetch profile ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -95,7 +96,10 @@ export default function App() {
 
         // ── Particles: localStorage wins ──
         const localParticles = localStorage.getItem(`particles:${username}`)
+        const localEffect = localStorage.getItem(`particle-effect:${username}`)
+        const profileEffect = (p.particle_effect ?? 'none') as EffectName
         setParticlesEnabled(localParticles !== null ? localParticles === '1' : (p.particle_enabled ?? false))
+        setParticleEffect(localEffect ? localEffect as EffectName : profileEffect)
       })
       .catch(e => setError(e.message))
   }, [username])
@@ -105,8 +109,13 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', t)
   }
 
-  function changeParticles(on: boolean) {
-    setParticlesEnabled(on)
+  function changeParticles(effect: EffectName | 'none') {
+    if (effect === 'none') {
+      setParticlesEnabled(false)
+    } else {
+      setParticlesEnabled(true)
+      setParticleEffect(effect)
+    }
   }
 
   function copyToClipboard(text: string) {
@@ -139,13 +148,11 @@ export default function App() {
   const initials = (profile.display_name || profile.username).slice(0, 2).toUpperCase()
   const memberSince = profile.created_at.slice(0, 10)
   const jsonUrl = `/api/v1/profiles/${profile.username}`
-  const effectName = (profile.particle_effect ?? 'none') as EffectName
-
   return (
     <>
       {/* Particle canvas — behind everything */}
       <ParticleEffect
-        effect={effectName}
+        effect={particleEffect}
         enabled={particlesEnabled}
         seasonal={profile.particle_seasonal ?? false}
       />
@@ -226,7 +233,7 @@ export default function App() {
       {/* ── Floating controls ── */}
       <ParticleToggle
         enabled={particlesEnabled}
-        effectName={effectName}
+        activeEffect={particleEffect}
         username={username}
         onChange={changeParticles}
       />
