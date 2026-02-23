@@ -1095,9 +1095,12 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
     }
 
     // Flames use their own particle system with additive blending
+    // Both 'flames' and 'embers' effects use flame particles
     let flameParticles: FlameParticle[] = []
-    if (activeEffect === 'flames') {
-      const flameCount = foreground ? 30 : 250
+    if (activeEffect === 'flames' || activeEffect === 'embers') {
+      const flameCount = activeEffect === 'flames'
+        ? (foreground ? 40 : 350)    // flames: more fire
+        : (foreground ? 20 : 180)    // embers: flames + ember particles on top
       flameParticles = initFlameParticles(flameCount, canvas.width, canvas.height)
     }
 
@@ -1122,12 +1125,12 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
     // Background counts — generous for immersion
     const bgCountMap: Record<EffectName, number> = {
       snow: 40, leaves: 100, rain: 250, fireflies: 90, stars: 800, sakura: 80,
-      embers: 140, 'digital-rain': 0, flames: 200, water: 0, boba: 0, clouds: 0, fruit: 60, none: 0,
+      embers: 250, 'digital-rain': 0, flames: 200, water: 0, boba: 0, clouds: 0, fruit: 60, none: 0,
     }
     // Foreground: ~15% of background for subtle depth
     const fgCountMap: Record<EffectName, number> = {
       snow: 6, leaves: 1, rain: 20, fireflies: 6, stars: 0, sakura: 6,
-      embers: 10, 'digital-rain': 0, flames: 15, water: 0, boba: 0, clouds: 0, fruit: 1, none: 0,
+      embers: 20, 'digital-rain': 0, flames: 15, water: 0, boba: 0, clouds: 0, fruit: 1, none: 0,
     }
     const countMap = foreground ? fgCountMap : bgCountMap
     const count = countMap[activeEffect] ?? 80
@@ -1144,7 +1147,7 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
           } else {
             p.size *= 4           // very large
             p.opacity = 0.9       // bold
-            p.speed *= 0.4        // slow drift
+            p.vy *= 0.4           // slow drift
           }
         } else {
           p.size *= 1.5
@@ -1156,9 +1159,10 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
     // Effect-specific particle init
     if (activeEffect === 'embers') {
       for (const p of particles) {
-        p.vy = -(Math.random() * 0.8 + 0.2)
+        p.y = h * 0.7 + Math.random() * h * 0.3  // spawn in bottom 30%
+        p.vy = -(Math.random() * 1.5 + 0.5)       // rise upward (faster)
         p.vx = (Math.random() - 0.5) * 0.6
-        p.size = Math.random() * 3 + 1
+        p.size = Math.random() * 3 + 1.5
       }
     } else if (activeEffect === 'snow') {
       for (const p of particles) {
@@ -1209,6 +1213,32 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
         return
       }
 
+      // Embers: flames at bottom + ember particles rising above
+      if (activeEffect === 'embers') {
+        // Draw flames first (bottom layer)
+        drawFlames(ctx, flameParticles, w, h)
+        updateFlames(flameParticles, w, h)
+
+        // Draw ember particles on top (reset composite after flames)
+        ctx.globalCompositeOperation = 'lighter'
+        for (const p of particles) {
+          drawEmber(ctx, p, t)
+          // Move embers upward with wobble
+          p.x += p.vx + Math.sin((p.phase ?? 0) + t * 0.015) * 0.3
+          p.y += p.vy
+          p.opacity -= 0.001
+          if (p.opacity < 0.05 || p.y < -20) {
+            p.opacity = Math.random() * 0.7 + 0.3
+            p.y = h + 10
+            p.x = Math.random() * w
+            p.vy = -(Math.random() * 1.5 + 0.5) // rise upward
+          }
+        }
+        ctx.globalCompositeOperation = 'source-over'
+        rafRef.current = requestAnimationFrame(animate)
+        return
+      }
+
       // Clouds
       if (activeEffect === 'clouds' && cloudState) {
         drawClouds(ctx, w, h, t, cloudState)
@@ -1249,7 +1279,7 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
           p.y += Math.sin((p.phase ?? 0) * 1.3 + t * 0.008) * 0.4
         } else if (activeEffect === 'fruit') {
           // Tumble down with gentle sway
-          p.y += p.speed * 1.2
+          p.y += p.vy * 1.2
           p.x += Math.sin((p.phase ?? 0) + t * 0.008) * 0.8
           if (p.rotation !== undefined) p.rotation += (p.vr ?? 0.01)
         } else if (activeEffect === 'rain') {
