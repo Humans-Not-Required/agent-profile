@@ -13,6 +13,7 @@ const ALL_EFFECTS: { id: EffectName; icon: string; name: string }[] = [
   { id: 'digital-rain', icon: 'bi-terminal',       name: 'Matrix' },
   { id: 'water',        icon: 'bi-water',           name: 'Water' },
   { id: 'clouds',       icon: 'bi-cloud',            name: 'Clouds' },
+  { id: 'warzone',      icon: 'bi-crosshair',        name: 'Warzone' },
   { id: 'boba',         icon: 'bi-cup-straw',       name: 'Boba' },
   { id: 'fruit',        icon: 'bi-apple',            name: 'Fruit' },
   { id: 'junkfood',    icon: 'bi-basket2',          name: 'Junk Food' },

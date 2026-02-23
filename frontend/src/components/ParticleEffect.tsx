@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'embers' | 'digital-rain' | 'flames' | 'water' | 'boba' | 'clouds' | 'fruit' | 'junkfood' | 'none'
+export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'embers' | 'digital-rain' | 'flames' | 'water' | 'boba' | 'clouds' | 'fruit' | 'junkfood' | 'warzone' | 'none'
 
 interface Props {
   effect: EffectName
@@ -812,6 +812,185 @@ function drawClouds(
   ctx.drawImage(offscreen, 0, 0)
 }
 
+// ── Warzone (Terminator: laser sweeps, searchlights, sparks, red eye scan) ──
+
+interface LaserBeam {
+  x: number; angle: number; speed: number; color: string; width: number; alpha: number; length: number
+}
+
+interface Searchlight {
+  x: number; angle: number; sweepSpeed: number; width: number; alpha: number
+}
+
+interface WarzoneState {
+  lasers: LaserBeam[]
+  searchlights: Searchlight[]
+  sparks: Particle[]
+  redEyePhase: number
+  flashTimer: number
+  flashAlpha: number
+}
+
+function initWarzoneState(w: number, h: number, foreground: boolean): WarzoneState {
+  const laserColors = [
+    'rgba(255,20,40,A)',   // red
+    'rgba(60,140,255,A)',  // blue
+    'rgba(180,60,255,A)',  // purple
+    'rgba(255,100,20,A)',  // orange
+    'rgba(40,255,180,A)',  // green
+  ]
+
+  const lasers: LaserBeam[] = foreground ? [] : Array.from({ length: 6 }, () => ({
+    x: Math.random() * w,
+    angle: (Math.random() - 0.5) * 0.6 + Math.PI * 1.5, // mostly upward
+    speed: (Math.random() - 0.5) * 0.003,
+    color: laserColors[Math.floor(Math.random() * laserColors.length)],
+    width: 1 + Math.random() * 2,
+    alpha: 0.15 + Math.random() * 0.25,
+    length: h * 0.6 + Math.random() * h * 0.4,
+  }))
+
+  const searchlights: Searchlight[] = foreground ? [] : Array.from({ length: 3 }, () => ({
+    x: Math.random() * w,
+    angle: -Math.PI / 2 + (Math.random() - 0.5) * 0.4,
+    sweepSpeed: 0.002 + Math.random() * 0.003,
+    width: 30 + Math.random() * 40,
+    alpha: 0.04 + Math.random() * 0.03,
+  }))
+
+  // Sparks — small bright particles
+  const sparkCount = foreground ? 15 : 80
+  const sparks: Particle[] = Array.from({ length: sparkCount }, () => ({
+    x: Math.random() * w,
+    y: h * 0.5 + Math.random() * h * 0.5,
+    vx: (Math.random() - 0.5) * 2,
+    vy: -(Math.random() * 2 + 0.5),
+    size: foreground ? 2 + Math.random() * 3 : 1 + Math.random() * 2,
+    opacity: Math.random() * 0.8 + 0.2,
+    phase: Math.random() * Math.PI * 2,
+  }))
+
+  return { lasers, searchlights, sparks, redEyePhase: 0, flashTimer: 0, flashAlpha: 0 }
+}
+
+function drawWarzone(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  t: number,
+  state: WarzoneState,
+  foreground: boolean,
+) {
+  // ── Background: searchlights + lasers ──
+  if (!foreground) {
+    ctx.save()
+
+    // Searchlights — wide cone beams sweeping
+    for (const sl of state.searchlights) {
+      const angle = sl.angle + Math.sin(t * sl.sweepSpeed) * 0.5
+      const endX = sl.x + Math.cos(angle) * h * 1.5
+      const endY = Math.sin(angle) * h * 1.5
+
+      const grad = ctx.createLinearGradient(sl.x, h, endX, endY)
+      grad.addColorStop(0, `rgba(180,200,230,${sl.alpha})`)
+      grad.addColorStop(0.3, `rgba(140,170,210,${sl.alpha * 0.5})`)
+      grad.addColorStop(1, 'rgba(140,170,210,0)')
+
+      ctx.beginPath()
+      ctx.moveTo(sl.x - sl.width / 2, h)
+      ctx.lineTo(endX - sl.width * 2, endY)
+      ctx.lineTo(endX + sl.width * 2, endY)
+      ctx.lineTo(sl.x + sl.width / 2, h)
+      ctx.closePath()
+      ctx.fillStyle = grad
+      ctx.fill()
+    }
+
+    // Laser beams — thin bright lines cutting through
+    for (const laser of state.lasers) {
+      laser.angle += laser.speed
+      const endX = laser.x + Math.cos(laser.angle) * laser.length
+      const endY = h + Math.sin(laser.angle) * laser.length
+
+      ctx.beginPath()
+      ctx.moveTo(laser.x, h)
+      ctx.lineTo(endX, endY)
+      ctx.strokeStyle = laser.color.replace('A', String(laser.alpha))
+      ctx.lineWidth = laser.width
+      ctx.stroke()
+
+      // Glow
+      ctx.strokeStyle = laser.color.replace('A', String(laser.alpha * 0.3))
+      ctx.lineWidth = laser.width * 4
+      ctx.stroke()
+    }
+
+    // Red eye scan line — horizontal sweep across screen
+    state.redEyePhase += 0.008
+    const eyeY = h * 0.3 + Math.sin(state.redEyePhase) * h * 0.25
+    const eyeGrad = ctx.createLinearGradient(0, eyeY - 2, 0, eyeY + 2)
+    eyeGrad.addColorStop(0, 'rgba(255,16,32,0)')
+    eyeGrad.addColorStop(0.5, `rgba(255,16,32,${0.08 + Math.sin(t * 0.003) * 0.04})`)
+    eyeGrad.addColorStop(1, 'rgba(255,16,32,0)')
+    ctx.fillStyle = eyeGrad
+    ctx.fillRect(0, eyeY - 15, w, 30)
+
+    // Occasional explosion flash
+    state.flashTimer++
+    if (state.flashTimer > 300 + Math.random() * 400) {
+      state.flashAlpha = 0.15 + Math.random() * 0.1
+      state.flashTimer = 0
+    }
+    if (state.flashAlpha > 0) {
+      const flashColors = ['rgba(255,140,40,A)', 'rgba(255,60,30,A)', 'rgba(200,180,255,A)']
+      const fc = flashColors[Math.floor(Math.random() * flashColors.length)]
+      ctx.fillStyle = fc.replace('A', String(state.flashAlpha))
+      ctx.fillRect(0, 0, w, h)
+      state.flashAlpha *= 0.92  // rapid decay
+      if (state.flashAlpha < 0.005) state.flashAlpha = 0
+    }
+
+    ctx.restore()
+  }
+
+  // ── Sparks — bright points flying upward from explosions ──
+  ctx.save()
+  ctx.globalCompositeOperation = 'lighter'
+  for (const s of state.sparks) {
+    const flicker = Math.sin((s.phase ?? 0) + t * 0.01) * 0.3 + 0.7
+    const r = s.size * flicker
+
+    // Bright core
+    ctx.fillStyle = `rgba(255, 200, 120, ${s.opacity * flicker})`
+    ctx.beginPath()
+    ctx.arc(s.x, s.y, r * 0.5, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Glow
+    const grad = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, r * 3)
+    grad.addColorStop(0, `rgba(255, 160, 60, ${s.opacity * flicker * 0.5})`)
+    grad.addColorStop(1, 'rgba(255, 80, 20, 0)')
+    ctx.fillStyle = grad
+    ctx.beginPath()
+    ctx.arc(s.x, s.y, r * 3, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Move
+    s.x += (s.vx ?? 0) + Math.sin((s.phase ?? 0) + t * 0.02) * 0.2
+    s.y += (s.vy ?? 0)
+    s.opacity -= 0.003
+    if (s.opacity < 0.05 || s.y < -20) {
+      s.opacity = Math.random() * 0.8 + 0.2
+      s.y = h * 0.6 + Math.random() * h * 0.4
+      s.x = Math.random() * w
+      s.vy = -(Math.random() * 2 + 0.5)
+      s.vx = (Math.random() - 0.5) * 2
+    }
+  }
+  ctx.globalCompositeOperation = 'source-over'
+  ctx.restore()
+}
+
 // ── Fruit (tumbling fruit emoji) ──
 
 const FRUIT_CHARS = ['🍎', '🍊', '🍋', '🍇', '🍓', '🍑', '🍌', '🍉', '🥝', '🍒', '🫐', '🍍']
@@ -1142,15 +1321,21 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
       cloudState = initCloudState(canvas.width, canvas.height, foreground)
     }
 
+    // Warzone state (Terminator)
+    let warzoneState: WarzoneState | null = null
+    if (activeEffect === 'warzone') {
+      warzoneState = initWarzoneState(canvas.width, canvas.height, foreground)
+    }
+
     // Background counts — generous for immersion
     const bgCountMap: Record<EffectName, number> = {
       snow: 40, leaves: 100, rain: 250, fireflies: 90, stars: 800, sakura: 80,
-      embers: 250, 'digital-rain': 0, flames: 200, water: 0, boba: 0, clouds: 0, fruit: 60, junkfood: 70, none: 0,
+      embers: 250, 'digital-rain': 0, flames: 200, water: 0, boba: 0, clouds: 0, fruit: 60, junkfood: 70, warzone: 0, none: 0,
     }
     // Foreground: ~15% of background for subtle depth
     const fgCountMap: Record<EffectName, number> = {
       snow: 6, leaves: 1, rain: 20, fireflies: 6, stars: 0, sakura: 6,
-      embers: 20, 'digital-rain': 0, flames: 15, water: 0, boba: 0, clouds: 0, fruit: 1, junkfood: 1, none: 0,
+      embers: 20, 'digital-rain': 0, flames: 15, water: 0, boba: 0, clouds: 0, fruit: 1, junkfood: 1, warzone: 0, none: 0,
     }
     const countMap = foreground ? fgCountMap : bgCountMap
     const count = countMap[activeEffect] ?? 80
@@ -1255,6 +1440,13 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
           }
         }
         ctx.globalCompositeOperation = 'source-over'
+        rafRef.current = requestAnimationFrame(animate)
+        return
+      }
+
+      // Warzone (Terminator)
+      if (activeEffect === 'warzone' && warzoneState) {
+        drawWarzone(ctx, w, h, t, warzoneState, foreground)
         rafRef.current = requestAnimationFrame(animate)
         return
       }

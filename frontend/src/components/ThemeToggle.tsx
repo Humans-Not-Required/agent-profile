@@ -15,7 +15,7 @@ export const THEME_EFFECT_MAP: Record<string, EffectName> = {
   lavender: 'stars',
   sage: 'leaves',
   peach: 'fireflies',
-  terminator: 'embers',
+  terminator: 'warzone',
   matrix: 'digital-rain',
   replicant: 'rain',
   snow: 'snow',
