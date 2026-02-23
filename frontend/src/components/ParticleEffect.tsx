@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'embers' | 'digital-rain' | 'flames' | 'water' | 'none'
+export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'embers' | 'digital-rain' | 'flames' | 'water' | 'boba' | 'none'
 
 interface Props {
   effect: EffectName
@@ -690,6 +690,133 @@ function drawWater(
   }
 }
 
+// ── Boba (milk tea with tapioca pearls + swirling liquid) ──
+
+interface BobaPearl {
+  x: number; y: number; r: number; speed: number
+  wobblePhase: number; shade: number; opacity: number
+}
+
+interface BobaSwirl {
+  cx: number; cy: number; radius: number; speed: number; phase: number; opacity: number
+}
+
+interface BobaState {
+  pearls: BobaPearl[]
+  swirls: BobaSwirl[]
+}
+
+function initBobaState(w: number, h: number, foreground: boolean): BobaState {
+  const pearlCount = foreground ? 8 : 45
+  const pearls: BobaPearl[] = Array.from({ length: pearlCount }, () => {
+    const r = foreground ? 12 + Math.random() * 18 : 6 + Math.random() * 12
+    return {
+      x: Math.random() * w,
+      y: Math.random() * (h + 200) - 100,
+      r,
+      speed: 0.15 + Math.random() * 0.4,
+      wobblePhase: Math.random() * Math.PI * 2,
+      shade: Math.random(),  // 0=dark, 1=lighter
+      opacity: foreground ? 0.5 + Math.random() * 0.4 : 0.6 + Math.random() * 0.3,
+    }
+  })
+
+  // Swirling milk/tea streams (background only)
+  const swirls: BobaSwirl[] = foreground ? [] : Array.from({ length: 6 }, () => ({
+    cx: Math.random() * w,
+    cy: Math.random() * h,
+    radius: 80 + Math.random() * 160,
+    speed: 0.0003 + Math.random() * 0.0005,
+    phase: Math.random() * Math.PI * 2,
+    opacity: 0.12 + Math.random() * 0.1,
+  }))
+
+  return { pearls, swirls }
+}
+
+function drawBoba(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  t: number,
+  state: BobaState,
+  foreground: boolean,
+) {
+  // ── Swirling milk tea streams (background only) ──
+  if (!foreground) {
+    ctx.save()
+    for (const s of state.swirls) {
+      const angle = t * s.speed + s.phase
+      // Drift the swirl center slowly
+      const sx = s.cx + Math.sin(angle * 0.7) * 40
+      const sy = s.cy + Math.cos(angle * 0.5) * 30
+
+      // Draw a swirling arc of creamy color
+      ctx.beginPath()
+      ctx.arc(sx, sy, s.radius, angle, angle + Math.PI * 1.2)
+      ctx.lineWidth = 25 + Math.sin(t * 0.001 + s.phase) * 10
+      ctx.strokeStyle = `rgba(245, 230, 210, ${s.opacity})`
+      ctx.lineCap = 'round'
+      ctx.stroke()
+
+      // Second inner swirl (darker tea color)
+      ctx.beginPath()
+      ctx.arc(sx, sy, s.radius * 0.6, angle + Math.PI * 0.5, angle + Math.PI * 1.5)
+      ctx.lineWidth = 18 + Math.sin(t * 0.0015 + s.phase) * 8
+      ctx.strokeStyle = `rgba(180, 140, 100, ${s.opacity * 0.7})`
+      ctx.stroke()
+    }
+    ctx.restore()
+  }
+
+  // ── Tapioca pearls ──
+  for (const p of state.pearls) {
+    const wobble = Math.sin(t * 0.0015 + p.wobblePhase) * 3
+    const bx = p.x + wobble
+    const by = p.y
+
+    ctx.save()
+
+    // Pearl body — dark brown/black sphere
+    const baseR = Math.floor(30 + p.shade * 30)   // 30-60
+    const baseG = Math.floor(20 + p.shade * 20)   // 20-40
+    const baseB = Math.floor(10 + p.shade * 15)   // 10-25
+    const grad = ctx.createRadialGradient(
+      bx - p.r * 0.25, by - p.r * 0.25, p.r * 0.05,
+      bx, by, p.r
+    )
+    grad.addColorStop(0, `rgba(${baseR + 40}, ${baseG + 30}, ${baseB + 20}, ${p.opacity})`)
+    grad.addColorStop(0.6, `rgba(${baseR}, ${baseG}, ${baseB}, ${p.opacity})`)
+    grad.addColorStop(1, `rgba(${baseR - 10}, ${baseG - 10}, ${baseB - 5}, ${p.opacity * 0.8})`)
+    ctx.fillStyle = grad
+    ctx.beginPath()
+    ctx.arc(bx, by, p.r, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Glossy highlight
+    const hlGrad = ctx.createRadialGradient(
+      bx - p.r * 0.3, by - p.r * 0.3, 0,
+      bx - p.r * 0.3, by - p.r * 0.3, p.r * 0.5
+    )
+    hlGrad.addColorStop(0, `rgba(255, 255, 240, ${p.opacity * 0.5})`)
+    hlGrad.addColorStop(1, 'rgba(255, 255, 240, 0)')
+    ctx.fillStyle = hlGrad
+    ctx.beginPath()
+    ctx.arc(bx - p.r * 0.3, by - p.r * 0.3, p.r * 0.5, 0, Math.PI * 2)
+    ctx.fill()
+
+    ctx.restore()
+
+    // Animate — slow float upward
+    p.y -= p.speed
+    p.x += wobble * 0.008
+    if (p.y < -p.r * 2) {
+      p.y = h + p.r * 2 + Math.random() * 80
+      p.x = Math.random() * w
+    }
+  }
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export function ParticleEffect({ effect, enabled, seasonal, foreground = false }: Props) {
@@ -742,15 +869,21 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
       waterState = initWaterState(canvas.width, canvas.height, foreground)
     }
 
+    // Boba state
+    let bobaState: BobaState | null = null
+    if (activeEffect === 'boba') {
+      bobaState = initBobaState(canvas.width, canvas.height, foreground)
+    }
+
     // Background counts — generous for immersion
     const bgCountMap: Record<EffectName, number> = {
       snow: 40, leaves: 100, rain: 250, fireflies: 90, stars: 800, sakura: 80,
-      embers: 140, 'digital-rain': 0, flames: 200, water: 0, none: 0,
+      embers: 140, 'digital-rain': 0, flames: 200, water: 0, boba: 0, none: 0,
     }
     // Foreground: ~15% of background for subtle depth
     const fgCountMap: Record<EffectName, number> = {
       snow: 6, leaves: 8, rain: 20, fireflies: 6, stars: 0, sakura: 6,
-      embers: 10, 'digital-rain': 0, flames: 15, water: 0, none: 0,
+      embers: 10, 'digital-rain': 0, flames: 15, water: 0, boba: 0, none: 0,
     }
     const countMap = foreground ? fgCountMap : bgCountMap
     const count = countMap[activeEffect] ?? 80
@@ -816,6 +949,13 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
       if (activeEffect === 'flames') {
         drawFlames(ctx, flameParticles, w, h)
         updateFlames(flameParticles, w, h)
+        rafRef.current = requestAnimationFrame(animate)
+        return
+      }
+
+      // Boba pearls + swirling milk tea
+      if (activeEffect === 'boba' && bobaState) {
+        drawBoba(ctx, w, h, t, bobaState, foreground)
         rafRef.current = requestAnimationFrame(animate)
         return
       }

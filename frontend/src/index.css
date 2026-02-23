@@ -179,6 +179,13 @@
   --tag-border: #1a2040;
 }
 
+[data-theme="boba"] {
+  --bg: #f5ece0; --card: #ffffff; --border: #d8c4a8;
+  --text: #4a3628; --text-muted: #8a7260; --text-bright: #2e1c10;
+  --accent: #8b5e3c; --accent2: #b07848; --tag-bg: #f0e4d4;
+  --tag-border: #d8c4a8;
+}
+
 /* ── Deluxe Theme Treatments ── */
 
 /* Dark — The Terminal: flat black with subtle blue vignette, crisp 1px borders */
@@ -474,6 +481,21 @@
 }
 [data-theme="patriot"] .card:hover {
   box-shadow: 0 4px 28px rgba(208,32,48,0.1), inset 0 1px 0 rgba(208,32,48,0.08);
+  transform: translateY(-1px);
+}
+
+/* Boba — Milk Tea: warm cream-brown gradient, tapioca vibes */
+[data-theme="boba"] body {
+  background: linear-gradient(170deg, #f5ece0 0%, #e8d4be 30%, #d4b896 60%, #c4a07a 100%);
+}
+[data-theme="boba"] .card {
+  background: rgba(255,255,255,0.20);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 20px rgba(90,60,30,0.12), inset 0 1px 0 rgba(255,255,255,0.6);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+[data-theme="boba"] .card:hover {
+  box-shadow: 0 4px 28px rgba(139,94,60,0.18), inset 0 1px 0 rgba(255,255,255,0.7);
   transform: translateY(-1px);
 }
 

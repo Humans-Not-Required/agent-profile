@@ -27,6 +27,7 @@ export const THEME_EFFECT_MAP: Record<string, EffectName> = {
   newyear: 'stars',
   valentine: 'sakura',
   patriot: 'stars',
+  boba: 'boba',
 }
 
 const THEME_GROUPS = [
@@ -72,6 +73,12 @@ const THEME_GROUPS = [
       { id: 'newyear', emoji: '🎆', name: 'New Year' },
       { id: 'valentine', emoji: '💘', name: 'Valentine' },
       { id: 'patriot', emoji: '🇺🇸', name: 'Patriot' },
+    ],
+  },
+  {
+    label: 'Fun',
+    themes: [
+      { id: 'boba', emoji: '🧋', name: 'Boba' },
     ],
   },
 ]
