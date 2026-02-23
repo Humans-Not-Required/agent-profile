@@ -941,8 +941,15 @@ interface BobaState {
 }
 
 function initBobaState(w: number, h: number, _foreground: boolean): BobaState {
-  const pearlCount = 80  // always background-only, lots of pearls
-  // Spawn pearls scattered across bottom 50%, they'll settle via gravity
+  // Calculate pearl count to fill ~30% of screen bottom
+  // avgR ≈ 15, pearl area ≈ π*15² ≈ 707, packing efficiency ~0.6
+  const avgR = 15
+  const targetArea = w * h * 0.30
+  const packingEfficiency = 0.6
+  const pearlArea = Math.PI * avgR * avgR
+  const pearlCount = Math.min(300, Math.max(40, Math.round(targetArea * packingEfficiency / pearlArea)))
+
+  // Spawn pearls scattered — they'll settle via gravity
   const pearls: BobaPearl[] = Array.from({ length: pearlCount }, () => {
     const r = 8 + Math.random() * 14
     return {
