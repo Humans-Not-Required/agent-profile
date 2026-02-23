@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'embers' | 'digital-rain' | 'none'
+export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'embers' | 'digital-rain' | 'flames' | 'none'
 
 interface Props {
   effect: EffectName
@@ -29,6 +29,8 @@ interface Particle {
   rotation?: number
   vr?: number       // rotational velocity
   phase?: number    // for fireflies/stars twinkle
+  layer?: number    // depth layer for starfield (0=far, 1=mid, 2=near)
+  color?: number    // color variant index
 }
 
 function initParticles(count: number, w: number, h: number): Particle[] {
@@ -42,15 +44,60 @@ function initParticles(count: number, w: number, h: number): Particle[] {
     rotation: Math.random() * Math.PI * 2,
     vr: (Math.random() - 0.5) * 0.05,
     phase: Math.random() * Math.PI * 2,
+    layer: Math.floor(Math.random() * 3),
+    color: Math.floor(Math.random() * 5),
   }))
 }
 
-function drawSnow(ctx: CanvasRenderingContext2D, p: Particle) {
+// ── Snowflake: 6-armed crystal with branches ──
+
+function drawSnowflake(ctx: CanvasRenderingContext2D, p: Particle) {
+  ctx.save()
+  ctx.translate(p.x, p.y)
+  ctx.rotate(p.rotation ?? 0)
+  ctx.strokeStyle = `rgba(210, 230, 255, ${p.opacity})`
+  ctx.lineWidth = Math.max(0.5, p.size * 0.15)
+  ctx.lineCap = 'round'
+
+  const r = p.size * 1.8
+  const branchLen = r * 0.35
+
+  for (let i = 0; i < 6; i++) {
+    const angle = (i * Math.PI) / 3
+    const cos = Math.cos(angle)
+    const sin = Math.sin(angle)
+
+    // Main arm
+    ctx.beginPath()
+    ctx.moveTo(0, 0)
+    ctx.lineTo(cos * r, sin * r)
+    ctx.stroke()
+
+    // Two branches on each arm at ~60% length
+    const bx = cos * r * 0.6
+    const by = sin * r * 0.6
+    const bAngle1 = angle + Math.PI / 6
+    const bAngle2 = angle - Math.PI / 6
+    ctx.beginPath()
+    ctx.moveTo(bx, by)
+    ctx.lineTo(bx + Math.cos(bAngle1) * branchLen, by + Math.sin(bAngle1) * branchLen)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(bx, by)
+    ctx.lineTo(bx + Math.cos(bAngle2) * branchLen, by + Math.sin(bAngle2) * branchLen)
+    ctx.stroke()
+  }
+
+  // Center dot
   ctx.beginPath()
-  ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
-  ctx.fillStyle = `rgba(220, 235, 255, ${p.opacity})`
+  ctx.arc(0, 0, p.size * 0.2, 0, Math.PI * 2)
+  ctx.fillStyle = `rgba(230, 240, 255, ${p.opacity * 0.8})`
   ctx.fill()
+
+  ctx.restore()
 }
+
+// ── Leaf ──
 
 function drawLeaf(ctx: CanvasRenderingContext2D, p: Particle) {
   ctx.save()
@@ -63,6 +110,8 @@ function drawLeaf(ctx: CanvasRenderingContext2D, p: Particle) {
   ctx.restore()
 }
 
+// ── Rain ──
+
 function drawRain(ctx: CanvasRenderingContext2D, p: Particle, w: number) {
   ctx.beginPath()
   ctx.moveTo(p.x, p.y)
@@ -71,6 +120,8 @@ function drawRain(ctx: CanvasRenderingContext2D, p: Particle, w: number) {
   ctx.lineWidth = 1
   ctx.stroke()
 }
+
+// ── Firefly ──
 
 function drawFirefly(ctx: CanvasRenderingContext2D, p: Particle, t: number) {
   const pulse = Math.sin((p.phase ?? 0) + t * 0.003) * 0.4 + 0.6
@@ -84,37 +135,112 @@ function drawFirefly(ctx: CanvasRenderingContext2D, p: Particle, t: number) {
   ctx.fill()
 }
 
-function drawStar(ctx: CanvasRenderingContext2D, p: Particle, t: number) {
-  const twinkle = Math.sin((p.phase ?? 0) + t * 0.002) * 0.3 + 0.7
+// ── Starfield: multi-layer depth, cross twinkle, varied colors ──
+
+function drawStarfield(ctx: CanvasRenderingContext2D, p: Particle, t: number) {
+  const layer = p.layer ?? 0 // 0=far, 1=mid, 2=near
+  const sizeMult = [0.3, 0.6, 1.0][layer]
+  const baseBright = [0.4, 0.65, 1.0][layer]
+
+  const twinkle = Math.sin((p.phase ?? 0) + t * (0.002 + layer * 0.001)) * 0.35 + 0.65
+  const brightness = baseBright * twinkle
+  const r = p.size * sizeMult
+
+  // Color temperature by color index
+  const colors = [
+    [220, 230, 255],  // cool white
+    [180, 200, 255],  // blue-white
+    [255, 240, 220],  // warm white
+    [200, 220, 255],  // pale blue
+    [255, 220, 200],  // warm yellow
+  ]
+  const [cr, cg, cb] = colors[p.color ?? 0]
+
+  // Glow halo
+  if (layer >= 1) {
+    const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 4)
+    gradient.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, ${p.opacity * brightness * 0.3})`)
+    gradient.addColorStop(1, `rgba(${cr}, ${cg}, ${cb}, 0)`)
+    ctx.beginPath()
+    ctx.arc(p.x, p.y, r * 4, 0, Math.PI * 2)
+    ctx.fillStyle = gradient
+    ctx.fill()
+  }
+
+  // Cross spikes on brighter stars
+  if (layer === 2 && twinkle > 0.75) {
+    const spikeLen = r * 3.5 * twinkle
+    ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${p.opacity * brightness * 0.4})`
+    ctx.lineWidth = 0.5
+    ctx.beginPath()
+    ctx.moveTo(p.x - spikeLen, p.y)
+    ctx.lineTo(p.x + spikeLen, p.y)
+    ctx.moveTo(p.x, p.y - spikeLen)
+    ctx.lineTo(p.x, p.y + spikeLen)
+    ctx.stroke()
+  }
+
+  // Core dot
   ctx.beginPath()
-  ctx.arc(p.x, p.y, p.size * 0.7, 0, Math.PI * 2)
-  ctx.fillStyle = `rgba(220, 230, 255, ${p.opacity * twinkle})`
+  ctx.arc(p.x, p.y, r, 0, Math.PI * 2)
+  ctx.fillStyle = `rgba(${cr}, ${cg}, ${cb}, ${p.opacity * brightness})`
   ctx.fill()
 }
 
-function drawSakura(ctx: CanvasRenderingContext2D, p: Particle) {
+// ── Sakura: teardrop petals with pink gradient ──
+
+function drawSakuraPetal(ctx: CanvasRenderingContext2D, p: Particle) {
   ctx.save()
   ctx.translate(p.x, p.y)
   ctx.rotate(p.rotation ?? 0)
-  // 5-petal flower approximation with overlapping ellipses
+
+  const s = p.size * 1.2
+
+  // Draw 5 teardrop-shaped petals
   for (let i = 0; i < 5; i++) {
     ctx.save()
     ctx.rotate((i * Math.PI * 2) / 5)
+
     ctx.beginPath()
-    ctx.ellipse(p.size * 0.8, 0, p.size * 0.9, p.size * 0.5, 0, 0, Math.PI * 2)
-    ctx.fillStyle = `rgba(255, 182, 193, ${p.opacity * 0.85})`
+    // Teardrop: start narrow at center, widen, then round tip
+    ctx.moveTo(0, 0)
+    ctx.bezierCurveTo(
+      s * 0.3, -s * 0.3,   // control point 1 (left curve out)
+      s * 1.0, -s * 0.2,   // control point 2 (tip area)
+      s * 0.9, 0            // tip
+    )
+    ctx.bezierCurveTo(
+      s * 1.0, s * 0.2,    // control point 3 (right of tip)
+      s * 0.3, s * 0.3,    // control point 4 (right curve back)
+      0, 0                  // back to center
+    )
+
+    // Gradient from deep pink at center to lighter pink at tip
+    const grad = ctx.createLinearGradient(0, 0, s * 0.9, 0)
+    grad.addColorStop(0, `rgba(220, 130, 160, ${p.opacity * 0.9})`)
+    grad.addColorStop(0.5, `rgba(255, 182, 200, ${p.opacity * 0.85})`)
+    grad.addColorStop(1, `rgba(255, 210, 220, ${p.opacity * 0.7})`)
+    ctx.fillStyle = grad
     ctx.fill()
+
     ctx.restore()
   }
+
+  // Center: small yellow-pink dot (pistil)
+  ctx.beginPath()
+  ctx.arc(0, 0, s * 0.15, 0, Math.PI * 2)
+  ctx.fillStyle = `rgba(255, 200, 150, ${p.opacity * 0.9})`
+  ctx.fill()
+
   ctx.restore()
 }
 
+// ── Ember ──
+
 function drawEmber(ctx: CanvasRenderingContext2D, p: Particle, t: number) {
-  // Glowing ember/spark that drifts upward with flickering intensity
   const flicker = Math.sin((p.phase ?? 0) + t * 0.006) * 0.3 + 0.7
   const r = p.size * 0.6 * flicker
   const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 4)
-  // Core: bright white-yellow, halo: orange-red
   gradient.addColorStop(0, `rgba(255, 200, 80, ${p.opacity * flicker})`)
   gradient.addColorStop(0.3, `rgba(255, 100, 20, ${p.opacity * flicker * 0.7})`)
   gradient.addColorStop(1, 'rgba(200, 40, 0, 0)')
@@ -122,10 +248,54 @@ function drawEmber(ctx: CanvasRenderingContext2D, p: Particle, t: number) {
   ctx.arc(p.x, p.y, r * 4, 0, Math.PI * 2)
   ctx.fillStyle = gradient
   ctx.fill()
-  // Bright core dot
   ctx.beginPath()
   ctx.arc(p.x, p.y, r * 0.5, 0, Math.PI * 2)
   ctx.fillStyle = `rgba(255, 220, 140, ${p.opacity * flicker})`
+  ctx.fill()
+}
+
+// ── Flames: rising fire tongues from bottom edge ──
+
+function drawFlameParticle(ctx: CanvasRenderingContext2D, p: Particle, t: number, h: number) {
+  // How far from bottom (0 = at bottom, 1 = risen fully)
+  const rise = 1 - (p.y / h)
+  const life = Math.max(0, Math.min(1, rise))
+
+  // Flame color shifts: white-yellow at base → orange → red → transparent at top
+  const flicker = Math.sin((p.phase ?? 0) + t * 0.008) * 0.2 + 0.8
+  const r = p.size * (1.2 - life * 0.8) * flicker
+
+  // Wobble horizontally as it rises
+  const wobble = Math.sin((p.phase ?? 0) * 2 + t * 0.012 + p.y * 0.01) * (8 + p.size * 2)
+  const drawX = p.x + wobble
+
+  const fadeOpacity = p.opacity * (1 - life * life) * flicker
+
+  if (fadeOpacity < 0.02) return
+
+  const gradient = ctx.createRadialGradient(drawX, p.y, 0, drawX, p.y, r * 5)
+
+  if (life < 0.25) {
+    // Base: bright white-yellow core
+    gradient.addColorStop(0, `rgba(255, 255, 220, ${fadeOpacity})`)
+    gradient.addColorStop(0.3, `rgba(255, 220, 80, ${fadeOpacity * 0.8})`)
+    gradient.addColorStop(0.7, `rgba(255, 140, 20, ${fadeOpacity * 0.5})`)
+    gradient.addColorStop(1, 'rgba(200, 60, 0, 0)')
+  } else if (life < 0.6) {
+    // Mid: orange
+    gradient.addColorStop(0, `rgba(255, 180, 40, ${fadeOpacity * 0.9})`)
+    gradient.addColorStop(0.4, `rgba(255, 100, 20, ${fadeOpacity * 0.6})`)
+    gradient.addColorStop(1, 'rgba(180, 30, 0, 0)')
+  } else {
+    // Top: red fading
+    gradient.addColorStop(0, `rgba(200, 60, 10, ${fadeOpacity * 0.6})`)
+    gradient.addColorStop(0.5, `rgba(120, 20, 0, ${fadeOpacity * 0.3})`)
+    gradient.addColorStop(1, 'rgba(60, 0, 0, 0)')
+  }
+
+  ctx.beginPath()
+  ctx.arc(drawX, p.y, r * 5, 0, Math.PI * 2)
+  ctx.fillStyle = gradient
   ctx.fill()
 }
 
@@ -135,7 +305,7 @@ const MATRIX_CHARS = 'アイウエオカキクケコサシスセソタチツテ�
 interface RainColumn {
   x: number
   chars: string[]
-  y: number         // head position
+  y: number
   speed: number
   length: number
   charSize: number
@@ -149,14 +319,14 @@ function initRainColumns(w: number, h: number): RainColumn[] {
     chars: Array.from({ length: Math.floor(h / charSize) + 10 }, () =>
       MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)]
     ),
-    y: Math.random() * h * 2 - h,      // start at random offset
+    y: Math.random() * h * 2 - h,
     speed: Math.random() * 2 + 1.5,
     length: Math.floor(Math.random() * 12) + 8,
     charSize,
   }))
 }
 
-function drawDigitalRain(ctx: CanvasRenderingContext2D, columns: RainColumn[], h: number, t: number) {
+function drawDigitalRain(ctx: CanvasRenderingContext2D, columns: RainColumn[], h: number, _t: number) {
   for (const col of columns) {
     const headY = col.y
     for (let i = 0; i < col.length; i++) {
@@ -164,7 +334,6 @@ function drawDigitalRain(ctx: CanvasRenderingContext2D, columns: RainColumn[], h
       if (cy < -col.charSize || cy > h + col.charSize) continue
       const charIdx = (Math.floor(cy / col.charSize) + col.chars.length * 10) % col.chars.length
 
-      // Occasionally randomize character for flicker
       let ch = col.chars[charIdx]
       if (Math.random() < 0.01) {
         ch = MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)]
@@ -172,11 +341,9 @@ function drawDigitalRain(ctx: CanvasRenderingContext2D, columns: RainColumn[], h
       }
 
       if (i === 0) {
-        // Head character: bright white-green
         ctx.fillStyle = 'rgba(180, 255, 180, 0.95)'
         ctx.font = `bold ${col.charSize}px "Courier New", monospace`
       } else {
-        // Trail: fade from bright green to dark green
         const fade = 1 - (i / col.length)
         const g = Math.floor(180 * fade + 40)
         ctx.fillStyle = `rgba(0, ${g}, 0, ${fade * 0.8})`
@@ -185,7 +352,6 @@ function drawDigitalRain(ctx: CanvasRenderingContext2D, columns: RainColumn[], h
       ctx.fillText(ch, col.x, cy)
     }
 
-    // Advance column
     col.y += col.speed
     if (col.y - col.length * col.charSize > h) {
       col.y = -col.length * col.charSize * Math.random()
@@ -201,7 +367,6 @@ export function ParticleEffect({ effect, enabled, seasonal }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rafRef = useRef<number>(0)
 
-  // Resolve actual effect (seasonal override)
   const activeEffect: EffectName = !enabled
     ? 'none'
     : seasonal
@@ -216,7 +381,6 @@ export function ParticleEffect({ effect, enabled, seasonal }: Props) {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Resize canvas to viewport
     const resize = () => {
       canvas.width = window.innerWidth
       canvas.height = window.innerHeight
@@ -224,26 +388,57 @@ export function ParticleEffect({ effect, enabled, seasonal }: Props) {
     resize()
     window.addEventListener('resize', resize)
 
-    // Digital rain uses its own column-based system
     let rainColumns: RainColumn[] = []
     if (activeEffect === 'digital-rain') {
       rainColumns = initRainColumns(canvas.width, canvas.height)
     }
 
-    // Particle count by effect type
     const countMap: Record<EffectName, number> = {
-      snow: 100, leaves: 60, rain: 150, fireflies: 50, stars: 200, sakura: 60,
-      embers: 80, 'digital-rain': 0, none: 0,
+      snow: 80, leaves: 60, rain: 150, fireflies: 50, stars: 300, sakura: 45,
+      embers: 80, 'digital-rain': 0, flames: 120, none: 0,
     }
     const count = countMap[activeEffect] ?? 80
     const particles = count > 0 ? initParticles(count, canvas.width, canvas.height) : []
 
-    // Embers drift upward — invert their initial velocity
+    // Effect-specific particle init
     if (activeEffect === 'embers') {
       for (const p of particles) {
-        p.vy = -(Math.random() * 0.8 + 0.2) // drift up
-        p.vx = (Math.random() - 0.5) * 0.6   // gentle sway
-        p.size = Math.random() * 3 + 1        // smaller particles
+        p.vy = -(Math.random() * 0.8 + 0.2)
+        p.vx = (Math.random() - 0.5) * 0.6
+        p.size = Math.random() * 3 + 1
+      }
+    } else if (activeEffect === 'snow') {
+      for (const p of particles) {
+        p.size = Math.random() * 5 + 2  // bigger for snowflake detail
+        p.vy = Math.random() * 0.6 + 0.15  // slow gentle fall
+        p.vx = (Math.random() - 0.5) * 0.3  // slight drift
+        p.vr = (Math.random() - 0.5) * 0.008  // slow rotation
+      }
+    } else if (activeEffect === 'stars') {
+      // Starfield: distribute across depth layers with appropriate sizes
+      for (const p of particles) {
+        const layer = p.layer ?? 0
+        p.size = [1.0, 1.8, 3.0][layer] + Math.random() * [0.5, 1.0, 2.0][layer]
+        p.opacity = [0.3, 0.55, 0.85][layer] + Math.random() * 0.15
+        p.vx = 0
+        p.vy = 0
+      }
+    } else if (activeEffect === 'sakura') {
+      for (const p of particles) {
+        p.size = Math.random() * 3 + 2
+        p.vy = Math.random() * 0.5 + 0.2    // gentle fall
+        p.vx = Math.random() * 0.3 + 0.1    // slight lateral drift
+        p.vr = (Math.random() - 0.5) * 0.015 // slow tumble
+      }
+    } else if (activeEffect === 'flames') {
+      // Flames rise from bottom
+      for (const p of particles) {
+        p.y = canvas.height - Math.random() * canvas.height * 0.15  // start near bottom
+        p.x = Math.random() * canvas.width
+        p.vy = -(Math.random() * 1.5 + 0.5)  // rise up
+        p.vx = 0
+        p.size = Math.random() * 4 + 2
+        p.opacity = Math.random() * 0.5 + 0.5
       }
     }
 
@@ -252,7 +447,6 @@ export function ParticleEffect({ effect, enabled, seasonal }: Props) {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       t++
 
-      // Digital rain has its own rendering path
       if (activeEffect === 'digital-rain') {
         drawDigitalRain(ctx, rainColumns, canvas.height, t)
         rafRef.current = requestAnimationFrame(animate)
@@ -262,37 +456,47 @@ export function ParticleEffect({ effect, enabled, seasonal }: Props) {
       for (const p of particles) {
         // Draw
         switch (activeEffect) {
-          case 'snow':      drawSnow(ctx, p); break
+          case 'snow':      drawSnowflake(ctx, p); break
           case 'leaves':    drawLeaf(ctx, p); break
           case 'rain':      drawRain(ctx, p, canvas.width); break
           case 'fireflies': drawFirefly(ctx, p, t); break
-          case 'stars':     drawStar(ctx, p, t); break
-          case 'sakura':    drawSakura(ctx, p); break
+          case 'stars':     drawStarfield(ctx, p, t); break
+          case 'sakura':    drawSakuraPetal(ctx, p); break
           case 'embers':    drawEmber(ctx, p, t); break
+          case 'flames':    drawFlameParticle(ctx, p, t, canvas.height); break
         }
 
         // Move
+        const w = canvas.width
+        const h = canvas.height
+
         if (activeEffect === 'fireflies') {
-          // Fireflies drift gently
           p.x += Math.sin((p.phase ?? 0) + t * 0.01) * 0.5
           p.y += Math.sin((p.phase ?? 0) * 1.3 + t * 0.008) * 0.4
         } else if (activeEffect === 'stars') {
-          // Stars barely move — just twinkle
-          p.x += p.vx * 0.05
-          p.y += p.vy * 0.05
+          // Stars don't move — pure twinkle
         } else if (activeEffect === 'rain') {
-          p.x += 1.5  // diagonal slant
+          p.x += 1.5
           p.y += 12
         } else if (activeEffect === 'embers') {
-          // Embers drift upward with swaying
           p.x += p.vx + Math.sin((p.phase ?? 0) + t * 0.015) * 0.3
           p.y += p.vy
-          // Fade out as they rise
           p.opacity -= 0.001
           if (p.opacity < 0.05) {
             p.opacity = Math.random() * 0.7 + 0.3
-            p.y = canvas.height + 10
-            p.x = Math.random() * canvas.width
+            p.y = h + 10
+            p.x = Math.random() * w
+          }
+        } else if (activeEffect === 'flames') {
+          p.y += p.vy
+          // Reset when risen off top or faded
+          if (p.y < -50) {
+            p.y = h - Math.random() * h * 0.1
+            p.x = Math.random() * w
+            p.vy = -(Math.random() * 1.5 + 0.5)
+            p.opacity = Math.random() * 0.5 + 0.5
+            p.phase = Math.random() * Math.PI * 2
+            p.size = Math.random() * 4 + 2
           }
         } else {
           p.x += p.vx
@@ -300,13 +504,13 @@ export function ParticleEffect({ effect, enabled, seasonal }: Props) {
           if (p.rotation !== undefined && p.vr !== undefined) p.rotation += p.vr
         }
 
-        // Wrap around edges
-        const w = canvas.width
-        const h = canvas.height
-        if (p.y > h + 20)  p.y = -20
-        if (p.y < -20)     p.y = h + 20
-        if (p.x > w + 20)  p.x = -20
-        if (p.x < -20)     p.x = w + 20
+        // Wrap (except flames/stars which handle their own lifecycle)
+        if (activeEffect !== 'flames' && activeEffect !== 'stars') {
+          if (p.y > h + 20) p.y = -20
+          if (p.y < -20)    p.y = h + 20
+          if (p.x > w + 20) p.x = -20
+          if (p.x < -20)    p.x = w + 20
+        }
       }
 
       rafRef.current = requestAnimationFrame(animate)

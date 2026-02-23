@@ -7,8 +7,9 @@ const ALL_EFFECTS: { id: EffectName; icon: string; name: string }[] = [
   { id: 'leaves',       icon: 'bi-tree',           name: 'Leaves' },
   { id: 'sakura',       icon: 'bi-flower1',        name: 'Sakura' },
   { id: 'fireflies',    icon: 'bi-lightbulb',      name: 'Fireflies' },
-  { id: 'stars',        icon: 'bi-stars',           name: 'Stars' },
+  { id: 'stars',        icon: 'bi-stars',           name: 'Starfield' },
   { id: 'embers',       icon: 'bi-fire',           name: 'Embers' },
+  { id: 'flames',       icon: 'bi-thermometer-high', name: 'Flames' },
   { id: 'digital-rain', icon: 'bi-terminal',       name: 'Matrix' },
 ]
 
