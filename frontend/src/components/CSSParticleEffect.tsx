@@ -35,9 +35,20 @@ const SAKURA_EMOJI = ['🌸']
 
 function getConfig(effect: Props['effect'], foreground: boolean) {
   if (foreground) {
-    // Foreground: very few, large, mostly invisible (matches 85% invisible pattern)
+    if (effect === 'snow') {
+      // Snow foreground: rare giant snowflakes drifting very close
+      return {
+        count: 6,
+        sizeMin: 120, sizeMax: 260,
+        durationMin: 15, durationMax: 30,
+        opacityMin: 0.5, opacityMax: 0.8,
+        invisibleChance: 0.5,
+        swayMin: 3, swayMax: 10,
+      }
+    }
+    // Other effects: very few, large, mostly invisible
     return {
-      count: effect === 'snow' ? 4 : 2,
+      count: 2,
       sizeMin: 40, sizeMax: 80,
       durationMin: 12, durationMax: 25,
       opacityMin: 0, opacityMax: 0.9,
@@ -47,7 +58,7 @@ function getConfig(effect: Props['effect'], foreground: boolean) {
   }
   switch (effect) {
     case 'leaves':  return { count: 30, sizeMin: 18, sizeMax: 36, durationMin: 8, durationMax: 18, opacityMin: 0.4, opacityMax: 0.9, invisibleChance: 0, swayMin: 3, swayMax: 12 }
-    case 'snow':    return { count: 40, sizeMin: 14, sizeMax: 32, durationMin: 10, durationMax: 25, opacityMin: 0.7, opacityMax: 1.0, invisibleChance: 0, swayMin: 2, swayMax: 6 }
+    case 'snow':    return { count: 40, sizeMin: 30, sizeMax: 70, durationMin: 10, durationMax: 25, opacityMin: 1.0, opacityMax: 1.0, invisibleChance: 0, swayMin: 2, swayMax: 6 }
     case 'fruit':   return { count: 50, sizeMin: 28, sizeMax: 56, durationMin: 6, durationMax: 14, opacityMin: 0.5, opacityMax: 1.0, invisibleChance: 0, swayMin: 3, swayMax: 10 }
     case 'junkfood': return { count: 55, sizeMin: 24, sizeMax: 48, durationMin: 4, durationMax: 10, opacityMin: 0.6, opacityMax: 1.0, invisibleChance: 0, swayMin: 1, swayMax: 3 }
     case 'sakura':  return { count: 50, sizeMin: 14, sizeMax: 28, durationMin: 8, durationMax: 20, opacityMin: 0.5, opacityMax: 0.9, invisibleChance: 0, swayMin: 4, swayMax: 14 }
@@ -121,27 +132,36 @@ export function CSSParticleEffect({ effect, foreground = false }: Props) {
           }
         }
       `}</style>
-      {particles.map(p => (
-        <div
-          key={p.id}
-          style={{
-            position: 'absolute',
-            left: `${p.x}%`,
-            top: `${p.startY}%`,
-            fontSize: `${p.size}px`,
-            opacity: p.opacity,
-            willChange: 'transform',
-            animation: `cssFall ${p.duration}s linear ${p.delay}s infinite`,
-            '--sway': `${p.sway}vw`,
-            '--rot-start': `${p.rotation}deg`,
-            '--rot-delta': `${p.rotationEnd}deg`,
-            lineHeight: 1,
-            userSelect: 'none',
-          } as React.CSSProperties}
-        >
-          {p.emoji}
-        </div>
-      ))}
+      {particles.map(p => {
+        // Snow gets a bright glow so flakes pop on any background
+        const extraStyle: React.CSSProperties = effect === 'snow' ? {
+          filter: 'drop-shadow(0 0 6px rgba(180,220,255,0.9)) drop-shadow(0 0 14px rgba(130,190,255,0.6))',
+          color: '#e8f4ff',
+        } : {}
+
+        return (
+          <div
+            key={p.id}
+            style={{
+              position: 'absolute',
+              left: `${p.x}%`,
+              top: `${p.startY}%`,
+              fontSize: `${p.size}px`,
+              opacity: p.opacity,
+              willChange: 'transform',
+              animation: `cssFall ${p.duration}s linear ${p.delay}s infinite`,
+              '--sway': `${p.sway}vw`,
+              '--rot-start': `${p.rotation}deg`,
+              '--rot-delta': `${p.rotationEnd}deg`,
+              lineHeight: 1,
+              userSelect: 'none',
+              ...extraStyle,
+            } as React.CSSProperties}
+          >
+            {p.emoji}
+          </div>
+        )
+      })}
     </div>
   )
 }
