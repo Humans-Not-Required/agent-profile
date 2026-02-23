@@ -639,9 +639,9 @@ interface CloudState {
 
 function makeCloudGroup(w: number, h: number, layer: 'far' | 'mid' | 'near'): CloudGroup {
   const configs = {
-    far:  { scale: 0.7,  alpha: 0.5,  speed: 0.1 + Math.random() * 0.1, yMin: 0.05, yMax: 0.4, blobCount: 5 },
-    mid:  { scale: 1.0,  alpha: 0.7,  speed: 0.25 + Math.random() * 0.15, yMin: 0.1,  yMax: 0.5, blobCount: 6 },
-    near: { scale: 1.5,  alpha: 0.85, speed: 0.5 + Math.random() * 0.3, yMin: 0.08, yMax: 0.55, blobCount: 7 },
+    far:  { scale: 0.7,  alpha: 0.5,  speed: 0.1 + Math.random() * 0.1, yMin: 0.02, yMax: 0.92, blobCount: 5 },
+    mid:  { scale: 1.0,  alpha: 0.7,  speed: 0.25 + Math.random() * 0.15, yMin: 0.05, yMax: 0.88, blobCount: 6 },
+    near: { scale: 1.5,  alpha: 0.85, speed: 0.5 + Math.random() * 0.3, yMin: 0.05, yMax: 0.85, blobCount: 7 },
   }
   const c = configs[layer]
   const cx = Math.random() * w * 1.5 - w * 0.25
@@ -668,12 +668,13 @@ function initCloudState(w: number, h: number, foreground: boolean): CloudState |
 
   const groups: CloudGroup[] = []
   if (!foreground) {
+    // Spread clouds across the full screen with staggered start positions
     // Far layer: small, slow, faint
-    for (let i = 0; i < 5; i++) groups.push(makeCloudGroup(w, h, 'far'))
+    for (let i = 0; i < 7; i++) groups.push(makeCloudGroup(w, h, 'far'))
     // Mid layer
-    for (let i = 0; i < 4; i++) groups.push(makeCloudGroup(w, h, 'mid'))
+    for (let i = 0; i < 5; i++) groups.push(makeCloudGroup(w, h, 'mid'))
     // Near layer: big, fast, more opaque
-    for (let i = 0; i < 3; i++) groups.push(makeCloudGroup(w, h, 'near'))
+    for (let i = 0; i < 4; i++) groups.push(makeCloudGroup(w, h, 'near'))
   } else {
     // Foreground: 1-2 very large close clouds
     for (let i = 0; i < 2; i++) {
@@ -681,7 +682,7 @@ function initCloudState(w: number, h: number, foreground: boolean): CloudState |
       g.scale = 2.0
       g.alpha = 0.3
       g.speed = 0.7 + Math.random() * 0.4
-      g.y = h * 0.05 + Math.random() * h * 0.3
+      g.y = h * 0.05 + Math.random() * h * 0.5
       for (const b of g.blobs) { b.rx *= 1.8; b.ry *= 1.8; b.x *= 1.8; b.y *= 1.8 }
       groups.push(g)
     }
@@ -725,11 +726,11 @@ function drawClouds(
 
     // Drift
     g.x += g.speed
-    // Wrap around when fully off-screen right
+    // Wrap around when fully off-screen right — reappear from left at new Y
     const maxBlobR = Math.max(...g.blobs.map(b => b.rx + Math.abs(b.x))) * 1.5
     if (g.x - maxBlobR > w) {
       g.x = -maxBlobR * 2
-      g.y = g.y + (Math.random() - 0.5) * 40  // slight y variation on re-entry
+      g.y = h * 0.02 + Math.random() * h * 0.90  // full screen height coverage
     }
   }
 
