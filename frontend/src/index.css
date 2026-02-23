@@ -228,7 +228,7 @@
   background: radial-gradient(ellipse at 50% 30%, #c0e0f0 0%, #88c8e8 40%, #60b0d8 100%);
 }
 [data-theme="ocean"] .card {
-  background: rgba(255,255,255,0.55);
+  background: rgba(255,255,255,0.30);
   backdrop-filter: blur(16px);
   box-shadow: 0 2px 20px rgba(0,100,160,0.1), inset 0 1px 0 rgba(255,255,255,0.7);
   transition: box-shadow 0.2s, transform 0.2s;
@@ -354,7 +354,7 @@
   background: radial-gradient(ellipse at 50% 20%, #f0f4fa 0%, #dce6f2 40%, #c8d8ec 100%);
 }
 [data-theme="snow"] .card {
-  background: rgba(255,255,255,0.65);
+  background: rgba(255,255,255,0.30);
   backdrop-filter: blur(16px);
   box-shadow: 0 2px 20px rgba(100,140,180,0.12), inset 0 1px 0 rgba(255,255,255,0.8);
   transition: box-shadow 0.2s, transform 0.2s;
@@ -486,7 +486,7 @@
 [data-theme="terminator"] .card {
   border-color: #3a2010;
   box-shadow: inset 0 1px 0 rgba(255,100,40,0.05), 0 4px 20px rgba(0,0,0,0.6);
-  background: linear-gradient(175deg, rgba(30,15,7,0.55) 0%, rgba(26,12,6,0.55) 50%, rgba(21,10,4,0.55) 100%);
+  background: linear-gradient(175deg, rgba(30,15,7,0.30) 0%, rgba(26,12,6,0.30) 50%, rgba(21,10,4,0.30) 100%);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
@@ -505,7 +505,7 @@
 }
 [data-theme="matrix"] .card {
   border-color: #0a3a0a;
-  background: rgba(5,15,5,0.55);
+  background: rgba(5,15,5,0.30);
   box-shadow: 0 0 30px rgba(0,255,65,0.04), inset 0 0 60px rgba(0,255,65,0.02);
   backdrop-filter: blur(16px);
 }
@@ -531,7 +531,7 @@
   background: linear-gradient(180deg, #0e1018 0%, #0a0d14 30%, #120e08 100%);
 }
 [data-theme="replicant"] .card {
-  background: rgba(19,24,31,0.55);
+  background: rgba(19,24,31,0.30);
   box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 80px rgba(196,122,48,0.04);
   backdrop-filter: blur(16px);
   border-color: rgba(40,46,56,0.6);
@@ -560,7 +560,7 @@ body {
 .card {
   max-width: 720px;
   margin: 0 auto;
-  background: color-mix(in srgb, var(--card) 55%, transparent);
+  background: color-mix(in srgb, var(--card) 30%, transparent);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
