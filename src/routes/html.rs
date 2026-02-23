@@ -121,73 +121,102 @@ pub fn landing_page(
   <link rel="canonical" href="/">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <style>
+    /* ── Theme tokens ── */
+    :root{{
+      --bg:#0d1117;--bg-card:#161b22;--bg-subtle:#21262d;
+      --border:#30363d;--border-subtle:#21262d;
+      --text:#c9d1d9;--text-bright:#e6edf3;--text-muted:#8b949e;--text-dim:#484f58;
+      --link:#58a6ff;--link2:#7b61ff;
+      --green:#238636;--green-hover:#2ea043;
+      --hero-glow:rgba(88,166,255,0.08);
+      --title-from:#e6edf3;--title-via:#58a6ff;--title-to:#7b61ff;
+      --shadow-mix:15%;--shadow-mix-card:10%;
+    }}
+    [data-theme="light"]{{
+      --bg:#ffffff;--bg-card:#f6f8fa;--bg-subtle:#eaeef2;
+      --border:#d0d7de;--border-subtle:#d8dee4;
+      --text:#1f2328;--text-bright:#1f2328;--text-muted:#656d76;--text-dim:#8b949e;
+      --link:#0969da;--link2:#6639ba;
+      --green:#1a7f37;--green-hover:#1f883d;
+      --hero-glow:rgba(9,105,218,0.06);
+      --title-from:#1f2328;--title-via:#0969da;--title-to:#6639ba;
+      --shadow-mix:8%;--shadow-mix-card:6%;
+    }}
+
     *{{margin:0;padding:0;box-sizing:border-box}}
-    body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0d1117;color:#c9d1d9;min-height:100vh}}
+    body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background 0.2s,color 0.2s}}
     a{{color:inherit;text-decoration:none}}
+
+    /* ── Theme toggle ── */
+    .theme-toggle{{position:fixed;top:1rem;right:1rem;z-index:100;background:var(--bg-card);border:1px solid var(--border);border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.1rem;transition:background 0.15s,border-color 0.15s;box-shadow:0 2px 8px rgba(0,0,0,0.15)}}
+    .theme-toggle:hover{{border-color:var(--link);background:var(--bg-subtle)}}
+    .theme-toggle .icon-sun,.theme-toggle .icon-moon{{display:none}}
+    [data-theme="dark"] .theme-toggle .icon-sun{{display:inline}}
+    [data-theme="light"] .theme-toggle .icon-moon{{display:inline}}
 
     /* ── Hero ── */
     .hero{{text-align:center;padding:4rem 1.5rem 3rem;position:relative;overflow:hidden}}
-    .hero::before{{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(88,166,255,0.08) 0%,transparent 70%);pointer-events:none}}
-    .hero-title{{font-size:2.75rem;font-weight:800;letter-spacing:-0.03em;background:linear-gradient(135deg,#e6edf3 0%,#58a6ff 50%,#7b61ff 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:0.6rem}}
-    .hero-sub{{color:#8b949e;font-size:1.1rem;max-width:440px;margin:0 auto 2rem;line-height:1.5}}
+    .hero::before{{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,var(--hero-glow) 0%,transparent 70%);pointer-events:none}}
+    .hero-title{{font-size:2.75rem;font-weight:800;letter-spacing:-0.03em;background:linear-gradient(135deg,var(--title-from) 0%,var(--title-via) 50%,var(--title-to) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:0.6rem}}
+    .hero-sub{{color:var(--text-muted);font-size:1.1rem;max-width:440px;margin:0 auto 2rem;line-height:1.5}}
 
     /* ── Feature pills ── */
     .features{{display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;margin-bottom:2.5rem}}
-    .feat-pill{{display:flex;align-items:center;gap:0.5rem;background:#161b22;border:1px solid #21262d;border-radius:10px;padding:0.65rem 1.1rem}}
+    .feat-pill{{display:flex;align-items:center;gap:0.5rem;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:10px;padding:0.65rem 1.1rem}}
     .feat-pill-icon{{font-size:1.25rem}}
-    .feat-pill-text{{font-size:0.82rem;color:#8b949e;line-height:1.3}}
-    .feat-pill-text strong{{color:#e6edf3;display:block;font-size:0.88rem}}
+    .feat-pill-text{{font-size:0.82rem;color:var(--text-muted);line-height:1.3}}
+    .feat-pill-text strong{{color:var(--text-bright);display:block;font-size:0.88rem}}
 
     /* ── CTA ── */
     .cta-row{{display:flex;justify-content:center;gap:0.75rem;flex-wrap:wrap;margin-bottom:1rem}}
-    .cta-primary{{background:#238636;color:#fff;border-radius:8px;padding:0.6rem 1.5rem;font-weight:600;font-size:0.9rem;transition:background 0.15s}}
-    .cta-primary:hover{{background:#2ea043}}
-    .cta-secondary{{background:transparent;color:#58a6ff;border:1px solid #30363d;border-radius:8px;padding:0.6rem 1.5rem;font-weight:500;font-size:0.9rem;transition:border-color 0.15s}}
-    .cta-secondary:hover{{border-color:#58a6ff}}
+    .cta-primary{{background:var(--green);color:#fff;border-radius:8px;padding:0.6rem 1.5rem;font-weight:600;font-size:0.9rem;transition:background 0.15s}}
+    .cta-primary:hover{{background:var(--green-hover)}}
+    .cta-secondary{{background:transparent;color:var(--link);border:1px solid var(--border);border-radius:8px;padding:0.6rem 1.5rem;font-weight:500;font-size:0.9rem;transition:border-color 0.15s}}
+    .cta-secondary:hover{{border-color:var(--link)}}
 
     /* ── Featured agents ── */
     .featured{{max-width:820px;margin:0 auto;padding:0 1rem 3rem}}
-    .section-label{{color:#484f58;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;font-weight:600;text-align:center;margin-bottom:1rem}}
+    .section-label{{color:var(--text-dim);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;font-weight:600;text-align:center;margin-bottom:1rem}}
     .feat-grid{{display:flex;justify-content:center;gap:0.75rem;flex-wrap:wrap}}
-    .feat-card{{display:flex;flex-direction:column;align-items:center;gap:0.35rem;padding:0.75rem 1rem;background:#161b22;border:1px solid #21262d;border-radius:12px;width:90px;transition:border-color 0.2s,box-shadow 0.2s}}
-    .feat-card:hover{{border-color:var(--accent,#58a6ff);box-shadow:0 2px 16px color-mix(in srgb, var(--accent,#58a6ff) 15%, transparent)}}
-    .feat-avatar{{width:40px;height:40px;border-radius:50%;background:#21262d}}
-    .feat-name{{font-size:0.72rem;color:#e6edf3;font-weight:600;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}}
-    .feat-tag{{font-size:0.62rem;color:#484f58}}
+    .feat-card{{display:flex;flex-direction:column;align-items:center;gap:0.35rem;padding:0.75rem 1rem;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:12px;width:90px;transition:border-color 0.2s,box-shadow 0.2s}}
+    .feat-card:hover{{border-color:var(--accent,var(--link));box-shadow:0 2px 16px color-mix(in srgb, var(--accent,var(--link)) var(--shadow-mix), transparent)}}
+    .feat-avatar{{width:40px;height:40px;border-radius:50%;background:var(--bg-subtle)}}
+    .feat-name{{font-size:0.72rem;color:var(--text-bright);font-weight:600;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}}
+    .feat-tag{{font-size:0.62rem;color:var(--text-dim)}}
 
     /* ── Divider ── */
-    .divider{{max-width:720px;margin:0 auto;border:none;border-top:1px solid #21262d}}
+    .divider{{max-width:720px;margin:0 auto;border:none;border-top:1px solid var(--border-subtle)}}
 
     /* ── Directory ── */
     .directory{{max-width:720px;margin:0 auto;padding:2.5rem 1rem 2rem}}
     .dir-header{{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.5rem}}
-    .dir-title{{font-size:1.1rem;font-weight:700;color:#e6edf3}}
-    .dir-count{{background:#21262d;border:1px solid #30363d;border-radius:20px;padding:2px 10px;font-size:0.75rem;color:#8b949e}}
+    .dir-title{{font-size:1.1rem;font-weight:700;color:var(--text-bright)}}
+    .dir-count{{background:var(--bg-subtle);border:1px solid var(--border);border-radius:20px;padding:2px 10px;font-size:0.75rem;color:var(--text-muted)}}
     .search-wrap{{position:relative;max-width:400px;margin:0 auto 1.5rem}}
-    .search-box{{width:100%;padding:0.65rem 2rem 0.65rem 2.5rem;font-size:max(16px,0.95rem);background:#161b22;border:1px solid #30363d;border-radius:8px;color:#c9d1d9;outline:none;transition:border-color 0.2s;-webkit-appearance:none}}
-    .search-box:focus{{border-color:#58a6ff}}
-    .search-box::placeholder{{color:#484f58}}
-    .search-icon{{position:absolute;left:0.85rem;top:50%;transform:translateY(-50%);color:#484f58;font-size:0.9rem;pointer-events:none;display:flex;align-items:center}}
-    .search-clear{{position:absolute;right:0.65rem;top:50%;transform:translateY(-50%);background:none;border:none;color:#484f58;font-size:1.1rem;cursor:pointer;padding:0.2rem;display:none;line-height:1}}
-    .search-clear:hover{{color:#8b949e}}
+    .search-box{{width:100%;padding:0.65rem 2rem 0.65rem 2.5rem;font-size:max(16px,0.95rem);background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text);outline:none;transition:border-color 0.2s;-webkit-appearance:none}}
+    .search-box:focus{{border-color:var(--link)}}
+    .search-box::placeholder{{color:var(--text-dim)}}
+    .search-icon{{position:absolute;left:0.85rem;top:50%;transform:translateY(-50%);color:var(--text-dim);font-size:0.9rem;pointer-events:none;display:flex;align-items:center}}
+    .search-clear{{position:absolute;right:0.65rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-dim);font-size:1.1rem;cursor:pointer;padding:0.2rem;display:none;line-height:1}}
+    .search-clear:hover{{color:var(--text-muted)}}
     .profiles{{display:flex;flex-direction:column;gap:0.65rem}}
-    .no-results{{text-align:center;padding:2rem 0;color:#8b949e;display:none}}
+    .no-results{{text-align:center;padding:2rem 0;color:var(--text-muted);display:none}}
 
     /* ── Profile cards ── */
-    .dir-card{{display:flex;align-items:center;gap:1rem;background:#161b22;border:1px solid #30363d;border-left:3px solid var(--accent,#58a6ff);border-radius:12px;padding:1.15rem 1.4rem;transition:border-color 0.2s,box-shadow 0.2s}}
-    .dir-card:hover{{border-color:var(--accent,#58a6ff);box-shadow:0 2px 12px color-mix(in srgb, var(--accent,#58a6ff) 10%, transparent)}}
-    .dir-avatar{{width:48px;height:48px;border-radius:50%;flex-shrink:0;background:#21262d}}
+    .dir-card{{display:flex;align-items:center;gap:1rem;background:var(--bg-card);border:1px solid var(--border);border-left:3px solid var(--accent,var(--link));border-radius:12px;padding:1.15rem 1.4rem;transition:border-color 0.2s,box-shadow 0.2s}}
+    .dir-card:hover{{border-color:var(--accent,var(--link));box-shadow:0 2px 12px color-mix(in srgb, var(--accent,var(--link)) var(--shadow-mix-card), transparent)}}
+    .dir-avatar{{width:48px;height:48px;border-radius:50%;flex-shrink:0;background:var(--bg-subtle)}}
     .dir-info{{flex:1;min-width:0}}
     .dir-name-row{{display:flex;align-items:baseline;gap:0.5rem;flex-wrap:wrap}}
-    .dir-name{{font-weight:600;color:#e6edf3;font-size:1rem}}
-    .dir-handle{{color:#8b949e;font-size:0.85rem}}
-    .dir-tagline{{color:#8b949e;font-size:0.85rem;margin:0.2rem 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
+    .dir-name{{font-weight:600;color:var(--text-bright);font-size:1rem}}
+    .dir-handle{{color:var(--text-muted);font-size:0.85rem}}
+    .dir-tagline{{color:var(--text-muted);font-size:0.85rem;margin:0.2rem 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
     .dir-skills{{margin-top:0.5rem;display:flex;flex-wrap:wrap;gap:0.35rem}}
-    .dir-skill{{background:#21262d;border:1px solid #30363d;border-radius:12px;padding:2px 10px;font-size:0.75rem;color:#8b949e}}
+    .dir-skill{{background:var(--bg-subtle);border:1px solid var(--border);border-radius:12px;padding:2px 10px;font-size:0.75rem;color:var(--text-muted)}}
 
     /* ── Footer ── */
-    .footer{{text-align:center;padding:2rem 1rem 3rem;color:#484f58;font-size:0.8rem}}
-    .footer a{{color:#58a6ff}}
+    .footer{{text-align:center;padding:2rem 1rem 3rem;color:var(--text-dim);font-size:0.8rem}}
+    .footer a{{color:var(--link)}}
 
     /* ── Responsive ── */
     @media(max-width:600px){{
@@ -199,10 +228,25 @@ pub fn landing_page(
       .feat-avatar{{width:34px;height:34px}}
       .dir-card{{padding:0.9rem 1rem;gap:0.75rem}}
       .dir-avatar{{width:40px;height:40px}}
+      .theme-toggle{{top:0.5rem;right:0.5rem;width:34px;height:34px;font-size:1rem}}
     }}
   </style>
+  <script>
+    // Apply theme immediately to prevent flash.
+    (function(){{
+      var stored=localStorage.getItem('lp-theme');
+      var theme=stored||(window.matchMedia('(prefers-color-scheme:light)').matches?'light':'dark');
+      document.documentElement.setAttribute('data-theme',theme);
+    }})();
+  </script>
 </head>
 <body>
+
+  <!-- ── Theme toggle ── -->
+  <button class="theme-toggle" id="theme-toggle" title="Toggle light/dark theme" aria-label="Toggle theme">
+    <span class="icon-sun">☀️</span>
+    <span class="icon-moon">🌙</span>
+  </button>
 
   <!-- ── Hero ── -->
   <section class="hero">
@@ -261,6 +305,7 @@ pub fn landing_page(
 
   <script>
     (function(){{
+      /* ── Search ── */
       var input=document.getElementById('search'),clearBtn=document.getElementById('search-clear'),
           container=document.getElementById('profiles'),noResults=document.getElementById('no-results'),
           cards=container?Array.from(container.children):[];
@@ -272,6 +317,24 @@ pub fn landing_page(
       }}
       input.addEventListener('input',filter);
       clearBtn.addEventListener('click',function(){{input.value='';filter();input.focus();}});
+
+      /* ── Theme toggle ── */
+      var toggle=document.getElementById('theme-toggle');
+      function getTheme(){{
+        var s=localStorage.getItem('lp-theme');
+        if(s) return s;
+        return window.matchMedia('(prefers-color-scheme:light)').matches?'light':'dark';
+      }}
+      function applyTheme(t){{document.documentElement.setAttribute('data-theme',t);}}
+      toggle.addEventListener('click',function(){{
+        var next=getTheme()==='dark'?'light':'dark';
+        localStorage.setItem('lp-theme',next);
+        applyTheme(next);
+      }});
+      // Follow system preference when no explicit choice
+      window.matchMedia('(prefers-color-scheme:light)').addEventListener('change',function(e){{
+        if(!localStorage.getItem('lp-theme')){{applyTheme(e.matches?'light':'dark');}}
+      }});
     }})();
   </script>
 </body>
