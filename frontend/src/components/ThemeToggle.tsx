@@ -11,7 +11,7 @@ export const THEME_EFFECT_MAP: Record<string, EffectName> = {
   desert: 'embers',
   aurora: 'stars',
   cream: 'none',
-  sky: 'none',
+  sky: 'clouds',
   lavender: 'stars',
   sage: 'leaves',
   peach: 'fireflies',

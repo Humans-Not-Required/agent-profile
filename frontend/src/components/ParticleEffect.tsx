@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'embers' | 'digital-rain' | 'flames' | 'water' | 'boba' | 'none'
+export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'embers' | 'digital-rain' | 'flames' | 'water' | 'boba' | 'clouds' | 'none'
 
 interface Props {
   effect: EffectName
@@ -690,6 +690,128 @@ function drawWater(
   }
 }
 
+// ── Clouds (layered fluffy blobs drifting across the sky) ──
+
+interface CloudBlob {
+  x: number; y: number; rx: number; ry: number  // ellipse radii
+  baseAlpha: number
+}
+
+interface CloudGroup {
+  blobs: CloudBlob[]   // cluster of overlapping ellipses = one cloud
+  x: number            // group offset
+  y: number
+  speed: number        // drift speed (px/frame)
+  scale: number        // depth scale (far=small, near=big)
+  alpha: number        // depth alpha
+}
+
+interface CloudState {
+  groups: CloudGroup[]
+  offscreen: HTMLCanvasElement
+  offCtx: CanvasRenderingContext2D
+}
+
+function makeCloudGroup(w: number, h: number, layer: 'far' | 'mid' | 'near'): CloudGroup {
+  const configs = {
+    far:  { scale: 0.5,  alpha: 0.25, speed: 0.1 + Math.random() * 0.1, yMin: 0.05, yMax: 0.35, blobCount: 4 },
+    mid:  { scale: 0.8,  alpha: 0.4,  speed: 0.25 + Math.random() * 0.15, yMin: 0.1,  yMax: 0.45, blobCount: 5 },
+    near: { scale: 1.2,  alpha: 0.55, speed: 0.5 + Math.random() * 0.3, yMin: 0.08, yMax: 0.5,  blobCount: 6 },
+  }
+  const c = configs[layer]
+  const cx = Math.random() * w * 1.5 - w * 0.25
+  const cy = h * c.yMin + Math.random() * h * (c.yMax - c.yMin)
+
+  // Generate cluster of overlapping ellipses
+  const blobs: CloudBlob[] = Array.from({ length: c.blobCount + Math.floor(Math.random() * 3) }, () => ({
+    x: (Math.random() - 0.5) * 120 * c.scale,
+    y: (Math.random() - 0.5) * 40 * c.scale,
+    rx: (40 + Math.random() * 60) * c.scale,
+    ry: (25 + Math.random() * 25) * c.scale,
+    baseAlpha: 0.5 + Math.random() * 0.5,
+  }))
+
+  return { blobs, x: cx, y: cy, speed: c.speed, scale: c.scale, alpha: c.alpha }
+}
+
+function initCloudState(w: number, h: number, foreground: boolean): CloudState | null {
+  const offscreen = document.createElement('canvas')
+  offscreen.width = w
+  offscreen.height = h
+  const offCtx = offscreen.getContext('2d')
+  if (!offCtx) return null
+
+  const groups: CloudGroup[] = []
+  if (!foreground) {
+    // Far layer: small, slow, faint
+    for (let i = 0; i < 5; i++) groups.push(makeCloudGroup(w, h, 'far'))
+    // Mid layer
+    for (let i = 0; i < 4; i++) groups.push(makeCloudGroup(w, h, 'mid'))
+    // Near layer: big, fast, more opaque
+    for (let i = 0; i < 3; i++) groups.push(makeCloudGroup(w, h, 'near'))
+  } else {
+    // Foreground: 1-2 very large close clouds
+    for (let i = 0; i < 2; i++) {
+      const g = makeCloudGroup(w, h, 'near')
+      g.scale = 2.0
+      g.alpha = 0.3
+      g.speed = 0.7 + Math.random() * 0.4
+      g.y = h * 0.05 + Math.random() * h * 0.3
+      for (const b of g.blobs) { b.rx *= 1.8; b.ry *= 1.8; b.x *= 1.8; b.y *= 1.8 }
+      groups.push(g)
+    }
+  }
+
+  return { groups, offscreen, offCtx }
+}
+
+function drawClouds(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  _t: number,
+  state: CloudState,
+) {
+  const { groups, offscreen, offCtx } = state
+  offCtx.clearRect(0, 0, w, h)
+
+  for (const g of groups) {
+    // Draw each blob in the group
+    for (const b of g.blobs) {
+      const bx = g.x + b.x
+      const by = g.y + b.y
+
+      const grad = offCtx.createRadialGradient(bx, by, 0, bx, by, Math.max(b.rx, b.ry))
+      const a = g.alpha * b.baseAlpha
+      grad.addColorStop(0, `rgba(255, 255, 255, ${a})`)
+      grad.addColorStop(0.4, `rgba(255, 255, 255, ${a * 0.8})`)
+      grad.addColorStop(0.7, `rgba(245, 248, 255, ${a * 0.4})`)
+      grad.addColorStop(1, 'rgba(245, 248, 255, 0)')
+
+      offCtx.save()
+      offCtx.translate(bx, by)
+      offCtx.scale(1, b.ry / b.rx)  // squash to ellipse
+      offCtx.beginPath()
+      offCtx.arc(0, 0, b.rx, 0, Math.PI * 2)
+      offCtx.fillStyle = grad
+      offCtx.fill()
+      offCtx.restore()
+    }
+
+    // Drift
+    g.x += g.speed
+    // Wrap around when fully off-screen right
+    const maxBlobR = Math.max(...g.blobs.map(b => b.rx + Math.abs(b.x))) * 1.5
+    if (g.x - maxBlobR > w) {
+      g.x = -maxBlobR * 2
+      g.y = g.y + (Math.random() - 0.5) * 40  // slight y variation on re-entry
+    }
+  }
+
+  // Composite onto main canvas
+  ctx.drawImage(offscreen, 0, 0)
+}
+
 // ── Boba (milk tea with tapioca pearls + swirling liquid + accelerometer) ──
 
 interface BobaPearl {
@@ -964,15 +1086,21 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
       bobaState = initBobaState(canvas.width, canvas.height, foreground)
     }
 
+    // Clouds state
+    let cloudState: CloudState | null = null
+    if (activeEffect === 'clouds') {
+      cloudState = initCloudState(canvas.width, canvas.height, foreground)
+    }
+
     // Background counts — generous for immersion
     const bgCountMap: Record<EffectName, number> = {
       snow: 40, leaves: 100, rain: 250, fireflies: 90, stars: 800, sakura: 80,
-      embers: 140, 'digital-rain': 0, flames: 200, water: 0, boba: 0, none: 0,
+      embers: 140, 'digital-rain': 0, flames: 200, water: 0, boba: 0, clouds: 0, none: 0,
     }
     // Foreground: ~15% of background for subtle depth
     const fgCountMap: Record<EffectName, number> = {
       snow: 6, leaves: 1, rain: 20, fireflies: 6, stars: 0, sakura: 6,
-      embers: 10, 'digital-rain': 0, flames: 15, water: 0, boba: 0, none: 0,
+      embers: 10, 'digital-rain': 0, flames: 15, water: 0, boba: 0, clouds: 0, none: 0,
     }
     const countMap = foreground ? fgCountMap : bgCountMap
     const count = countMap[activeEffect] ?? 80
@@ -1050,6 +1178,13 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
       if (activeEffect === 'flames') {
         drawFlames(ctx, flameParticles, w, h)
         updateFlames(flameParticles, w, h)
+        rafRef.current = requestAnimationFrame(animate)
+        return
+      }
+
+      // Clouds
+      if (activeEffect === 'clouds' && cloudState) {
+        drawClouds(ctx, w, h, t, cloudState)
         rafRef.current = requestAnimationFrame(animate)
         return
       }

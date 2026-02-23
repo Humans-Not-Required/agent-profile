@@ -12,6 +12,7 @@ const ALL_EFFECTS: { id: EffectName; icon: string; name: string }[] = [
   { id: 'flames',       icon: 'bi-thermometer-high', name: 'Flames' },
   { id: 'digital-rain', icon: 'bi-terminal',       name: 'Matrix' },
   { id: 'water',        icon: 'bi-water',           name: 'Water' },
+  { id: 'clouds',       icon: 'bi-cloud',            name: 'Clouds' },
   { id: 'boba',         icon: 'bi-cup-straw',       name: 'Boba' },
 ]
 
