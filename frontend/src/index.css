@@ -108,10 +108,10 @@
 }
 
 [data-theme="replicant"] {
-  --bg: #0a0d14; --card: #13181f; --border: #282e38;
-  --text: #8a8278; --text-muted: #6e665c; --text-bright: #d4a868;
-  --accent: #c47a30; --accent2: #b8924a; --tag-bg: #0e1118;
-  --tag-border: #282e38;
+  --bg: #080a10; --card: #0e1118; --border: #1a2030;
+  --text: #8090a8; --text-muted: #4a5a70; --text-bright: #c8d4e0;
+  --accent: #ff2d7b; --accent2: #00e5ff; --tag-bg: #0a0e16;
+  --tag-border: #1a2030;
 }
 
 /* ── Seasonal & Holiday Themes ── */
@@ -592,21 +592,41 @@
   text-shadow: 0 0 12px rgba(0,255,65,0.6);
 }
 
-/* Replicant — atmospheric haze, fog gradient, moody depth */
+/* Replicant — Blade Runner 2049: deep dark with hot neon accents (pink, cyan, amber) */
 [data-theme="replicant"] body {
-  background: linear-gradient(180deg, #0e1018 0%, #0a0d14 30%, #120e08 100%);
+  background:
+    radial-gradient(ellipse at 15% 85%, rgba(255,45,123,0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 20%, rgba(0,229,255,0.06) 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 50%, rgba(247,139,4,0.04) 0%, transparent 60%),
+    linear-gradient(180deg, #080a10 0%, #0a0c14 40%, #0c0a08 100%);
 }
 [data-theme="replicant"] .card {
-  background: rgba(19,24,31,0.20);
-  box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 80px rgba(196,122,48,0.04);
+  background: rgba(14,17,24,0.25);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 60px rgba(255,45,123,0.03), 0 0 80px rgba(0,229,255,0.02);
   backdrop-filter: blur(8px);
-  border-color: rgba(40,46,56,0.6);
+  border-color: rgba(26,32,48,0.7);
+}
+[data-theme="replicant"] .card:hover {
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 60px rgba(255,45,123,0.06), 0 0 80px rgba(0,229,255,0.04);
 }
 [data-theme="replicant"] .profile-name {
-  text-shadow: 0 0 20px rgba(212,168,104,0.2);
+  text-shadow: 0 0 30px rgba(255,45,123,0.25), 0 0 60px rgba(0,229,255,0.1);
 }
 [data-theme="replicant"] .section-title {
   letter-spacing: 0.1em;
+  color: #00e5ff;
+  text-shadow: 0 0 12px rgba(0,229,255,0.3);
+}
+[data-theme="replicant"] .badge {
+  border-color: rgba(255,45,123,0.3);
+  text-shadow: 0 0 8px rgba(255,45,123,0.2);
+}
+[data-theme="replicant"] a {
+  text-shadow: 0 0 8px rgba(0,229,255,0.2);
+}
+[data-theme="replicant"] .profile-tagline {
+  color: #f78b04;
+  text-shadow: 0 0 15px rgba(247,139,4,0.2);
 }
 
 /* ── Global base ── */
