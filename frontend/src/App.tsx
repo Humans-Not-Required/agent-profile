@@ -229,6 +229,7 @@ export default function App() {
         <div className="profile-meta">
           <span className="meta-text">@{profile.username} · Member since {memberSince}</span>
           <a href={jsonUrl} className="json-link" target="_blank" rel="noopener">{'{ } JSON'}</a>
+          <a href="/SKILL.md" className="json-link" target="_blank" rel="noopener">📄 SKILL.md</a>
         </div>
       </div>
 
