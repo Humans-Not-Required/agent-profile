@@ -1,6 +1,10 @@
 import { useEffect, useRef } from 'react'
+import { CSSParticleEffect } from './CSSParticleEffect'
 
 export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'embers' | 'digital-rain' | 'flames' | 'water' | 'boba' | 'clouds' | 'fruit' | 'junkfood' | 'warzone' | 'none'
+
+// Effects that use GPU-composited CSS animations instead of canvas
+const CSS_EFFECTS = new Set<EffectName>(['leaves', 'snow', 'fruit', 'junkfood', 'sakura'])
 
 interface Props {
   effect: EffectName
@@ -16,29 +20,6 @@ function seasonalEffect(): EffectName {
   if (month >= 3 && month <= 5)  return 'stars'     // Spring: Mar-May
   if (month >= 6 && month <= 8)  return 'fireflies' // Summer: Jun-Aug
   return 'leaves'                                    // Autumn: Sep-Nov
-}
-
-// ── Emoji sprite cache (pre-render to offscreen canvas for fast drawImage) ───
-
-const emojiSpriteCache = new Map<string, HTMLCanvasElement>()
-
-/** Pre-render an emoji glyph at a given pixel size; returns cached canvas. */
-function getEmojiSprite(emoji: string, sizePx: number): HTMLCanvasElement {
-  const key = `${emoji}@${sizePx}`
-  const cached = emojiSpriteCache.get(key)
-  if (cached) return cached
-
-  const pad = Math.ceil(sizePx * 0.3)          // padding for emoji overflow
-  const dim = sizePx + pad * 2
-  const c = document.createElement('canvas')
-  c.width = dim; c.height = dim
-  const cx = c.getContext('2d')!
-  cx.font = `${sizePx}px serif`
-  cx.textAlign = 'center'
-  cx.textBaseline = 'middle'
-  cx.fillText(emoji, dim / 2, dim / 2)
-  emojiSpriteCache.set(key, c)
-  return c
 }
 
 // ── Particle definitions ──────────────────────────────────────────────────────
@@ -73,36 +54,7 @@ function initParticles(count: number, w: number, h: number): Particle[] {
   }))
 }
 
-// ── Snowflake: Unicode glyphs (❄ ❅ ❆), slow gentle fall ──
-
-const SNOWFLAKE_CHARS = ['❄', '❅', '❆']
-
-function drawSnowflake(ctx: CanvasRenderingContext2D, p: Particle) {
-  const glyph = SNOWFLAKE_CHARS[(p.color ?? 0) % SNOWFLAKE_CHARS.length]
-  const fontSize = Math.round(p.size * 3)
-  const sprite = getEmojiSprite(glyph, fontSize)
-
-  ctx.save()
-  ctx.translate(p.x, p.y)
-  ctx.rotate(p.rotation ?? 0)
-  ctx.globalAlpha = p.opacity
-  ctx.drawImage(sprite, -sprite.width / 2, -sprite.height / 2)
-  ctx.restore()
-}
-
-// ── Leaf (Unicode characters) ──
-
-function drawLeaf(ctx: CanvasRenderingContext2D, p: Particle) {
-  const fontSize = Math.round(p.size * 3)
-  const sprite = getEmojiSprite('🍁', fontSize)
-
-  ctx.save()
-  ctx.translate(p.x, p.y)
-  ctx.rotate(p.rotation ?? 0)
-  ctx.globalAlpha = p.opacity
-  ctx.drawImage(sprite, -sprite.width / 2, -sprite.height / 2)
-  ctx.restore()
-}
+// (Snowflake, leaf draw functions moved to CSSParticleEffect — GPU-composited)
 
 // ── Rain ──
 
@@ -256,53 +208,7 @@ function drawStarfield3D(
   }
 }
 
-// ── Sakura: teardrop petals with pink gradient ──
-
-function drawSakuraPetal(ctx: CanvasRenderingContext2D, p: Particle) {
-  ctx.save()
-  ctx.translate(p.x, p.y)
-  ctx.rotate(p.rotation ?? 0)
-
-  const s = p.size * 1.2
-
-  // Draw 5 teardrop-shaped petals
-  for (let i = 0; i < 5; i++) {
-    ctx.save()
-    ctx.rotate((i * Math.PI * 2) / 5)
-
-    ctx.beginPath()
-    // Teardrop: start narrow at center, widen, then round tip
-    ctx.moveTo(0, 0)
-    ctx.bezierCurveTo(
-      s * 0.3, -s * 0.3,   // control point 1 (left curve out)
-      s * 1.0, -s * 0.2,   // control point 2 (tip area)
-      s * 0.9, 0            // tip
-    )
-    ctx.bezierCurveTo(
-      s * 1.0, s * 0.2,    // control point 3 (right of tip)
-      s * 0.3, s * 0.3,    // control point 4 (right curve back)
-      0, 0                  // back to center
-    )
-
-    // Gradient from deep pink at center to lighter pink at tip
-    const grad = ctx.createLinearGradient(0, 0, s * 0.9, 0)
-    grad.addColorStop(0, `rgba(220, 130, 160, ${p.opacity * 0.9})`)
-    grad.addColorStop(0.5, `rgba(255, 182, 200, ${p.opacity * 0.85})`)
-    grad.addColorStop(1, `rgba(255, 210, 220, ${p.opacity * 0.7})`)
-    ctx.fillStyle = grad
-    ctx.fill()
-
-    ctx.restore()
-  }
-
-  // Center: small yellow-pink dot (pistil)
-  ctx.beginPath()
-  ctx.arc(0, 0, s * 0.15, 0, Math.PI * 2)
-  ctx.fillStyle = `rgba(255, 200, 150, ${p.opacity * 0.9})`
-  ctx.fill()
-
-  ctx.restore()
-}
+// (Sakura draw function moved to CSSParticleEffect — GPU-composited)
 
 // ── Ember ──
 
@@ -1010,42 +916,7 @@ function drawWarzone(
   ctx.restore()
 }
 
-// ── Fruit (tumbling fruit emoji) ──
-
-const FRUIT_CHARS = ['🍎', '🍊', '🍋', '🍇', '🍓', '🍑', '🍌', '🍉', '🥝', '🍒', '🫐', '🍍']
-
-function drawFruit(ctx: CanvasRenderingContext2D, p: Particle) {
-  const ch = FRUIT_CHARS[Math.abs(Math.floor((p.phase ?? 0) * 1000)) % FRUIT_CHARS.length]
-  const fontSize = Math.round(p.size * 8)
-  const sprite = getEmojiSprite(ch, fontSize)
-
-  ctx.save()
-  ctx.translate(p.x, p.y)
-  ctx.rotate(p.rotation ?? 0)
-  ctx.globalAlpha = p.opacity
-  ctx.drawImage(sprite, -sprite.width / 2, -sprite.height / 2)
-  ctx.restore()
-}
-
-// ── Junk Food (raining down vertically) ──
-
-const JUNKFOOD_CHARS = [
-  '🍕', '🍔', '🌭', '🍟', '🌮', '🌯', '🍗', '🍖', '🥓',
-  '🧀', '🍩', '🍪', '🎂', '🍰', '🧁', '🍫', '🍬', '🍭',
-  '🥤', '🍦', '🥞', '🧇', '🥨', '🍿', '🥡', '🥪',
-]
-
-function drawJunkFood(ctx: CanvasRenderingContext2D, p: Particle) {
-  const ch = JUNKFOOD_CHARS[Math.abs(Math.floor((p.phase ?? 0) * 1000)) % JUNKFOOD_CHARS.length]
-  const fontSize = Math.round(p.size * 3.5)
-  const sprite = getEmojiSprite(ch, fontSize)
-
-  ctx.save()
-  ctx.translate(p.x, p.y)
-  ctx.globalAlpha = p.opacity
-  ctx.drawImage(sprite, -sprite.width / 2, -sprite.height / 2)
-  ctx.restore()
-}
+// (Fruit, junkfood draw functions moved to CSSParticleEffect — GPU-composited)
 
 // ── Boba (milk tea with tapioca pearls + swirling liquid + accelerometer) ──
 
@@ -1276,14 +1147,24 @@ function drawBoba(
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export function ParticleEffect({ effect, enabled, seasonal, foreground = false }: Props) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const rafRef = useRef<number>(0)
-
   const activeEffect: EffectName = !enabled
     ? 'none'
     : seasonal
       ? seasonalEffect()
       : effect
+
+  // Delegate emoji-based effects to CSS component (GPU-composited, zero JS per frame)
+  if (CSS_EFFECTS.has(activeEffect)) {
+    return <CSSParticleEffect effect={activeEffect as 'leaves' | 'snow' | 'fruit' | 'junkfood' | 'sakura'} foreground={foreground} />
+  }
+
+  return <CanvasParticleEffect activeEffect={activeEffect} foreground={foreground} />
+}
+
+/** Canvas-based effects (complex rendering: rain, fireflies, stars, embers, flames, water, boba, clouds, warzone, digital-rain) */
+function CanvasParticleEffect({ activeEffect, foreground }: { activeEffect: EffectName, foreground: boolean }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const rafRef = useRef<number>(0)
 
   useEffect(() => {
     if (activeEffect === 'none') return
@@ -1346,15 +1227,14 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
       warzoneState = initWarzoneState(canvas.width, canvas.height, foreground)
     }
 
-    // Background counts — generous for immersion
-    const bgCountMap: Record<EffectName, number> = {
-      snow: 40, leaves: 35, rain: 250, fireflies: 90, stars: 800, sakura: 80,
-      embers: 250, 'digital-rain': 0, flames: 200, water: 0, boba: 0, clouds: 0, fruit: 60, junkfood: 70, warzone: 0, none: 0,
+    // Background counts (emoji effects handled by CSSParticleEffect)
+    const bgCountMap: Record<string, number> = {
+      rain: 250, fireflies: 90, stars: 800,
+      embers: 250, 'digital-rain': 0, flames: 200, water: 0, boba: 0, clouds: 0, warzone: 0, none: 0,
     }
-    // Foreground: ~15% of background for subtle depth
-    const fgCountMap: Record<EffectName, number> = {
-      snow: 6, leaves: 1, rain: 20, fireflies: 6, stars: 0, sakura: 6,
-      embers: 20, 'digital-rain': 0, flames: 15, water: 0, boba: 0, clouds: 0, fruit: 1, junkfood: 1, warzone: 0, none: 0,
+    const fgCountMap: Record<string, number> = {
+      rain: 20, fireflies: 6, stars: 0,
+      embers: 20, 'digital-rain': 0, flames: 15, water: 0, boba: 0, clouds: 0, warzone: 0, none: 0,
     }
     const countMap = foreground ? fgCountMap : bgCountMap
     const count = countMap[activeEffect] ?? 80
@@ -1363,20 +1243,8 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
     // Foreground particles: larger + slightly more opaque for depth
     if (foreground) {
       for (const p of particles) {
-        if (activeEffect === 'leaves' || activeEffect === 'fruit' || activeEffect === 'junkfood') {
-          // Very rare giant foreground element — like matrix extreme close-ups
-          // 85% chance it doesn't even appear; when it does, it's huge
-          if (Math.random() < 0.85) {
-            p.opacity = 0  // invisible — effectively skip
-          } else {
-            p.size *= 4           // very large
-            p.opacity = 0.9       // bold
-            p.vy *= 0.4           // slow drift
-          }
-        } else {
-          p.size *= 1.5
-          p.opacity = Math.min(1, p.opacity * 1.2)
-        }
+        p.size *= 1.5
+        p.opacity = Math.min(1, p.opacity * 1.2)
       }
     }
 
@@ -1388,23 +1256,8 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
         p.vx = (Math.random() - 0.5) * 0.6
         p.size = Math.random() * 3 + 1.5
       }
-    } else if (activeEffect === 'snow') {
-      for (const p of particles) {
-        p.size = Math.random() * 4 + 2       // varied sizes for depth
-        p.vy = Math.random() * 0.35 + 0.1    // very slow gentle fall
-        p.vx = (Math.random() - 0.5) * 0.15  // barely any horizontal drift
-        p.vr = (Math.random() - 0.5) * 0.006 // very slow rotation
-        p.opacity = Math.random() * 0.08 + 0.04  // very subtle (0.04–0.12)
-        p.color = Math.floor(Math.random() * 3)  // pick glyph variant
-      }
-    } else if (activeEffect === 'sakura') {
-      for (const p of particles) {
-        p.size = Math.random() * 3 + 2
-        p.vy = Math.random() * 0.5 + 0.2    // gentle fall
-        p.vx = Math.random() * 0.3 + 0.1    // slight lateral drift
-        p.vr = (Math.random() - 0.5) * 0.015 // slow tumble
-      }
     }
+    // (snow, leaves, sakura, fruit, junkfood handled by CSSParticleEffect)
     // (flames handled separately via FlameParticle system)
 
     let t = 0
@@ -1492,31 +1345,18 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
       }
 
       for (const p of particles) {
-        // Draw
+        // Draw (emoji effects handled by CSSParticleEffect)
         switch (activeEffect) {
-          case 'snow':      drawSnowflake(ctx, p); break
-          case 'leaves':    drawLeaf(ctx, p); break
           case 'rain':      drawRain(ctx, p, w); break
           case 'fireflies': drawFirefly(ctx, p, t); break
           // stars handled above via 3D system
-          case 'sakura':    drawSakuraPetal(ctx, p); break
           case 'embers':    drawEmber(ctx, p, t); break
-          case 'fruit':     drawFruit(ctx, p); break
-          case 'junkfood':  drawJunkFood(ctx, p); break
         }
 
         // Move
         if (activeEffect === 'fireflies') {
           p.x += Math.sin((p.phase ?? 0) + t * 0.01) * 0.5
           p.y += Math.sin((p.phase ?? 0) * 1.3 + t * 0.008) * 0.4
-        } else if (activeEffect === 'fruit') {
-          // Tumble down with gentle sway
-          p.y += p.vy * 1.2
-          p.x += Math.sin((p.phase ?? 0) + t * 0.008) * 0.8
-          if (p.rotation !== undefined) p.rotation += (p.vr ?? 0.01)
-        } else if (activeEffect === 'junkfood') {
-          // Straight vertical rain
-          p.y += p.vy * 2.0
         } else if (activeEffect === 'rain') {
           p.x += 1.5
           p.y += 12
