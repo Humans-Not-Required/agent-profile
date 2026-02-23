@@ -739,48 +739,61 @@ function drawClouds(
 
 // ── Warzone (Terminator: laser sweeps, searchlights, sparks, red eye scan) ──
 
-interface LaserBeam {
-  x: number; angle: number; speed: number; color: string; width: number; alpha: number; length: number
-}
-
 interface Searchlight {
   x: number; angle: number; sweepSpeed: number; width: number; alpha: number
 }
 
+interface CrossfireLaser {
+  fromLeft: boolean     // true = shoots from left edge, false = right edge
+  y: number             // vertical position
+  angle: number         // slight angle (mostly horizontal)
+  alpha: number         // current brightness (flashes then fades)
+  width: number
+  color: string
+  life: number          // frames remaining
+  maxLife: number
+}
+
 interface WarzoneState {
-  lasers: LaserBeam[]
   searchlights: Searchlight[]
+  crossfireLasers: CrossfireLaser[]
+  laserCooldown: number
   sparks: Particle[]
   redEyePhase: number
   flashTimer: number
   flashAlpha: number
 }
 
+const LASER_COLORS = [
+  'rgba(255,20,40,A)',   // red
+  'rgba(60,140,255,A)',  // blue
+  'rgba(180,60,255,A)',  // purple
+  'rgba(255,100,20,A)',  // orange
+  'rgba(40,255,180,A)',  // green
+]
+
+function spawnCrossfireLaser(w: number, h: number): CrossfireLaser {
+  const fromLeft = Math.random() > 0.5
+  return {
+    fromLeft,
+    y: h * 0.15 + Math.random() * h * 0.7,  // middle 70% of screen
+    angle: (Math.random() - 0.5) * 0.15,      // slight angle, mostly horizontal
+    alpha: 0.7 + Math.random() * 0.3,          // bright flash
+    width: 1.5 + Math.random() * 2,
+    color: LASER_COLORS[Math.floor(Math.random() * LASER_COLORS.length)],
+    life: 8 + Math.floor(Math.random() * 15),  // short burst: 8-22 frames
+    maxLife: 0,  // set below
+  }
+}
+
 function initWarzoneState(w: number, h: number, foreground: boolean): WarzoneState {
-  const laserColors = [
-    'rgba(255,20,40,A)',   // red
-    'rgba(60,140,255,A)',  // blue
-    'rgba(180,60,255,A)',  // purple
-    'rgba(255,100,20,A)',  // orange
-    'rgba(40,255,180,A)',  // green
-  ]
-
-  const lasers: LaserBeam[] = foreground ? [] : Array.from({ length: 6 }, () => ({
-    x: Math.random() * w,
-    angle: (Math.random() - 0.5) * 0.6 + Math.PI * 1.5, // mostly upward
-    speed: (Math.random() - 0.5) * 0.003,
-    color: laserColors[Math.floor(Math.random() * laserColors.length)],
-    width: 1 + Math.random() * 2,
-    alpha: 0.15 + Math.random() * 0.25,
-    length: h * 0.6 + Math.random() * h * 0.4,
-  }))
-
+  // Searchlights from the SKY, sweeping downward to search the ground
   const searchlights: Searchlight[] = foreground ? [] : Array.from({ length: 3 }, () => ({
-    x: Math.random() * w,
-    angle: -Math.PI / 2 + (Math.random() - 0.5) * 0.4,
-    sweepSpeed: 0.002 + Math.random() * 0.003,
-    width: 30 + Math.random() * 40,
-    alpha: 0.04 + Math.random() * 0.03,
+    x: w * 0.15 + Math.random() * w * 0.7,  // spread across top
+    angle: Math.PI / 2 + (Math.random() - 0.5) * 0.4,  // pointing downward
+    sweepSpeed: 0.001 + Math.random() * 0.002,
+    width: 35 + Math.random() * 50,
+    alpha: 0.05 + Math.random() * 0.04,
   }))
 
   // Sparks — small bright particles
@@ -795,7 +808,7 @@ function initWarzoneState(w: number, h: number, foreground: boolean): WarzoneSta
     phase: Math.random() * Math.PI * 2,
   }))
 
-  return { lasers, searchlights, sparks, redEyePhase: 0, flashTimer: 0, flashAlpha: 0 }
+  return { searchlights, crossfireLasers: [], laserCooldown: 60, sparks, redEyePhase: 0, flashTimer: 0, flashAlpha: 0 }
 }
 
 function drawWarzone(
@@ -806,49 +819,77 @@ function drawWarzone(
   state: WarzoneState,
   foreground: boolean,
 ) {
-  // ── Background: searchlights + lasers ──
+  // ── Background: searchlights from sky + crossfire lasers ──
   if (!foreground) {
     ctx.save()
 
-    // Searchlights — wide cone beams sweeping
+    // Searchlights — from the sky, sweeping down to search the ground
     for (const sl of state.searchlights) {
-      const angle = sl.angle + Math.sin(t * sl.sweepSpeed) * 0.5
-      const endX = sl.x + Math.cos(angle) * h * 1.5
-      const endY = Math.sin(angle) * h * 1.5
+      const sweep = Math.sin(t * sl.sweepSpeed) * 0.6
+      const angle = sl.angle + sweep
+      const beamLen = h * 1.5
+      const endX = sl.x + Math.cos(angle) * beamLen
+      const endY = Math.sin(angle) * beamLen
 
-      const grad = ctx.createLinearGradient(sl.x, h, endX, endY)
+      const grad = ctx.createLinearGradient(sl.x, 0, endX, endY)
       grad.addColorStop(0, `rgba(180,200,230,${sl.alpha})`)
       grad.addColorStop(0.3, `rgba(140,170,210,${sl.alpha * 0.5})`)
       grad.addColorStop(1, 'rgba(140,170,210,0)')
 
       ctx.beginPath()
-      ctx.moveTo(sl.x - sl.width / 2, h)
-      ctx.lineTo(endX - sl.width * 2, endY)
-      ctx.lineTo(endX + sl.width * 2, endY)
-      ctx.lineTo(sl.x + sl.width / 2, h)
+      ctx.moveTo(sl.x - sl.width / 2, 0)    // originates from top
+      ctx.lineTo(endX - sl.width * 3, endY)
+      ctx.lineTo(endX + sl.width * 3, endY)
+      ctx.lineTo(sl.x + sl.width / 2, 0)
       ctx.closePath()
       ctx.fillStyle = grad
       ctx.fill()
     }
 
-    // Laser beams — thin bright lines cutting through
-    for (const laser of state.lasers) {
-      laser.angle += laser.speed
-      const endX = laser.x + Math.cos(laser.angle) * laser.length
-      const endY = h + Math.sin(laser.angle) * laser.length
+    // Crossfire lasers — occasional horizontal flashes from both sides
+    state.laserCooldown--
+    if (state.laserCooldown <= 0) {
+      // Spawn 1-3 lasers in a burst
+      const burstCount = 1 + Math.floor(Math.random() * 3)
+      for (let i = 0; i < burstCount; i++) {
+        const laser = spawnCrossfireLaser(w, h)
+        laser.maxLife = laser.life
+        state.crossfireLasers.push(laser)
+      }
+      state.laserCooldown = 40 + Math.floor(Math.random() * 120) // 0.7-2.7s between bursts
+    }
 
+    // Draw + update crossfire lasers
+    ctx.globalCompositeOperation = 'lighter'
+    for (let i = state.crossfireLasers.length - 1; i >= 0; i--) {
+      const laser = state.crossfireLasers[i]
+      laser.life--
+      if (laser.life <= 0) { state.crossfireLasers.splice(i, 1); continue }
+
+      // Flash envelope: bright start, quick fade
+      const lifeRatio = laser.life / laser.maxLife
+      const envelope = lifeRatio > 0.7 ? 1.0 : lifeRatio / 0.7  // instant on, fade out
+      const a = laser.alpha * envelope
+
+      const startX = laser.fromLeft ? -10 : w + 10
+      const endX = laser.fromLeft ? w + 10 : -10
+      const startY = laser.y - Math.tan(laser.angle) * (laser.fromLeft ? 0 : w)
+      const endY = laser.y + Math.tan(laser.angle) * (laser.fromLeft ? w : 0)
+
+      // Bright core
       ctx.beginPath()
-      ctx.moveTo(laser.x, h)
+      ctx.moveTo(startX, startY)
       ctx.lineTo(endX, endY)
-      ctx.strokeStyle = laser.color.replace('A', String(laser.alpha))
+      ctx.strokeStyle = laser.color.replace('A', String(a))
       ctx.lineWidth = laser.width
       ctx.stroke()
 
-      // Glow
-      ctx.strokeStyle = laser.color.replace('A', String(laser.alpha * 0.3))
-      ctx.lineWidth = laser.width * 4
+      // Wide glow
+      ctx.strokeStyle = laser.color.replace('A', String(a * 0.25))
+      ctx.lineWidth = laser.width * 6
       ctx.stroke()
     }
+    ctx.globalCompositeOperation = 'source-over'
 
     // Red eye scan line — horizontal sweep across screen
     state.redEyePhase += 0.008
