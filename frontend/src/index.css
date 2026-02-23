@@ -64,10 +64,10 @@
 }
 
 [data-theme="sky"] {
-  --bg: #eef5fc; --card: #ffffff; --border: #c4daef;
-  --text: #2e4a63; --text-muted: #6889a5; --text-bright: #1a3248;
-  --accent: #2196f3; --accent2: #2d88d2; --tag-bg: #e3eef8;
-  --tag-border: #c4daef;
+  --bg: #4a90d9; --card: #ffffff; --border: #7ab3e8;
+  --text: #1a2e44; --text-muted: #3d6080; --text-bright: #0d1f33;
+  --accent: #1565c0; --accent2: #1976d2; --tag-bg: #dce8f5;
+  --tag-border: #a8c8e8;
 }
 
 [data-theme="lavender"] {
@@ -318,7 +318,7 @@
 
 /* Sky — The Clearing: fresh spring gradient top→bottom */
 [data-theme="sky"] body {
-  background: linear-gradient(180deg, #d4e8f8 0%, #eef5fc 40%, #f4f8fc 100%);
+  background: linear-gradient(180deg, #4a90d9 0%, #6ab0f3 30%, #87c4f7 60%, #b0d8fb 100%);
 }
 [data-theme="sky"] .card {
   box-shadow: 0 1px 4px rgba(33,150,243,0.06), 0 4px 16px rgba(0,0,0,0.04);

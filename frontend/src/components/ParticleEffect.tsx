@@ -733,9 +733,9 @@ interface CloudState {
 
 function makeCloudGroup(w: number, h: number, layer: 'far' | 'mid' | 'near'): CloudGroup {
   const configs = {
-    far:  { scale: 0.5,  alpha: 0.25, speed: 0.1 + Math.random() * 0.1, yMin: 0.05, yMax: 0.35, blobCount: 4 },
-    mid:  { scale: 0.8,  alpha: 0.4,  speed: 0.25 + Math.random() * 0.15, yMin: 0.1,  yMax: 0.45, blobCount: 5 },
-    near: { scale: 1.2,  alpha: 0.55, speed: 0.5 + Math.random() * 0.3, yMin: 0.08, yMax: 0.5,  blobCount: 6 },
+    far:  { scale: 0.7,  alpha: 0.5,  speed: 0.1 + Math.random() * 0.1, yMin: 0.05, yMax: 0.4, blobCount: 5 },
+    mid:  { scale: 1.0,  alpha: 0.7,  speed: 0.25 + Math.random() * 0.15, yMin: 0.1,  yMax: 0.5, blobCount: 6 },
+    near: { scale: 1.5,  alpha: 0.85, speed: 0.5 + Math.random() * 0.3, yMin: 0.08, yMax: 0.55, blobCount: 7 },
   }
   const c = configs[layer]
   const cx = Math.random() * w * 1.5 - w * 0.25
@@ -1016,7 +1016,7 @@ const FRUIT_CHARS = ['🍎', '🍊', '🍋', '🍇', '🍓', '🍑', '🍌', '�
 
 function drawFruit(ctx: CanvasRenderingContext2D, p: Particle) {
   const ch = FRUIT_CHARS[Math.abs(Math.floor((p.phase ?? 0) * 1000)) % FRUIT_CHARS.length]
-  const fontSize = Math.round(p.size * 3.5)
+  const fontSize = Math.round(p.size * 8)
   const sprite = getEmojiSprite(ch, fontSize)
 
   ctx.save()
