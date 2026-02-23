@@ -303,97 +303,105 @@ function drawEmber(ctx: CanvasRenderingContext2D, p: Particle, t: number) {
   ctx.fill()
 }
 
-// ── Flames: bezier tongue shapes rising from bottom with base glow ──
+// ── Flames: additive-blend particles with aging color (white→yellow→orange→red) ──
 
-function drawFlames(ctx: CanvasRenderingContext2D, particles: Particle[], t: number, w: number, h: number) {
-  // 1) Base glow along the bottom — warm ambient light
-  const baseH = h * 0.15
-  const baseGrad = ctx.createLinearGradient(0, h, 0, h - baseH)
-  const pulse = Math.sin(t * 0.02) * 0.05 + 0.95
-  baseGrad.addColorStop(0, `rgba(255, 120, 0, ${0.25 * pulse})`)
-  baseGrad.addColorStop(0.3, `rgba(255, 60, 0, ${0.12 * pulse})`)
-  baseGrad.addColorStop(0.7, `rgba(180, 20, 0, ${0.04 * pulse})`)
-  baseGrad.addColorStop(1, 'rgba(100, 0, 0, 0)')
-  ctx.fillStyle = baseGrad
-  ctx.fillRect(0, h - baseH, w, baseH)
+interface FlameParticle {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  life: number     // current age (0 = just born)
+  maxLife: number   // total lifespan
+  size: number
+}
 
-  // 2) Draw each flame tongue as a bezier shape
-  for (const p of particles) {
-    const life = (h - p.y) / (h * 0.6)  // 0=bottom, 1=risen 60% of screen
-    if (life < 0 || life > 1) continue
+function initFlameParticles(count: number, w: number, h: number): FlameParticle[] {
+  return Array.from({ length: count }, () => spawnFlame(w, h))
+}
 
-    const flicker = Math.sin((p.phase ?? 0) + t * 0.01) * 0.15 + 0.85
-    const wobble = Math.sin((p.phase ?? 0) * 1.7 + t * 0.008) * (12 + p.size * 3)
+function spawnFlame(w: number, h: number): FlameParticle {
+  return {
+    x: Math.random() * w,
+    y: h + Math.random() * 10,    // spawn at/below bottom edge
+    vx: (Math.random() - 0.5) * 1.5,
+    vy: -(Math.random() * 3 + 1.5), // rise upward
+    life: 0,
+    maxLife: 40 + Math.random() * 40,
+    size: 15 + Math.random() * 25,
+  }
+}
 
-    // Tongue width narrows as it rises
-    const tongueW = (p.size * 3 + 8) * (1 - life * 0.7) * flicker
-    // Tongue height from its base position
-    const tongueH = (p.size * 12 + 40) * flicker
+function drawFlames(ctx: CanvasRenderingContext2D, flames: FlameParticle[], w: number, h: number) {
+  // Semi-transparent black clear for natural fade trails
+  ctx.globalCompositeOperation = 'source-over'
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.12)'
+  ctx.fillRect(0, 0, w, h)
 
-    const cx = p.x + wobble
-    const baseY = p.y + tongueH * 0.5  // bottom of tongue
-    const tipY = p.y - tongueH * 0.5   // top tip
+  // Additive blending: overlapping particles add colors → white-hot center
+  ctx.globalCompositeOperation = 'lighter'
 
-    // Opacity: bright at base, fades at tip
-    const fadeOp = p.opacity * (1 - life * life) * flicker
-    if (fadeOp < 0.01) continue
+  for (const f of flames) {
+    const lifeRatio = f.life / f.maxLife  // 0 = newborn, 1 = dying
 
-    ctx.save()
+    // Skip dead particles
+    if (lifeRatio >= 1) continue
 
-    // Draw tongue shape with bezier curves
-    ctx.beginPath()
-    ctx.moveTo(cx, baseY)
-    // Left edge curves out then in to tip
-    ctx.bezierCurveTo(
-      cx - tongueW * 0.8, baseY - tongueH * 0.2,
-      cx - tongueW * 0.5, tipY + tongueH * 0.3,
-      cx + wobble * 0.1, tipY
-    )
-    // Right edge mirrors back
-    ctx.bezierCurveTo(
-      cx + tongueW * 0.5, tipY + tongueH * 0.3,
-      cx + tongueW * 0.8, baseY - tongueH * 0.2,
-      cx, baseY
-    )
+    // Size shrinks as particle ages
+    const radius = f.size * (1 - lifeRatio * 0.6)
 
-    // Vertical gradient per tongue: yellow-white base → orange mid → red tip
-    const tongueGrad = ctx.createLinearGradient(cx, baseY, cx, tipY)
-    tongueGrad.addColorStop(0, `rgba(255, 240, 160, ${fadeOp * 0.9})`)
-    tongueGrad.addColorStop(0.15, `rgba(255, 200, 60, ${fadeOp * 0.85})`)
-    tongueGrad.addColorStop(0.4, `rgba(255, 120, 10, ${fadeOp * 0.7})`)
-    tongueGrad.addColorStop(0.7, `rgba(220, 50, 0, ${fadeOp * 0.4})`)
-    tongueGrad.addColorStop(1, `rgba(120, 10, 0, ${fadeOp * 0.05})`)
+    // Opacity fades out
+    const alpha = (1 - lifeRatio) * 0.35
 
-    ctx.fillStyle = tongueGrad
-    ctx.fill()
-
-    // Inner bright core — narrower, brighter
-    if (p.size > 3) {
-      ctx.beginPath()
-      const coreW = tongueW * 0.3
-      const coreH = tongueH * 0.6
-      const coreBase = baseY
-      const coreTip = baseY - coreH
-      ctx.moveTo(cx, coreBase)
-      ctx.bezierCurveTo(
-        cx - coreW, coreBase - coreH * 0.3,
-        cx - coreW * 0.5, coreTip + coreH * 0.2,
-        cx, coreTip
-      )
-      ctx.bezierCurveTo(
-        cx + coreW * 0.5, coreTip + coreH * 0.2,
-        cx + coreW, coreBase - coreH * 0.3,
-        cx, coreBase
-      )
-      const coreGrad = ctx.createLinearGradient(cx, coreBase, cx, coreTip)
-      coreGrad.addColorStop(0, `rgba(255, 255, 240, ${fadeOp * 0.6})`)
-      coreGrad.addColorStop(0.5, `rgba(255, 230, 120, ${fadeOp * 0.3})`)
-      coreGrad.addColorStop(1, 'rgba(255, 180, 60, 0)')
-      ctx.fillStyle = coreGrad
-      ctx.fill()
+    // Color shifts with age: white-yellow → orange → red → dark red
+    let r: number, g: number, b: number
+    if (lifeRatio < 0.2) {
+      // Young: bright white-yellow
+      r = 255
+      g = 255 - lifeRatio * 200
+      b = 200 - lifeRatio * 1000
+    } else if (lifeRatio < 0.5) {
+      // Mid: orange
+      const t = (lifeRatio - 0.2) / 0.3
+      r = 255
+      g = Math.floor(215 - t * 150)
+      b = 0
+    } else {
+      // Old: red fading to dark
+      const t = (lifeRatio - 0.5) / 0.5
+      r = Math.floor(255 - t * 155)
+      g = Math.floor(65 - t * 65)
+      b = 0
     }
 
-    ctx.restore()
+    // Radial gradient for soft glow
+    const gradient = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, radius)
+    gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${alpha})`)
+    gradient.addColorStop(0.4, `rgba(${r}, ${Math.floor(g * 0.7)}, ${b}, ${alpha * 0.6})`)
+    gradient.addColorStop(1, `rgba(${Math.floor(r * 0.5)}, 0, 0, 0)`)
+
+    ctx.beginPath()
+    ctx.arc(f.x, f.y, radius, 0, Math.PI * 2)
+    ctx.fillStyle = gradient
+    ctx.fill()
+  }
+
+  // Reset composite operation
+  ctx.globalCompositeOperation = 'source-over'
+}
+
+function updateFlames(flames: FlameParticle[], w: number, h: number) {
+  for (let i = 0; i < flames.length; i++) {
+    const f = flames[i]
+    // Move
+    f.x += f.vx + Math.sin(f.life * 0.08) * 0.8  // wobble
+    f.y += f.vy
+    f.vy *= 0.99  // slow down slightly as it rises
+    f.life++
+
+    // Respawn when dead
+    if (f.life >= f.maxLife || f.y < -50) {
+      flames[i] = spawnFlame(w, h)
+    }
   }
 }
 
@@ -494,8 +502,15 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
     // 3D starfield has its own system — skip foreground (depth is built into z-projection)
     let stars3D: Star3D[] = []
     if (activeEffect === 'stars') {
-      if (foreground) return  // no foreground layer for 3D starfield
+      if (foreground) return
       stars3D = initStars3D(800, canvas.width, canvas.height)
+    }
+
+    // Flames use their own particle system with additive blending
+    let flameParticles: FlameParticle[] = []
+    if (activeEffect === 'flames') {
+      const flameCount = foreground ? 30 : 250
+      flameParticles = initFlameParticles(flameCount, canvas.width, canvas.height)
     }
 
     // Background counts — generous for immersion
@@ -543,16 +558,8 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
         p.vx = Math.random() * 0.3 + 0.1    // slight lateral drift
         p.vr = (Math.random() - 0.5) * 0.015 // slow tumble
       }
-    } else if (activeEffect === 'flames') {
-      // Flame tongues — spread across bottom, staggered heights
-      for (const p of particles) {
-        p.x = Math.random() * canvas.width
-        p.y = canvas.height - Math.random() * canvas.height * 0.08  // near bottom
-        p.vy = -(Math.random() * 0.4 + 0.15)  // slow rise
-        p.size = Math.random() * 5 + 2
-        p.opacity = Math.random() * 0.4 + 0.4
-      }
     }
+    // (flames handled separately via FlameParticle system)
 
     let t = 0
     const animate = () => {
@@ -576,22 +583,10 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
         return
       }
 
-      // Flames use a batch draw (base glow + tongues together)
+      // Flames use additive blending particle system
       if (activeEffect === 'flames') {
-        drawFlames(ctx, particles, t, w, h)
-        // Move flame particles
-        for (const p of particles) {
-          p.y += p.vy
-          if (p.y < h * 0.3) {
-            // Reset when risen too high
-            p.y = h - Math.random() * h * 0.05
-            p.x = Math.random() * w
-            p.vy = -(Math.random() * 0.4 + 0.15)
-            p.opacity = Math.random() * 0.4 + 0.4
-            p.phase = Math.random() * Math.PI * 2
-            p.size = Math.random() * 5 + 2
-          }
-        }
+        drawFlames(ctx, flameParticles, w, h)
+        updateFlames(flameParticles, w, h)
         rafRef.current = requestAnimationFrame(animate)
         return
       }
