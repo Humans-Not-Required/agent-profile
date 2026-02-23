@@ -50,50 +50,23 @@ function initParticles(count: number, w: number, h: number): Particle[] {
   }))
 }
 
-// ── Snowflake: 6-armed crystal with branches ──
+// ── Snowflake: Unicode glyphs (❄ ❅ ❆), slow gentle fall ──
+
+const SNOWFLAKE_CHARS = ['❄', '❅', '❆']
 
 function drawSnowflake(ctx: CanvasRenderingContext2D, p: Particle) {
   ctx.save()
   ctx.translate(p.x, p.y)
   ctx.rotate(p.rotation ?? 0)
-  ctx.strokeStyle = `rgba(210, 230, 255, ${p.opacity})`
-  ctx.lineWidth = Math.max(0.5, p.size * 0.15)
-  ctx.lineCap = 'round'
 
-  const r = p.size * 1.8
-  const branchLen = r * 0.35
+  const glyph = SNOWFLAKE_CHARS[(p.color ?? 0) % SNOWFLAKE_CHARS.length]
+  const fontSize = p.size * 3
 
-  for (let i = 0; i < 6; i++) {
-    const angle = (i * Math.PI) / 3
-    const cos = Math.cos(angle)
-    const sin = Math.sin(angle)
-
-    // Main arm
-    ctx.beginPath()
-    ctx.moveTo(0, 0)
-    ctx.lineTo(cos * r, sin * r)
-    ctx.stroke()
-
-    // Two branches on each arm at ~60% length
-    const bx = cos * r * 0.6
-    const by = sin * r * 0.6
-    const bAngle1 = angle + Math.PI / 6
-    const bAngle2 = angle - Math.PI / 6
-    ctx.beginPath()
-    ctx.moveTo(bx, by)
-    ctx.lineTo(bx + Math.cos(bAngle1) * branchLen, by + Math.sin(bAngle1) * branchLen)
-    ctx.stroke()
-    ctx.beginPath()
-    ctx.moveTo(bx, by)
-    ctx.lineTo(bx + Math.cos(bAngle2) * branchLen, by + Math.sin(bAngle2) * branchLen)
-    ctx.stroke()
-  }
-
-  // Center dot
-  ctx.beginPath()
-  ctx.arc(0, 0, p.size * 0.2, 0, Math.PI * 2)
-  ctx.fillStyle = `rgba(230, 240, 255, ${p.opacity * 0.8})`
-  ctx.fill()
+  ctx.font = `${fontSize}px sans-serif`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillStyle = `rgba(186, 230, 253, ${p.opacity})`
+  ctx.fillText(glyph, 0, 0)
 
   ctx.restore()
 }
@@ -527,12 +500,12 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
 
     // Background counts — generous for immersion
     const bgCountMap: Record<EffectName, number> = {
-      snow: 160, leaves: 100, rain: 250, fireflies: 90, stars: 500, sakura: 80,
+      snow: 40, leaves: 100, rain: 250, fireflies: 90, stars: 800, sakura: 80,
       embers: 140, 'digital-rain': 0, flames: 200, none: 0,
     }
     // Foreground: ~15% of background for subtle depth
     const fgCountMap: Record<EffectName, number> = {
-      snow: 12, leaves: 8, rain: 20, fireflies: 6, stars: 25, sakura: 6,
+      snow: 6, leaves: 8, rain: 20, fireflies: 6, stars: 0, sakura: 6,
       embers: 10, 'digital-rain': 0, flames: 15, none: 0,
     }
     const countMap = foreground ? fgCountMap : bgCountMap
@@ -556,10 +529,12 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
       }
     } else if (activeEffect === 'snow') {
       for (const p of particles) {
-        p.size = Math.random() * 5 + 2  // bigger for snowflake detail
-        p.vy = Math.random() * 0.6 + 0.15  // slow gentle fall
-        p.vx = (Math.random() - 0.5) * 0.3  // slight drift
-        p.vr = (Math.random() - 0.5) * 0.008  // slow rotation
+        p.size = Math.random() * 4 + 2       // varied sizes for depth
+        p.vy = Math.random() * 0.35 + 0.1    // very slow gentle fall
+        p.vx = (Math.random() - 0.5) * 0.15  // barely any horizontal drift
+        p.vr = (Math.random() - 0.5) * 0.006 // very slow rotation
+        p.opacity = Math.random() * 0.08 + 0.04  // very subtle (0.04–0.12)
+        p.color = Math.floor(Math.random() * 3)  // pick glyph variant
       }
     } else if (activeEffect === 'sakura') {
       for (const p of particles) {
