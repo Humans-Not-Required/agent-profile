@@ -588,6 +588,7 @@ body {
   border: 1px solid color-mix(in srgb, var(--border) 25%, transparent);
   border-radius: 12px;
   padding: 2.5rem;
+  overflow: hidden;
 }
 
 /* ── Avatar ── */
@@ -609,9 +610,9 @@ body {
 /* ── Profile header ── */
 .profile-header { display: flex; gap: 1.5rem; align-items: flex-start; margin-bottom: 1.5rem; }
 .profile-info { flex: 1; min-width: 0; }
-.profile-name { font-size: 1.6rem; font-weight: 700; color: var(--text-bright); margin: 0 0 0.2rem; line-height: 1.2; }
-.profile-tagline { color: var(--text-muted); font-size: 1rem; margin: 0 0 0.2rem; }
-.profile-third-line { color: var(--text-muted); font-size: 0.88rem; margin: 0 0 0.5rem; }
+.profile-name { font-size: 1.6rem; font-weight: 700; color: var(--text-bright); margin: 0 0 0.2rem; line-height: 1.2; overflow-wrap: anywhere; }
+.profile-tagline { color: var(--text-muted); font-size: 1rem; margin: 0 0 0.2rem; overflow-wrap: anywhere; }
+.profile-third-line { color: var(--text-muted); font-size: 0.88rem; margin: 0 0 0.5rem; overflow-wrap: anywhere; }
 
 /* ── Quick links (hero icons row) ── */
 .quick-links { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.5rem; }
@@ -687,7 +688,7 @@ body {
   font-family: monospace; font-size: 0.78rem; color: var(--accent2);
   min-width: 0; max-width: 100%;
 }
-.addr-display-text { white-space: nowrap; }
+.addr-display-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .addr-display-ellipsis { overflow: hidden; text-overflow: ellipsis; max-width: 100%; white-space: nowrap; }
 .addr-display-link {
   color: var(--accent); text-decoration: none; cursor: pointer;
