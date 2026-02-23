@@ -944,7 +944,7 @@ function initBobaState(w: number, h: number, _foreground: boolean): BobaState {
   // Calculate pearl count to fill ~30% of screen bottom
   // avgR ≈ 15, pearl area ≈ π*15² ≈ 707, packing efficiency ~0.6
   const avgR = 15
-  const targetArea = w * h * 0.30
+  const targetArea = w * h * 0.40
   const packingEfficiency = 0.6
   const pearlArea = Math.PI * avgR * avgR
   const pearlCount = Math.min(300, Math.max(40, Math.round(targetArea * packingEfficiency / pearlArea)))
