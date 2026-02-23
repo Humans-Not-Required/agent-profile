@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'embers' | 'digital-rain' | 'flames' | 'water' | 'boba' | 'clouds' | 'none'
+export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'embers' | 'digital-rain' | 'flames' | 'water' | 'boba' | 'clouds' | 'fruit' | 'none'
 
 interface Props {
   effect: EffectName
@@ -812,6 +812,23 @@ function drawClouds(
   ctx.drawImage(offscreen, 0, 0)
 }
 
+// ── Fruit (tumbling fruit emoji) ──
+
+const FRUIT_CHARS = ['🍎', '🍊', '🍋', '🍇', '🍓', '🍑', '🍌', '🍉', '🥝', '🍒', '🫐', '🍍']
+
+function drawFruit(ctx: CanvasRenderingContext2D, p: Particle) {
+  const ch = FRUIT_CHARS[Math.abs(Math.floor((p.phase ?? 0) * 1000)) % FRUIT_CHARS.length]
+  ctx.save()
+  ctx.translate(p.x, p.y)
+  ctx.rotate(p.rotation ?? 0)
+  ctx.globalAlpha = p.opacity
+  ctx.font = `${p.size * 3.5}px serif`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(ch, 0, 0)
+  ctx.restore()
+}
+
 // ── Boba (milk tea with tapioca pearls + swirling liquid + accelerometer) ──
 
 interface BobaPearl {
@@ -861,34 +878,44 @@ function initBobaState(w: number, h: number, foreground: boolean): BobaState {
   const handleMotion = (e: DeviceMotionEvent) => {
     const ag = e.accelerationIncludingGravity
     if (!ag) return
-    // Normalize: x tilts left/right, y tilts forward/back
-    // On phones in portrait: x = lateral, y = vertical tilt
-    state.accelX = (ag.x ?? 0) / 9.8   // -1 to 1 range roughly
+    state.accelX = (ag.x ?? 0) / 9.8
     state.accelY = (ag.y ?? 0) / 9.8
   }
 
-  // Try to listen for motion events
   if (typeof window !== 'undefined' && 'DeviceMotionEvent' in window) {
     const DME = DeviceMotionEvent as unknown as {
       requestPermission?: () => Promise<string>
     }
+    let permissionGranted = false
+
     if (typeof DME.requestPermission === 'function') {
-      // iOS 13+ — needs user gesture, so we listen for first touch
-      const requestOnTouch = () => {
+      // iOS 13+ — needs user gesture. Listen for ANY interaction (touch, click, pointerdown).
+      // Don't use { once: true } — keep retrying until permission granted in case
+      // the first interaction gets consumed by scrolling or the prompt is dismissed.
+      const requestPermission = () => {
+        if (permissionGranted) return
         DME.requestPermission!().then((perm: string) => {
           if (perm === 'granted') {
+            permissionGranted = true
             window.addEventListener('devicemotion', handleMotion)
+            // Clean up gesture listeners once granted
+            document.removeEventListener('touchstart', requestPermission)
+            document.removeEventListener('click', requestPermission)
+            document.removeEventListener('pointerdown', requestPermission)
           }
         }).catch(() => {})
-        window.removeEventListener('touchstart', requestOnTouch)
       }
-      window.addEventListener('touchstart', requestOnTouch, { once: true })
+      document.addEventListener('touchstart', requestPermission)
+      document.addEventListener('click', requestPermission)
+      document.addEventListener('pointerdown', requestPermission)
       state.motionCleanup = () => {
+        document.removeEventListener('touchstart', requestPermission)
+        document.removeEventListener('click', requestPermission)
+        document.removeEventListener('pointerdown', requestPermission)
         window.removeEventListener('devicemotion', handleMotion)
-        window.removeEventListener('touchstart', requestOnTouch)
       }
     } else {
-      // Android / other — just listen
+      // Android / desktop — just listen directly (no permission needed)
       window.addEventListener('devicemotion', handleMotion)
       state.motionCleanup = () => window.removeEventListener('devicemotion', handleMotion)
     }
@@ -1095,12 +1122,12 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
     // Background counts — generous for immersion
     const bgCountMap: Record<EffectName, number> = {
       snow: 40, leaves: 100, rain: 250, fireflies: 90, stars: 800, sakura: 80,
-      embers: 140, 'digital-rain': 0, flames: 200, water: 0, boba: 0, clouds: 0, none: 0,
+      embers: 140, 'digital-rain': 0, flames: 200, water: 0, boba: 0, clouds: 0, fruit: 60, none: 0,
     }
     // Foreground: ~15% of background for subtle depth
     const fgCountMap: Record<EffectName, number> = {
       snow: 6, leaves: 1, rain: 20, fireflies: 6, stars: 0, sakura: 6,
-      embers: 10, 'digital-rain': 0, flames: 15, water: 0, boba: 0, clouds: 0, none: 0,
+      embers: 10, 'digital-rain': 0, flames: 15, water: 0, boba: 0, clouds: 0, fruit: 1, none: 0,
     }
     const countMap = foreground ? fgCountMap : bgCountMap
     const count = countMap[activeEffect] ?? 80
@@ -1109,8 +1136,8 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
     // Foreground particles: larger + slightly more opaque for depth
     if (foreground) {
       for (const p of particles) {
-        if (activeEffect === 'leaves') {
-          // Very rare giant leaf — like matrix extreme close-ups
+        if (activeEffect === 'leaves' || activeEffect === 'fruit') {
+          // Very rare giant foreground element — like matrix extreme close-ups
           // 85% chance it doesn't even appear; when it does, it's huge
           if (Math.random() < 0.85) {
             p.opacity = 0  // invisible — effectively skip
@@ -1213,12 +1240,18 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
           // stars handled above via 3D system
           case 'sakura':    drawSakuraPetal(ctx, p); break
           case 'embers':    drawEmber(ctx, p, t); break
+          case 'fruit':     drawFruit(ctx, p); break
         }
 
         // Move
         if (activeEffect === 'fireflies') {
           p.x += Math.sin((p.phase ?? 0) + t * 0.01) * 0.5
           p.y += Math.sin((p.phase ?? 0) * 1.3 + t * 0.008) * 0.4
+        } else if (activeEffect === 'fruit') {
+          // Tumble down with gentle sway
+          p.y += p.speed * 1.2
+          p.x += Math.sin((p.phase ?? 0) + t * 0.008) * 0.8
+          if (p.rotation !== undefined) p.rotation += (p.vr ?? 0.01)
         } else if (activeEffect === 'rain') {
           p.x += 1.5
           p.y += 12

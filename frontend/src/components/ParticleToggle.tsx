@@ -14,6 +14,7 @@ const ALL_EFFECTS: { id: EffectName; icon: string; name: string }[] = [
   { id: 'water',        icon: 'bi-water',           name: 'Water' },
   { id: 'clouds',       icon: 'bi-cloud',            name: 'Clouds' },
   { id: 'boba',         icon: 'bi-cup-straw',       name: 'Boba' },
+  { id: 'fruit',        icon: 'bi-apple',            name: 'Fruit' },
 ]
 
 interface Props {

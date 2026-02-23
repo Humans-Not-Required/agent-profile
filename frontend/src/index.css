@@ -186,6 +186,13 @@
   --tag-border: #d8c4a8;
 }
 
+[data-theme="fruitsalad"] {
+  --bg: #fef8f0; --card: #ffffff; --border: #f0d8c0;
+  --text: #4a3020; --text-muted: #8a6850; --text-bright: #2e1810;
+  --accent: #e85050; --accent2: #f0a030; --tag-bg: #fff0e8;
+  --tag-border: #f0d8c0;
+}
+
 /* ── Deluxe Theme Treatments ── */
 
 /* Dark — The Terminal: flat black with subtle blue vignette, crisp 1px borders */
@@ -496,6 +503,21 @@
 }
 [data-theme="boba"] .card:hover {
   box-shadow: 0 4px 28px rgba(139,94,60,0.18), inset 0 1px 0 rgba(255,255,255,0.7);
+  transform: translateY(-1px);
+}
+
+/* Fruit Salad — Tropical: warm fruity gradient, playful vibes */
+[data-theme="fruitsalad"] body {
+  background: linear-gradient(160deg, #fff5e6 0%, #ffe8d0 25%, #ffd4b8 50%, #ffc8d0 75%, #ffe0f0 100%);
+}
+[data-theme="fruitsalad"] .card {
+  background: rgba(255,255,255,0.20);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 20px rgba(200,80,80,0.08), inset 0 1px 0 rgba(255,255,255,0.6);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+[data-theme="fruitsalad"] .card:hover {
+  box-shadow: 0 4px 28px rgba(232,80,80,0.12), inset 0 1px 0 rgba(255,255,255,0.7);
   transform: translateY(-1px);
 }
 
