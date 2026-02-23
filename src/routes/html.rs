@@ -148,11 +148,12 @@ pub fn landing_page(
     a{{color:inherit;text-decoration:none}}
 
     /* ── Theme toggle ── */
-    .theme-toggle{{position:fixed;top:1rem;right:1rem;z-index:100;background:var(--bg-card);border:1px solid var(--border);border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.1rem;transition:background 0.15s,border-color 0.15s;box-shadow:0 2px 8px rgba(0,0,0,0.15)}}
-    .theme-toggle:hover{{border-color:var(--link);background:var(--bg-subtle)}}
-    .theme-toggle .icon-sun,.theme-toggle .icon-moon{{display:none}}
-    [data-theme="dark"] .theme-toggle .icon-sun{{display:inline}}
-    [data-theme="light"] .theme-toggle .icon-moon{{display:inline}}
+    .theme-toggle{{position:fixed;top:1rem;right:1rem;z-index:100;background:var(--bg-card);border:1px solid var(--border);border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.1rem;transition:background 0.15s,border-color 0.15s;box-shadow:0 2px 8px rgba(0,0,0,0.15);color:var(--text-muted)}}
+    .theme-toggle:hover{{border-color:var(--link);background:var(--bg-subtle);color:var(--text-bright)}}
+    .theme-toggle i{{display:none}}
+    .theme-toggle[data-mode="system"] .ti-system{{display:inline}}
+    .theme-toggle[data-mode="light"] .ti-light{{display:inline}}
+    .theme-toggle[data-mode="dark"] .ti-dark{{display:inline}}
 
     /* ── Hero ── */
     .hero{{text-align:center;padding:4rem 1.5rem 3rem;position:relative;overflow:hidden}}
@@ -232,10 +233,12 @@ pub fn landing_page(
     }}
   </style>
   <script>
-    // Apply theme immediately to prevent flash.
+    // Apply theme before paint to prevent flash.
     (function(){{
-      var stored=localStorage.getItem('lp-theme');
-      var theme=stored||(window.matchMedia('(prefers-color-scheme:light)').matches?'light':'dark');
+      var mode=localStorage.getItem('lp-theme-mode')||'system';
+      var theme;
+      if(mode==='system'){{theme=window.matchMedia('(prefers-color-scheme:light)').matches?'light':'dark';}}
+      else{{theme=mode;}}
       document.documentElement.setAttribute('data-theme',theme);
     }})();
   </script>
@@ -243,9 +246,10 @@ pub fn landing_page(
 <body>
 
   <!-- ── Theme toggle ── -->
-  <button class="theme-toggle" id="theme-toggle" title="Toggle light/dark theme" aria-label="Toggle theme">
-    <span class="icon-sun">☀️</span>
-    <span class="icon-moon">🌙</span>
+  <button class="theme-toggle" id="theme-toggle" title="Theme: system" aria-label="Toggle theme" data-mode="system">
+    <i class="bi bi-circle-half ti-system"></i>
+    <i class="bi bi-sun-fill ti-light"></i>
+    <i class="bi bi-moon-stars-fill ti-dark"></i>
   </button>
 
   <!-- ── Hero ── -->
@@ -318,22 +322,30 @@ pub fn landing_page(
       input.addEventListener('input',filter);
       clearBtn.addEventListener('click',function(){{input.value='';filter();input.focus();}});
 
-      /* ── Theme toggle ── */
+      /* ── Theme toggle (3-state: system → light → dark → system) ── */
       var toggle=document.getElementById('theme-toggle');
-      function getTheme(){{
-        var s=localStorage.getItem('lp-theme');
-        if(s) return s;
-        return window.matchMedia('(prefers-color-scheme:light)').matches?'light':'dark';
+      var modes=['system','light','dark'];
+      var labels={{system:'Theme: system',light:'Theme: light',dark:'Theme: dark'}};
+      function systemTheme(){{return window.matchMedia('(prefers-color-scheme:light)').matches?'light':'dark';}}
+      function getMode(){{return localStorage.getItem('lp-theme-mode')||'system';}}
+      function applyMode(m){{
+        var theme=(m==='system')?systemTheme():m;
+        document.documentElement.setAttribute('data-theme',theme);
+        toggle.setAttribute('data-mode',m);
+        toggle.title=labels[m]||m;
       }}
-      function applyTheme(t){{document.documentElement.setAttribute('data-theme',t);}}
+      // Initialize button state on load
+      applyMode(getMode());
       toggle.addEventListener('click',function(){{
-        var next=getTheme()==='dark'?'light':'dark';
-        localStorage.setItem('lp-theme',next);
-        applyTheme(next);
+        var cur=getMode();
+        var next=modes[(modes.indexOf(cur)+1)%modes.length];
+        if(next==='system'){{localStorage.removeItem('lp-theme-mode');}}
+        else{{localStorage.setItem('lp-theme-mode',next);}}
+        applyMode(next);
       }});
-      // Follow system preference when no explicit choice
-      window.matchMedia('(prefers-color-scheme:light)').addEventListener('change',function(e){{
-        if(!localStorage.getItem('lp-theme')){{applyTheme(e.matches?'light':'dark');}}
+      // Follow system preference changes when in system mode
+      window.matchMedia('(prefers-color-scheme:light)').addEventListener('change',function(){{
+        if(getMode()==='system'){{applyMode('system');}}
       }});
     }})();
   </script>
