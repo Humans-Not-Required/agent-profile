@@ -186,6 +186,13 @@
   --tag-border: #d8c4a8;
 }
 
+[data-theme="junkfood"] {
+  --bg: #fff3e0; --card: #ffffff; --border: #f0d0a0;
+  --text: #4a2e10; --text-muted: #8a6840; --text-bright: #2e1800;
+  --accent: #e04020; --accent2: #f0a020; --tag-bg: #fff0d8;
+  --tag-border: #f0d0a0;
+}
+
 [data-theme="fruitsalad"] {
   --bg: #fef8f0; --card: #ffffff; --border: #f0d8c0;
   --text: #4a3020; --text-muted: #8a6850; --text-bright: #2e1810;
@@ -503,6 +510,21 @@
 }
 [data-theme="boba"] .card:hover {
   box-shadow: 0 4px 28px rgba(139,94,60,0.18), inset 0 1px 0 rgba(255,255,255,0.7);
+  transform: translateY(-1px);
+}
+
+/* Junk Food — Greasy: warm ketchup-mustard gradient, fast food vibes */
+[data-theme="junkfood"] body {
+  background: linear-gradient(170deg, #fff3e0 0%, #ffe0b0 30%, #ffd080 55%, #ffc060 100%);
+}
+[data-theme="junkfood"] .card {
+  background: rgba(255,255,255,0.20);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 20px rgba(180,80,20,0.10), inset 0 1px 0 rgba(255,255,255,0.6);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+[data-theme="junkfood"] .card:hover {
+  box-shadow: 0 4px 28px rgba(224,64,32,0.15), inset 0 1px 0 rgba(255,255,255,0.7);
   transform: translateY(-1px);
 }
 

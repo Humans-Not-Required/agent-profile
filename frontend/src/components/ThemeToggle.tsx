@@ -29,6 +29,7 @@ export const THEME_EFFECT_MAP: Record<string, EffectName> = {
   patriot: 'stars',
   boba: 'boba',
   fruitsalad: 'fruit',
+  junkfood: 'junkfood',
 }
 
 const THEME_GROUPS = [
@@ -81,6 +82,7 @@ const THEME_GROUPS = [
     themes: [
       { id: 'boba', emoji: '🧋', name: 'Boba' },
       { id: 'fruitsalad', emoji: '🍓', name: 'Fruit Salad' },
+      { id: 'junkfood', emoji: '🍔', name: 'Junk Food' },
     ],
   },
 ]

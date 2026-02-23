@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'embers' | 'digital-rain' | 'flames' | 'water' | 'boba' | 'clouds' | 'fruit' | 'none'
+export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'embers' | 'digital-rain' | 'flames' | 'water' | 'boba' | 'clouds' | 'fruit' | 'junkfood' | 'none'
 
 interface Props {
   effect: EffectName
@@ -829,6 +829,26 @@ function drawFruit(ctx: CanvasRenderingContext2D, p: Particle) {
   ctx.restore()
 }
 
+// ── Junk Food (raining down vertically) ──
+
+const JUNKFOOD_CHARS = [
+  '🍕', '🍔', '🌭', '🍟', '🌮', '🌯', '🍗', '🍖', '🥓',
+  '🧀', '🍩', '🍪', '🎂', '🍰', '🧁', '🍫', '🍬', '🍭',
+  '🥤', '🍦', '🥞', '🧇', '🥨', '🍿', '🥡', '🥪',
+]
+
+function drawJunkFood(ctx: CanvasRenderingContext2D, p: Particle) {
+  const ch = JUNKFOOD_CHARS[Math.abs(Math.floor((p.phase ?? 0) * 1000)) % JUNKFOOD_CHARS.length]
+  ctx.save()
+  ctx.translate(p.x, p.y)
+  ctx.globalAlpha = p.opacity
+  ctx.font = `${p.size * 3.5}px serif`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(ch, 0, 0)
+  ctx.restore()
+}
+
 // ── Boba (milk tea with tapioca pearls + swirling liquid + accelerometer) ──
 
 interface BobaPearl {
@@ -1125,12 +1145,12 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
     // Background counts — generous for immersion
     const bgCountMap: Record<EffectName, number> = {
       snow: 40, leaves: 100, rain: 250, fireflies: 90, stars: 800, sakura: 80,
-      embers: 250, 'digital-rain': 0, flames: 200, water: 0, boba: 0, clouds: 0, fruit: 60, none: 0,
+      embers: 250, 'digital-rain': 0, flames: 200, water: 0, boba: 0, clouds: 0, fruit: 60, junkfood: 70, none: 0,
     }
     // Foreground: ~15% of background for subtle depth
     const fgCountMap: Record<EffectName, number> = {
       snow: 6, leaves: 1, rain: 20, fireflies: 6, stars: 0, sakura: 6,
-      embers: 20, 'digital-rain': 0, flames: 15, water: 0, boba: 0, clouds: 0, fruit: 1, none: 0,
+      embers: 20, 'digital-rain': 0, flames: 15, water: 0, boba: 0, clouds: 0, fruit: 1, junkfood: 1, none: 0,
     }
     const countMap = foreground ? fgCountMap : bgCountMap
     const count = countMap[activeEffect] ?? 80
@@ -1139,7 +1159,7 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
     // Foreground particles: larger + slightly more opaque for depth
     if (foreground) {
       for (const p of particles) {
-        if (activeEffect === 'leaves' || activeEffect === 'fruit') {
+        if (activeEffect === 'leaves' || activeEffect === 'fruit' || activeEffect === 'junkfood') {
           // Very rare giant foreground element — like matrix extreme close-ups
           // 85% chance it doesn't even appear; when it does, it's huge
           if (Math.random() < 0.85) {
@@ -1271,6 +1291,7 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
           case 'sakura':    drawSakuraPetal(ctx, p); break
           case 'embers':    drawEmber(ctx, p, t); break
           case 'fruit':     drawFruit(ctx, p); break
+          case 'junkfood':  drawJunkFood(ctx, p); break
         }
 
         // Move
@@ -1282,6 +1303,9 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
           p.y += p.vy * 1.2
           p.x += Math.sin((p.phase ?? 0) + t * 0.008) * 0.8
           if (p.rotation !== undefined) p.rotation += (p.vr ?? 0.01)
+        } else if (activeEffect === 'junkfood') {
+          // Straight vertical rain
+          p.y += p.vy * 2.0
         } else if (activeEffect === 'rain') {
           p.x += 1.5
           p.y += 12
