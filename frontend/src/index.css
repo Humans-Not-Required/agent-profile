@@ -552,8 +552,8 @@
     linear-gradient(180deg, #0a0e16 0%, #06080c 50%, #080a10 100%);
 }
 [data-theme="terminator"] .card {
-  border: 1.5px solid;
-  border-color: #6a7080 #3a4050 #2a3040 #5a6070;
+  border: 1.5px solid !important;
+  border-color: #6a7080 #3a4050 #2a3040 #5a6070 !important;
   box-shadow:
     0 4px 30px rgba(0,0,0,0.7),
     0 0 40px rgba(255,16,32,0.03),
@@ -582,8 +582,11 @@
     ),
     /* base plate color — fully opaque steel gray */
     linear-gradient(180deg, #3a4050 0%, #2d3340 30%, #282e3a 70%, #232830 100%) !important;
+  background-color: #2d3340 !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+  opacity: 1 !important;
+  -webkit-opacity: 1 !important;
 }
 [data-theme="terminator"] .card:hover {
   box-shadow:
