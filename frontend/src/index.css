@@ -580,10 +580,10 @@
       rgba(120,130,150,0.01) 3px,
       rgba(170,180,200,0.04) 4px
     ),
-    /* base plate color — cool steel gray */
-    linear-gradient(180deg, #3a4050 0%, #2d3340 30%, #282e3a 70%, #232830 100%);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+    /* base plate color — fully opaque steel gray */
+    linear-gradient(180deg, #3a4050 0%, #2d3340 30%, #282e3a 70%, #232830 100%) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 [data-theme="terminator"] .card:hover {
   box-shadow:
