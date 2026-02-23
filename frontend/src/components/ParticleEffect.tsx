@@ -934,17 +934,20 @@ interface BobaState {
   swirls: BobaSwirl[]
   accelX: number   // current accelerometer tilt (-1 to 1)
   accelY: number
+  mouseX: number   // mouse position for desktop repulsion
+  mouseY: number
+  mouseActive: boolean
   motionCleanup: (() => void) | null
 }
 
-function initBobaState(w: number, h: number, foreground: boolean): BobaState {
-  const pearlCount = foreground ? 10 : 50
-  // Spawn pearls mostly in bottom 40% of screen
+function initBobaState(w: number, h: number, _foreground: boolean): BobaState {
+  const pearlCount = 80  // always background-only, lots of pearls
+  // Spawn pearls scattered across bottom 50%, they'll settle via gravity
   const pearls: BobaPearl[] = Array.from({ length: pearlCount }, () => {
-    const r = foreground ? 14 + Math.random() * 20 : 7 + Math.random() * 13
+    const r = 8 + Math.random() * 14
     return {
       x: Math.random() * w,
-      y: h * 0.6 + Math.random() * h * 0.4,  // bottom 40%
+      y: h * 0.3 + Math.random() * h * 0.7,  // bottom 70%, will settle
       vx: 0, vy: 0,
       r,
       shade: Math.random(),
@@ -952,7 +955,7 @@ function initBobaState(w: number, h: number, foreground: boolean): BobaState {
     }
   })
 
-  const swirls: BobaSwirl[] = foreground ? [] : Array.from({ length: 6 }, () => ({
+  const swirls: BobaSwirl[] = Array.from({ length: 6 }, () => ({
     cx: Math.random() * w,
     cy: Math.random() * h,
     radius: 80 + Math.random() * 160,
@@ -961,7 +964,7 @@ function initBobaState(w: number, h: number, foreground: boolean): BobaState {
     opacity: 0.12 + Math.random() * 0.1,
   }))
 
-  const state: BobaState = { pearls, swirls, accelX: 0, accelY: 0, motionCleanup: null }
+  const state: BobaState = { pearls, swirls, accelX: 0, accelY: 0, mouseX: -1000, mouseY: -1000, mouseActive: false, motionCleanup: null }
 
   // ── Accelerometer setup ──
   const handleMotion = (e: DeviceMotionEvent) => {
@@ -1010,6 +1013,23 @@ function initBobaState(w: number, h: number, foreground: boolean): BobaState {
     }
   }
 
+  // ── Mouse tracking for desktop repulsion ──
+  const handleMouseMove = (e: MouseEvent) => {
+    state.mouseX = e.clientX
+    state.mouseY = e.clientY
+    state.mouseActive = true
+  }
+  const handleMouseLeave = () => { state.mouseActive = false }
+  window.addEventListener('mousemove', handleMouseMove)
+  document.addEventListener('mouseleave', handleMouseLeave)
+
+  const origCleanup = state.motionCleanup
+  state.motionCleanup = () => {
+    if (origCleanup) origCleanup()
+    window.removeEventListener('mousemove', handleMouseMove)
+    document.removeEventListener('mouseleave', handleMouseLeave)
+  }
+
   return state
 }
 
@@ -1050,11 +1070,14 @@ function drawBoba(
   }
 
   // ── Physics constants ──
-  const gravity = 0.12          // settle downward
-  const friction = 0.97         // damping
-  const accelForce = 1.8        // how strongly tilt affects pearls
-  const floorBounce = 0.3       // bounciness off bottom
-  const wallBounce = 0.5
+  const gravity = 0.15          // settle downward
+  const friction = 0.92         // heavy damping — viscous milk tea
+  const accelForce = 2.0        // how strongly tilt affects pearls
+  const floorBounce = 0.15      // very low bounce — pearls settle quickly
+  const wallBounce = 0.2
+  const mouseRadius = 100       // repulsion radius around cursor
+  const mouseForce = 3.0        // repulsion strength
+  const restThreshold = 0.15    // velocity below this = at rest
 
   // ── Tapioca pearls with physics ──
   for (const p of state.pearls) {
@@ -1063,12 +1086,31 @@ function drawBoba(
     p.vx += state.accelX * accelForce                     // tilt pushes sideways
     p.vy -= state.accelY * accelForce                     // tilt pushes up/down (inverted)
 
-    // Gentle wobble
-    p.vx += Math.sin(t * 0.002 + p.wobblePhase) * 0.02
+    // Mouse repulsion (desktop)
+    if (state.mouseActive) {
+      const mdx = p.x - state.mouseX
+      const mdy = p.y - state.mouseY
+      const mDist = Math.sqrt(mdx * mdx + mdy * mdy)
+      if (mDist < mouseRadius && mDist > 0) {
+        const strength = mouseForce * (1 - mDist / mouseRadius)
+        p.vx += (mdx / mDist) * strength
+        p.vy += (mdy / mDist) * strength
+      }
+    }
 
     // Damping (viscous liquid)
     p.vx *= friction
     p.vy *= friction
+
+    // Settle to rest — stop micro-jittering
+    if (Math.abs(p.vx) < restThreshold && Math.abs(p.vy) < restThreshold) {
+      // Only fully rest if supported (on floor or on another pearl)
+      const supported = p.y + p.r >= h - 1 ||
+        state.pearls.some(q => q !== p && q.y > p.y &&
+          Math.abs(q.x - p.x) < p.r + q.r &&
+          q.y - p.y < p.r + q.r + 2)
+      if (supported) { p.vx = 0; p.vy = 0 }
+    }
 
     // Move
     p.x += p.vx
@@ -1082,13 +1124,12 @@ function drawBoba(
     if (p.y + p.r > h) {
       p.y = h - p.r
       p.vy = -Math.abs(p.vy) * floorBounce
-      // Stop micro-bouncing
-      if (Math.abs(p.vy) < 0.3) p.vy = 0
+      if (Math.abs(p.vy) < 0.5) p.vy = 0  // stop bouncing quickly
     }
     // Ceiling
     if (p.y - p.r < 0) { p.y = p.r; p.vy = Math.abs(p.vy) * floorBounce }
 
-    // Simple pearl-pearl collision (push apart)
+    // Pearl-pearl collision (push apart, minimal velocity transfer for stacking)
     for (const q of state.pearls) {
       if (q === p) continue
       const dx = q.x - p.x, dy = q.y - p.y
@@ -1097,15 +1138,17 @@ function drawBoba(
       if (dist < minDist && dist > 0) {
         const overlap = (minDist - dist) * 0.5
         const nx = dx / dist, ny = dy / dist
+        // Separate them
         p.x -= nx * overlap
         p.y -= ny * overlap
         q.x += nx * overlap
         q.y += ny * overlap
-        // Transfer some velocity
-        p.vx -= nx * 0.3
-        p.vy -= ny * 0.3
-        q.vx += nx * 0.3
-        q.vy += ny * 0.3
+        // Very light velocity transfer — enough to settle, not enough to bounce forever
+        const transferAmount = 0.08
+        p.vx -= nx * transferAmount
+        p.vy -= ny * transferAmount
+        q.vx += nx * transferAmount
+        q.vy += ny * transferAmount
       }
     }
 
@@ -1330,9 +1373,10 @@ function CanvasParticleEffect({ activeEffect, foreground }: { activeEffect: Effe
         return
       }
 
-      // Boba pearls + swirling milk tea
-      if (activeEffect === 'boba' && bobaState) {
-        drawBoba(ctx, w, h, t, bobaState, foreground)
+      // Boba pearls + swirling milk tea (background only — single layer for stacking)
+      if (activeEffect === 'boba') {
+        if (foreground) { rafRef.current = requestAnimationFrame(animate); return }
+        if (bobaState) drawBoba(ctx, w, h, t, bobaState, false)
         rafRef.current = requestAnimationFrame(animate)
         return
       }
