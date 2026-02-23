@@ -754,10 +754,20 @@ interface CrossfireLaser {
   maxLife: number
 }
 
+interface GroundFire {
+  x: number           // center x position
+  width: number       // fire width
+  intensity: number   // 0-1, current brightness
+  targetIntensity: number  // fading toward this
+  phase: number       // animation phase offset
+}
+
 interface WarzoneState {
   searchlights: Searchlight[]
   crossfireLasers: CrossfireLaser[]
   laserCooldown: number
+  groundFires: GroundFire[]
+  fireCooldown: number
   sparks: Particle[]
   redEyePhase: number
   flashTimer: number
@@ -808,7 +818,16 @@ function initWarzoneState(w: number, h: number, foreground: boolean): WarzoneSta
     phase: Math.random() * Math.PI * 2,
   }))
 
-  return { searchlights, crossfireLasers: [], laserCooldown: 60, sparks, redEyePhase: 0, flashTimer: 0, flashAlpha: 0 }
+  // Ground fires — intermittent flames along the bottom
+  const groundFires: GroundFire[] = foreground ? [] : Array.from({ length: 5 }, (_, i) => ({
+    x: w * 0.1 + (i / 4) * w * 0.8,  // spread across bottom
+    width: 40 + Math.random() * 60,
+    intensity: 0,
+    targetIntensity: 0,
+    phase: Math.random() * Math.PI * 2,
+  }))
+
+  return { searchlights, crossfireLasers: [], laserCooldown: 60, groundFires, fireCooldown: 30, sparks, redEyePhase: 0, flashTimer: 0, flashAlpha: 0 }
 }
 
 function drawWarzone(
@@ -900,6 +919,62 @@ function drawWarzone(
     eyeGrad.addColorStop(1, 'rgba(255,16,32,0)')
     ctx.fillStyle = eyeGrad
     ctx.fillRect(0, eyeY - 15, w, 30)
+
+    // Ground fires — intermittent flames along the bottom
+    state.fireCooldown--
+    if (state.fireCooldown <= 0) {
+      // Randomly ignite or extinguish fires
+      const fire = state.groundFires[Math.floor(Math.random() * state.groundFires.length)]
+      fire.targetIntensity = fire.targetIntensity > 0.3 ? 0 : 0.4 + Math.random() * 0.6
+      state.fireCooldown = 30 + Math.floor(Math.random() * 90)
+    }
+
+    ctx.globalCompositeOperation = 'lighter'
+    for (const fire of state.groundFires) {
+      // Ease toward target
+      fire.intensity += (fire.targetIntensity - fire.intensity) * 0.03
+      if (fire.intensity < 0.02) { fire.intensity = 0; continue }
+
+      const flicker = Math.sin(t * 0.015 + fire.phase) * 0.15 + Math.sin(t * 0.037 + fire.phase * 2) * 0.1
+      const a = fire.intensity * (0.75 + flicker)
+      const flameH = (60 + fire.width * 0.8) * fire.intensity
+
+      // Outer glow
+      const outerGrad = ctx.createRadialGradient(fire.x, h, 0, fire.x, h - flameH * 0.3, fire.width * 1.5)
+      outerGrad.addColorStop(0, `rgba(255,80,20,${a * 0.3})`)
+      outerGrad.addColorStop(1, 'rgba(255,40,10,0)')
+      ctx.fillStyle = outerGrad
+      ctx.fillRect(fire.x - fire.width * 1.5, h - flameH * 1.5, fire.width * 3, flameH * 1.5)
+
+      // Main flame body
+      const grad = ctx.createLinearGradient(fire.x, h, fire.x, h - flameH)
+      grad.addColorStop(0, `rgba(255,200,60,${a})`)
+      grad.addColorStop(0.2, `rgba(255,120,20,${a * 0.9})`)
+      grad.addColorStop(0.5, `rgba(255,50,10,${a * 0.6})`)
+      grad.addColorStop(0.8, `rgba(180,20,5,${a * 0.3})`)
+      grad.addColorStop(1, 'rgba(100,10,0,0)')
+
+      // Draw flame shape with bezier curves
+      ctx.beginPath()
+      const halfW = fire.width / 2
+      const sway1 = Math.sin(t * 0.02 + fire.phase) * halfW * 0.3
+      const sway2 = Math.sin(t * 0.03 + fire.phase + 1) * halfW * 0.4
+      ctx.moveTo(fire.x - halfW, h)
+      ctx.bezierCurveTo(
+        fire.x - halfW * 0.6, h - flameH * 0.4,
+        fire.x + sway1 - halfW * 0.2, h - flameH * 0.7,
+        fire.x + sway2, h - flameH
+      )
+      ctx.bezierCurveTo(
+        fire.x - sway1 + halfW * 0.2, h - flameH * 0.7,
+        fire.x + halfW * 0.6, h - flameH * 0.4,
+        fire.x + halfW, h
+      )
+      ctx.closePath()
+      ctx.fillStyle = grad
+      ctx.fill()
+    }
+    ctx.globalCompositeOperation = 'source-over'
 
     // Occasional explosion flash
     state.flashTimer++

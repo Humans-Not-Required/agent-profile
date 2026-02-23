@@ -552,50 +552,95 @@
     linear-gradient(180deg, #0a0e16 0%, #06080c 50%, #080a10 100%);
 }
 [data-theme="terminator"] .card {
-  border: 1.5px solid !important;
-  border-color: #6a7080 #3a4050 #2a3040 #5a6070 !important;
+  border: 2px solid !important;
+  border-color: #78828e #484f5a #3a4048 #687078 !important;
+  border-radius: 4px !important;
   box-shadow:
-    0 4px 30px rgba(0,0,0,0.7),
+    0 4px 30px rgba(0,0,0,0.8),
     0 0 40px rgba(255,16,32,0.03),
-    inset 0 1px 0 rgba(200,210,225,0.25),
-    inset 0 -1px 0 rgba(0,0,0,0.3),
-    inset 1px 0 0 rgba(200,210,225,0.08),
-    inset -1px 0 0 rgba(200,210,225,0.08);
+    inset 0 1px 0 rgba(220,230,245,0.35),
+    inset 0 -1px 0 rgba(0,0,0,0.5),
+    inset 2px 0 0 rgba(200,210,225,0.1),
+    inset -2px 0 0 rgba(0,0,0,0.15);
   background:
-    /* diagonal metallic sheen — the main reflective highlight */
-    linear-gradient(135deg,
-      rgba(180,190,210,0) 0%,
-      rgba(180,190,210,0.07) 25%,
-      rgba(220,225,235,0.12) 47%,
-      rgba(255,255,255,0.08) 50%,
-      rgba(220,225,235,0.12) 53%,
-      rgba(180,190,210,0.07) 75%,
-      rgba(180,190,210,0) 100%
+    /* diagonal metallic sheen — broad reflective highlight */
+    linear-gradient(125deg,
+      rgba(255,255,255,0) 0%,
+      rgba(200,210,225,0.06) 20%,
+      rgba(220,230,245,0.14) 42%,
+      rgba(255,255,255,0.18) 50%,
+      rgba(220,230,245,0.14) 58%,
+      rgba(200,210,225,0.06) 80%,
+      rgba(255,255,255,0) 100%
     ),
-    /* horizontal brushed texture — fine striations */
+    /* horizontal brushed texture — visible fine striations */
     repeating-linear-gradient(90deg,
-      rgba(160,170,190,0.04) 0px,
-      rgba(100,110,130,0.02) 1px,
-      rgba(140,150,170,0.05) 2px,
-      rgba(120,130,150,0.01) 3px,
-      rgba(170,180,200,0.04) 4px
+      rgba(180,195,215,0.10) 0px,
+      rgba(80,90,105,0.06) 1px,
+      rgba(160,175,195,0.12) 2px,
+      rgba(100,110,125,0.04) 3px,
+      rgba(190,200,218,0.11) 4px,
+      rgba(110,120,135,0.05) 5px,
+      rgba(170,185,205,0.10) 6px
     ),
-    /* base plate color — fully opaque steel gray */
-    linear-gradient(180deg, #3a4050 0%, #2d3340 30%, #282e3a 70%, #232830 100%) !important;
-  background-color: #2d3340 !important;
+    /* secondary vertical micro-grain for cross-hatch feel */
+    repeating-linear-gradient(180deg,
+      rgba(150,165,185,0.04) 0px,
+      transparent 1px,
+      rgba(130,145,165,0.03) 2px,
+      transparent 3px
+    ),
+    /* base plate color — fully opaque steel */
+    linear-gradient(180deg, #454d5c 0%, #3a4250 25%, #333b48 50%, #2e3540 75%, #282f38 100%) !important;
+  background-color: #333b48 !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   opacity: 1 !important;
-  -webkit-opacity: 1 !important;
+  position: relative;
+}
+[data-theme="terminator"] .card::before {
+  /* Rivets along top and bottom edges */
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  z-index: 1;
+  background:
+    /* ── Top row rivets ── */
+    radial-gradient(circle 4px at 24px 14px,
+      rgba(180,190,205,0.5) 0%, rgba(140,150,165,0.3) 40%, rgba(60,68,80,0.5) 60%, transparent 70%),
+    radial-gradient(circle 4px at 64px 14px,
+      rgba(180,190,205,0.5) 0%, rgba(140,150,165,0.3) 40%, rgba(60,68,80,0.5) 60%, transparent 70%),
+    radial-gradient(circle 4px at 104px 14px,
+      rgba(180,190,205,0.5) 0%, rgba(140,150,165,0.3) 40%, rgba(60,68,80,0.5) 60%, transparent 70%),
+    radial-gradient(circle 4px at calc(100% - 24px) 14px,
+      rgba(180,190,205,0.5) 0%, rgba(140,150,165,0.3) 40%, rgba(60,68,80,0.5) 60%, transparent 70%),
+    radial-gradient(circle 4px at calc(100% - 64px) 14px,
+      rgba(180,190,205,0.5) 0%, rgba(140,150,165,0.3) 40%, rgba(60,68,80,0.5) 60%, transparent 70%),
+    radial-gradient(circle 4px at calc(100% - 104px) 14px,
+      rgba(180,190,205,0.5) 0%, rgba(140,150,165,0.3) 40%, rgba(60,68,80,0.5) 60%, transparent 70%),
+    /* ── Bottom row rivets ── */
+    radial-gradient(circle 4px at 24px calc(100% - 14px),
+      rgba(180,190,205,0.5) 0%, rgba(140,150,165,0.3) 40%, rgba(60,68,80,0.5) 60%, transparent 70%),
+    radial-gradient(circle 4px at 64px calc(100% - 14px),
+      rgba(180,190,205,0.5) 0%, rgba(140,150,165,0.3) 40%, rgba(60,68,80,0.5) 60%, transparent 70%),
+    radial-gradient(circle 4px at 104px calc(100% - 14px),
+      rgba(180,190,205,0.5) 0%, rgba(140,150,165,0.3) 40%, rgba(60,68,80,0.5) 60%, transparent 70%),
+    radial-gradient(circle 4px at calc(100% - 24px) calc(100% - 14px),
+      rgba(180,190,205,0.5) 0%, rgba(140,150,165,0.3) 40%, rgba(60,68,80,0.5) 60%, transparent 70%),
+    radial-gradient(circle 4px at calc(100% - 64px) calc(100% - 14px),
+      rgba(180,190,205,0.5) 0%, rgba(140,150,165,0.3) 40%, rgba(60,68,80,0.5) 60%, transparent 70%),
+    radial-gradient(circle 4px at calc(100% - 104px) calc(100% - 14px),
+      rgba(180,190,205,0.5) 0%, rgba(140,150,165,0.3) 40%, rgba(60,68,80,0.5) 60%, transparent 70%);
 }
 [data-theme="terminator"] .card:hover {
   box-shadow:
-    0 4px 30px rgba(0,0,0,0.7),
+    0 4px 30px rgba(0,0,0,0.8),
     0 0 50px rgba(255,16,32,0.06),
-    inset 0 1px 0 rgba(200,210,225,0.35),
-    inset 0 -1px 0 rgba(0,0,0,0.3),
-    inset 1px 0 0 rgba(200,210,225,0.12),
-    inset -1px 0 0 rgba(200,210,225,0.12);
+    inset 0 1px 0 rgba(220,230,245,0.45),
+    inset 0 -1px 0 rgba(0,0,0,0.5),
+    inset 2px 0 0 rgba(200,210,225,0.15),
+    inset -2px 0 0 rgba(0,0,0,0.2);
 }
 [data-theme="terminator"] .profile-name {
   text-shadow: 0 0 20px rgba(255,16,32,0.3), 0 0 40px rgba(255,16,32,0.1);
@@ -606,6 +651,9 @@
   letter-spacing: 0.12em;
   color: #4488cc;
   text-shadow: 0 0 10px rgba(68,136,204,0.3);
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(120,135,155,0.3);
+  box-shadow: 0 -1px 0 rgba(0,0,0,0.4);
 }
 [data-theme="terminator"] .badge {
   border-color: rgba(255,16,32,0.3);
