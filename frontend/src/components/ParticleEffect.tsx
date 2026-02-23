@@ -65,7 +65,7 @@ function drawSnowflake(ctx: CanvasRenderingContext2D, p: Particle) {
   ctx.font = `${fontSize}px sans-serif`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.fillStyle = `rgba(186, 230, 253, ${p.opacity})`
+  ctx.fillStyle = `rgba(120, 180, 220, ${p.opacity})`
   ctx.fillText(glyph, 0, 0)
 
   ctx.restore()

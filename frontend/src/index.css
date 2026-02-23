@@ -116,10 +116,10 @@
 /* ── Seasonal & Holiday Themes ── */
 
 [data-theme="snow"] {
-  --bg: #0a1020; --card: #101828; --border: #1e2e48;
-  --text: #a8b8d0; --text-muted: #5e7090; --text-bright: #dce8f8;
-  --accent: #60a0e0; --accent2: #88c0f0; --tag-bg: #0c1424;
-  --tag-border: #1e2e48;
+  --bg: #e8eef6; --card: #ffffff; --border: #c8d8ec;
+  --text: #3a4a60; --text-muted: #7088a8; --text-bright: #1a2a40;
+  --accent: #4a8ac0; --accent2: #6aaae0; --tag-bg: #dce8f4;
+  --tag-border: #b8cce4;
 }
 
 [data-theme="christmas"] {
@@ -348,18 +348,18 @@
 
 /* ── Seasonal & Holiday Theme Effects ── */
 
-/* Snow — The Blizzard: frosted glass cards, icy blue palette */
+/* Snow — The Blizzard: bright white with icy blue tint, frosted glass */
 [data-theme="snow"] body {
-  background: radial-gradient(ellipse at 50% 20%, #122040 0%, #0a1020 60%);
+  background: radial-gradient(ellipse at 50% 20%, #f0f4fa 0%, #dce6f2 40%, #c8d8ec 100%);
 }
 [data-theme="snow"] .card {
-  background: rgba(16,24,40,0.55);
+  background: rgba(255,255,255,0.65);
   backdrop-filter: blur(16px);
-  box-shadow: 0 4px 30px rgba(0,0,0,0.4), inset 0 1px 0 rgba(136,192,240,0.06);
+  box-shadow: 0 2px 20px rgba(100,140,180,0.12), inset 0 1px 0 rgba(255,255,255,0.8);
   transition: box-shadow 0.2s, transform 0.2s;
 }
 [data-theme="snow"] .card:hover {
-  box-shadow: 0 4px 30px rgba(96,160,224,0.1), inset 0 1px 0 rgba(136,192,240,0.1);
+  box-shadow: 0 4px 28px rgba(74,138,192,0.15), inset 0 1px 0 rgba(255,255,255,0.9);
   transform: translateY(-1px);
 }
 
