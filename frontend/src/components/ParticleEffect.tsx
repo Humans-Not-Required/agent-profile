@@ -136,36 +136,39 @@ function drawFirefly(ctx: CanvasRenderingContext2D, p: Particle, t: number) {
   ctx.fill()
 }
 
-// ── 3D Starfield: perspective projection, warp-speed with motion trails ──
+// ── 3D Starfield: perspective projection warp-speed, transparent canvas ──
 
 interface Star3D {
-  x: number   // 3D position (-spread..+spread)
+  x: number   // 3D position
   y: number
   z: number   // depth (1..maxZ)
-  prevX: number  // previous projected position for streak
-  prevY: number
   color: number  // color temperature index
 }
 
-const STAR_MAX_Z = 1200
-const STAR_SPREAD = 1200  // how wide the 3D space is
-const STAR_FOCAL = 180    // focal length — controls FOV
-const STAR_SPEED = 2.5    // z units per frame (background)
-const STAR_SPEED_FG = 0.8 // slower for foreground layer
+const STAR_MAX_Z = 1000
+const STAR_FOCAL = 128     // focal length — controls FOV
+const STAR_SPEED = 3       // z units per frame (background)
+const STAR_SPEED_FG = 1    // slower for foreground layer
 
-function initStars3D(count: number): Star3D[] {
-  return Array.from({ length: count }, () => {
-    const x = Math.random() * STAR_SPREAD * 2 - STAR_SPREAD
-    const y = Math.random() * STAR_SPREAD * 2 - STAR_SPREAD
-    const z = Math.random() * STAR_MAX_Z
-    const k = STAR_FOCAL / Math.max(z, 1)
-    return {
-      x, y, z,
-      prevX: x * k,
-      prevY: y * k,
-      color: Math.floor(Math.random() * 5),
-    }
-  })
+function initStars3D(count: number, w: number, h: number): Star3D[] {
+  // Spread proportional to viewport so stars cover the full screen at all depths
+  const spreadX = w * (STAR_MAX_Z / STAR_FOCAL) * 0.6
+  const spreadY = h * (STAR_MAX_Z / STAR_FOCAL) * 0.6
+  return Array.from({ length: count }, () => ({
+    x: Math.random() * spreadX * 2 - spreadX,
+    y: Math.random() * spreadY * 2 - spreadY,
+    z: Math.random() * STAR_MAX_Z + 1,
+    color: Math.floor(Math.random() * 5),
+  }))
+}
+
+function resetStar(s: Star3D, w: number, h: number) {
+  const spreadX = w * (STAR_MAX_Z / STAR_FOCAL) * 0.6
+  const spreadY = h * (STAR_MAX_Z / STAR_FOCAL) * 0.6
+  s.x = Math.random() * spreadX * 2 - spreadX
+  s.y = Math.random() * spreadY * 2 - spreadY
+  s.z = STAR_MAX_Z + Math.random() * 200
+  s.color = Math.floor(Math.random() * 5)
 }
 
 function drawStarfield3D(
@@ -175,9 +178,8 @@ function drawStarfield3D(
   w: number, h: number,
   speed: number,
 ) {
-  // Semi-transparent clear for motion trails
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.15)'
-  ctx.fillRect(0, 0, w, h)
+  // Transparent clear — page theme background shows through
+  ctx.clearRect(0, 0, w, h)
 
   const colors = [
     [220, 230, 255],  // cool white
@@ -188,74 +190,73 @@ function drawStarfield3D(
   ]
 
   for (const s of stars) {
-    // Save previous screen position for streak
-    const oldK = STAR_FOCAL / Math.max(s.z, 1)
-    s.prevX = s.x * oldK + cx
-    s.prevY = s.y * oldK + cy
+    // Compute current screen position
+    const k = STAR_FOCAL / Math.max(s.z, 1)
+    const sx = s.x * k + cx
+    const sy = s.y * k + cy
 
     // Move toward camera
     s.z -= speed
 
-    // Reset if past camera
+    // Compute new screen position after move (for streak direction)
+    const k2 = STAR_FOCAL / Math.max(s.z, 1)
+    const sx2 = s.x * k2 + cx
+    const sy2 = s.y * k2 + cy
+
+    // Reset if past camera or way off screen
     if (s.z < 1) {
-      s.x = Math.random() * STAR_SPREAD * 2 - STAR_SPREAD
-      s.y = Math.random() * STAR_SPREAD * 2 - STAR_SPREAD
-      s.z = STAR_MAX_Z
-      s.color = Math.floor(Math.random() * 5)
-      // Reset prev so no streak from old position
-      const nk = STAR_FOCAL / s.z
-      s.prevX = s.x * nk + cx
-      s.prevY = s.y * nk + cy
+      resetStar(s, w, h)
       continue
     }
 
-    // Project to 2D
-    const k = STAR_FOCAL / s.z
-    const sx = s.x * k + cx
-    const sy = s.y * k + cy
-
     // Skip if off screen
-    if (sx < -20 || sx > w + 20 || sy < -20 || sy > h + 20) continue
+    if (sx2 < -50 || sx2 > w + 50 || sy2 < -50 || sy2 > h + 50) continue
 
-    // Size and brightness based on depth (closer = bigger + brighter)
-    const depthRatio = 1 - s.z / STAR_MAX_Z  // 0 = far, 1 = close
+    // Depth ratio: 0 = far, 1 = close
+    const depthRatio = 1 - s.z / STAR_MAX_Z
     const size = Math.max(0.3, depthRatio * 3.5)
-    const brightness = 0.2 + depthRatio * 0.8
+    const brightness = 0.15 + depthRatio * 0.85
 
     const [cr, cg, cb] = colors[s.color]
     const r = Math.floor(cr * brightness)
     const g = Math.floor(cg * brightness)
     const b = Math.floor(cb * brightness)
 
-    // Draw streak line (motion trail from previous to current position)
-    const dx = sx - s.prevX
-    const dy = sy - s.prevY
+    // Streak line — from previous position to current, showing motion direction
+    const dx = sx2 - sx
+    const dy = sy2 - sy
     const streakLen = Math.sqrt(dx * dx + dy * dy)
 
-    if (streakLen > 1.5 && depthRatio > 0.15) {
-      // Streak gets longer and brighter as stars get closer
-      ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${brightness * 0.6})`
-      ctx.lineWidth = Math.max(0.3, size * 0.4)
+    if (streakLen > 0.8 && depthRatio > 0.1) {
+      // Extend streak backwards from current position for visible trail
+      const extend = Math.min(streakLen * 3, 40 * depthRatio)
+      const nx = dx / streakLen  // normalized direction
+      const ny = dy / streakLen
+      const tailX = sx2 - nx * extend
+      const tailY = sy2 - ny * extend
+
+      ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${brightness * 0.5})`
+      ctx.lineWidth = Math.max(0.3, size * 0.5)
       ctx.beginPath()
-      ctx.moveTo(s.prevX, s.prevY)
-      ctx.lineTo(sx, sy)
+      ctx.moveTo(tailX, tailY)
+      ctx.lineTo(sx2, sy2)
       ctx.stroke()
     }
 
     // Star dot
     ctx.beginPath()
-    ctx.arc(sx, sy, size, 0, Math.PI * 2)
+    ctx.arc(sx2, sy2, size, 0, Math.PI * 2)
     ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${brightness})`
     ctx.fill()
 
     // Glow on close stars
-    if (depthRatio > 0.6) {
+    if (depthRatio > 0.55) {
       const glowR = size * 4
-      const gradient = ctx.createRadialGradient(sx, sy, 0, sx, sy, glowR)
-      gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${brightness * 0.25})`)
+      const gradient = ctx.createRadialGradient(sx2, sy2, 0, sx2, sy2, glowR)
+      gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${brightness * 0.2})`)
       gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`)
       ctx.beginPath()
-      ctx.arc(sx, sy, glowR, 0, Math.PI * 2)
+      ctx.arc(sx2, sy2, glowR, 0, Math.PI * 2)
       ctx.fillStyle = gradient
       ctx.fill()
     }
@@ -520,8 +521,8 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
     // 3D starfield has its own system
     let stars3D: Star3D[] = []
     if (activeEffect === 'stars') {
-      const starCount = foreground ? 60 : 600
-      stars3D = initStars3D(starCount)
+      const starCount = foreground ? 80 : 800
+      stars3D = initStars3D(starCount, canvas.width, canvas.height)
     }
 
     // Background counts — generous for immersion
