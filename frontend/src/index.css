@@ -38,9 +38,10 @@
 }
 
 [data-theme="ocean"] {
-  --bg: #040d18; --card: #061525; --border: #0e2a47;
-  --text: #7aadcc; --text-muted: #3d6d8a; --text-bright: #b3d4e8;
-  --accent: #0077b6; --accent2: #00b4d8; --tag-bg: #040d18; --tag-border: #0e2a47;
+  --bg: #d0e8f5; --card: #ffffff; --border: #a0c8e0;
+  --text: #2a5070; --text-muted: #5a8aa8; --text-bright: #0e3050;
+  --accent: #0088cc; --accent2: #00b4d8; --tag-bg: #d8eef8;
+  --tag-border: #a8d0e8;
 }
 
 [data-theme="desert"] {
@@ -222,18 +223,18 @@
   text-shadow: 0 0 20px rgba(76,175,80,0.1);
 }
 
-/* Ocean — The Deep: bioluminescent gradient, glass-morphism cards */
+/* Ocean — The Shallows: light aqua with water caustics, frosted glass */
 [data-theme="ocean"] body {
-  background: radial-gradient(ellipse at 30% 80%, #061830 0%, #040d18 60%);
+  background: radial-gradient(ellipse at 50% 30%, #c0e0f0 0%, #88c8e8 40%, #60b0d8 100%);
 }
 [data-theme="ocean"] .card {
-  background: rgba(6,21,37,0.55);
+  background: rgba(255,255,255,0.55);
   backdrop-filter: blur(16px);
-  box-shadow: 0 4px 30px rgba(0,0,0,0.5), 0 0 40px rgba(0,119,182,0.04);
+  box-shadow: 0 2px 20px rgba(0,100,160,0.1), inset 0 1px 0 rgba(255,255,255,0.7);
   transition: box-shadow 0.2s, transform 0.2s;
 }
 [data-theme="ocean"] .card:hover {
-  box-shadow: 0 4px 30px rgba(0,119,182,0.12), 0 0 50px rgba(0,180,216,0.06);
+  box-shadow: 0 4px 28px rgba(0,136,204,0.15), inset 0 1px 0 rgba(255,255,255,0.8);
   transform: translateY(-1px);
 }
 

@@ -11,6 +11,7 @@ const ALL_EFFECTS: { id: EffectName; icon: string; name: string }[] = [
   { id: 'embers',       icon: 'bi-fire',           name: 'Embers' },
   { id: 'flames',       icon: 'bi-thermometer-high', name: 'Flames' },
   { id: 'digital-rain', icon: 'bi-terminal',       name: 'Matrix' },
+  { id: 'water',        icon: 'bi-water',           name: 'Water' },
 ]
 
 interface Props {

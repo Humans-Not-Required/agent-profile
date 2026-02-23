@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'embers' | 'digital-rain' | 'flames' | 'none'
+export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'embers' | 'digital-rain' | 'flames' | 'water' | 'none'
 
 interface Props {
   effect: EffectName
@@ -520,6 +520,126 @@ function drawDigitalRain(ctx: CanvasRenderingContext2D, columns: RainColumn[], h
   }
 }
 
+// ── Water caustics + bubbles ──
+
+interface Bubble {
+  x: number; y: number; r: number; speed: number; wobblePhase: number; opacity: number
+}
+
+function initBubbles(count: number, w: number, h: number): Bubble[] {
+  return Array.from({ length: count }, () => ({
+    x: Math.random() * w,
+    y: h + Math.random() * h,
+    r: 1.5 + Math.random() * 4,
+    speed: 0.3 + Math.random() * 0.8,
+    wobblePhase: Math.random() * Math.PI * 2,
+    opacity: 0.15 + Math.random() * 0.35,
+  }))
+}
+
+function drawWater(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  t: number,
+  bubbles: Bubble[],
+  foreground: boolean,
+) {
+  // ── Caustic light network ──
+  if (!foreground) {
+    ctx.save()
+    ctx.globalCompositeOperation = 'lighter'
+
+    // Multiple overlapping sine-based caustic layers
+    const layers = [
+      { freq: 0.008, amp: 18, speed: 0.0004, alpha: 0.07, color: '120,200,255' },
+      { freq: 0.012, amp: 14, speed: -0.0006, alpha: 0.05, color: '80,180,240' },
+      { freq: 0.006, amp: 22, speed: 0.0003, alpha: 0.06, color: '160,220,255' },
+    ]
+
+    for (const layer of layers) {
+      ctx.beginPath()
+      const phase = t * layer.speed
+      // Draw a mesh of curved caustic lines (horizontal)
+      for (let row = 0; row < h + 40; row += 40) {
+        ctx.moveTo(0, row)
+        for (let x = 0; x <= w; x += 8) {
+          const y = row
+            + Math.sin(x * layer.freq + phase) * layer.amp
+            + Math.sin(x * layer.freq * 1.7 + phase * 1.3 + row * 0.01) * layer.amp * 0.6
+          ctx.lineTo(x, y)
+        }
+      }
+      // Vertical caustic lines
+      for (let col = 0; col < w + 40; col += 40) {
+        ctx.moveTo(col, 0)
+        for (let y = 0; y <= h; y += 8) {
+          const x = col
+            + Math.sin(y * layer.freq + phase * 0.8) * layer.amp
+            + Math.sin(y * layer.freq * 1.4 + phase * 1.1 + col * 0.01) * layer.amp * 0.5
+          ctx.lineTo(x, y)
+        }
+      }
+      ctx.strokeStyle = `rgba(${layer.color}, ${layer.alpha})`
+      ctx.lineWidth = 1.5
+      ctx.stroke()
+    }
+
+    // Bright caustic spots where lines would intersect
+    const spotCount = 18
+    for (let i = 0; i < spotCount; i++) {
+      const sx = (Math.sin(t * 0.0002 + i * 1.7) * 0.5 + 0.5) * w
+      const sy = (Math.cos(t * 0.00015 + i * 2.3) * 0.5 + 0.5) * h
+      const sr = 30 + Math.sin(t * 0.001 + i) * 15
+      const spotAlpha = 0.03 + Math.sin(t * 0.0008 + i * 0.9) * 0.02
+      const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr)
+      grad.addColorStop(0, `rgba(180, 230, 255, ${spotAlpha})`)
+      grad.addColorStop(1, 'rgba(180, 230, 255, 0)')
+      ctx.fillStyle = grad
+      ctx.fillRect(sx - sr, sy - sr, sr * 2, sr * 2)
+    }
+
+    ctx.restore()
+  }
+
+  // ── Bubbles ──
+  for (const b of bubbles) {
+    ctx.save()
+    const wobble = Math.sin(t * 0.002 + b.wobblePhase) * 1.5
+
+    // Outer glow
+    const g = ctx.createRadialGradient(b.x + wobble, b.y, b.r * 0.2, b.x + wobble, b.y, b.r)
+    g.addColorStop(0, `rgba(200, 240, 255, ${b.opacity * 0.4})`)
+    g.addColorStop(0.7, `rgba(160, 220, 255, ${b.opacity * 0.15})`)
+    g.addColorStop(1, 'rgba(160, 220, 255, 0)')
+    ctx.fillStyle = g
+    ctx.beginPath()
+    ctx.arc(b.x + wobble, b.y, b.r, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Rim highlight
+    ctx.strokeStyle = `rgba(220, 245, 255, ${b.opacity * 0.5})`
+    ctx.lineWidth = 0.5
+    ctx.stroke()
+
+    // Specular dot
+    ctx.fillStyle = `rgba(255, 255, 255, ${b.opacity * 0.6})`
+    ctx.beginPath()
+    ctx.arc(b.x + wobble - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.2, 0, Math.PI * 2)
+    ctx.fill()
+
+    ctx.restore()
+
+    // Animate
+    b.y -= b.speed
+    b.x += wobble * 0.02
+    if (b.y < -b.r * 2) {
+      b.y = h + b.r * 2 + Math.random() * 40
+      b.x = Math.random() * w
+    }
+  }
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export function ParticleEffect({ effect, enabled, seasonal, foreground = false }: Props) {
@@ -566,15 +686,22 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
       flameParticles = initFlameParticles(flameCount, canvas.width, canvas.height)
     }
 
+    // Water caustics + bubbles
+    let waterBubbles: Bubble[] = []
+    if (activeEffect === 'water') {
+      const bubbleCount = foreground ? 8 : 50
+      waterBubbles = initBubbles(bubbleCount, canvas.width, canvas.height)
+    }
+
     // Background counts — generous for immersion
     const bgCountMap: Record<EffectName, number> = {
       snow: 40, leaves: 100, rain: 250, fireflies: 90, stars: 800, sakura: 80,
-      embers: 140, 'digital-rain': 0, flames: 200, none: 0,
+      embers: 140, 'digital-rain': 0, flames: 200, water: 0, none: 0,
     }
     // Foreground: ~15% of background for subtle depth
     const fgCountMap: Record<EffectName, number> = {
       snow: 6, leaves: 8, rain: 20, fireflies: 6, stars: 0, sakura: 6,
-      embers: 10, 'digital-rain': 0, flames: 15, none: 0,
+      embers: 10, 'digital-rain': 0, flames: 15, water: 0, none: 0,
     }
     const countMap = foreground ? fgCountMap : bgCountMap
     const count = countMap[activeEffect] ?? 80
@@ -640,6 +767,13 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
       if (activeEffect === 'flames') {
         drawFlames(ctx, flameParticles, w, h)
         updateFlames(flameParticles, w, h)
+        rafRef.current = requestAnimationFrame(animate)
+        return
+      }
+
+      // Water caustics + bubbles
+      if (activeEffect === 'water') {
+        drawWater(ctx, w, h, t, waterBubbles, foreground)
         rafRef.current = requestAnimationFrame(animate)
         return
       }
