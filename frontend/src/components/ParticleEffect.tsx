@@ -136,48 +136,61 @@ function drawFirefly(ctx: CanvasRenderingContext2D, p: Particle, t: number) {
   ctx.fill()
 }
 
-// ── Starfield: multi-layer depth, cross twinkle, varied colors ──
+// ── Starfield: parallax drift through space, depth layers, cross twinkle ──
 
 function drawStarfield(ctx: CanvasRenderingContext2D, p: Particle, t: number) {
   const layer = p.layer ?? 0 // 0=far, 1=mid, 2=near
-  const sizeMult = [0.3, 0.6, 1.0][layer]
-  const baseBright = [0.4, 0.65, 1.0][layer]
+  const sizeMult = [0.3, 0.7, 1.2][layer]
+  const baseBright = [0.35, 0.6, 1.0][layer]
 
-  const twinkle = Math.sin((p.phase ?? 0) + t * (0.002 + layer * 0.001)) * 0.35 + 0.65
+  const twinkle = Math.sin((p.phase ?? 0) + t * (0.003 + layer * 0.001)) * 0.3 + 0.7
   const brightness = baseBright * twinkle
   const r = p.size * sizeMult
 
   // Color temperature by color index
   const colors = [
     [220, 230, 255],  // cool white
-    [180, 200, 255],  // blue-white
-    [255, 240, 220],  // warm white
-    [200, 220, 255],  // pale blue
-    [255, 220, 200],  // warm yellow
+    [170, 200, 255],  // blue-white
+    [255, 240, 210],  // warm white
+    [190, 210, 255],  // pale blue
+    [255, 210, 180],  // warm orange
   ]
   const [cr, cg, cb] = colors[p.color ?? 0]
 
-  // Glow halo
+  // Glow halo for mid and near stars
   if (layer >= 1) {
-    const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 4)
-    gradient.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, ${p.opacity * brightness * 0.3})`)
+    const haloR = r * (layer === 2 ? 6 : 4)
+    const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, haloR)
+    gradient.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, ${p.opacity * brightness * 0.25})`)
+    gradient.addColorStop(0.5, `rgba(${cr}, ${cg}, ${cb}, ${p.opacity * brightness * 0.08})`)
     gradient.addColorStop(1, `rgba(${cr}, ${cg}, ${cb}, 0)`)
     ctx.beginPath()
-    ctx.arc(p.x, p.y, r * 4, 0, Math.PI * 2)
+    ctx.arc(p.x, p.y, haloR, 0, Math.PI * 2)
     ctx.fillStyle = gradient
     ctx.fill()
   }
 
-  // Cross spikes on brighter stars
-  if (layer === 2 && twinkle > 0.75) {
-    const spikeLen = r * 3.5 * twinkle
-    ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${p.opacity * brightness * 0.4})`
-    ctx.lineWidth = 0.5
+  // Cross/diamond spikes on near stars when bright
+  if (layer === 2 && twinkle > 0.7) {
+    const spikeLen = r * 4 * twinkle
+    const spikeOp = p.opacity * brightness * 0.35
+    ctx.strokeStyle = `rgba(${cr}, ${cg}, ${cb}, ${spikeOp})`
+    ctx.lineWidth = 0.6
+    // Horizontal + vertical cross
     ctx.beginPath()
     ctx.moveTo(p.x - spikeLen, p.y)
     ctx.lineTo(p.x + spikeLen, p.y)
     ctx.moveTo(p.x, p.y - spikeLen)
     ctx.lineTo(p.x, p.y + spikeLen)
+    ctx.stroke()
+    // Diagonal cross (smaller)
+    const diagLen = spikeLen * 0.5
+    ctx.lineWidth = 0.4
+    ctx.beginPath()
+    ctx.moveTo(p.x - diagLen, p.y - diagLen)
+    ctx.lineTo(p.x + diagLen, p.y + diagLen)
+    ctx.moveTo(p.x + diagLen, p.y - diagLen)
+    ctx.lineTo(p.x - diagLen, p.y + diagLen)
     ctx.stroke()
   }
 
@@ -255,49 +268,98 @@ function drawEmber(ctx: CanvasRenderingContext2D, p: Particle, t: number) {
   ctx.fill()
 }
 
-// ── Flames: rising fire tongues from bottom edge ──
+// ── Flames: bezier tongue shapes rising from bottom with base glow ──
 
-function drawFlameParticle(ctx: CanvasRenderingContext2D, p: Particle, t: number, h: number) {
-  // How far from bottom (0 = at bottom, 1 = risen fully)
-  const rise = 1 - (p.y / h)
-  const life = Math.max(0, Math.min(1, rise))
+function drawFlames(ctx: CanvasRenderingContext2D, particles: Particle[], t: number, w: number, h: number) {
+  // 1) Base glow along the bottom — warm ambient light
+  const baseH = h * 0.15
+  const baseGrad = ctx.createLinearGradient(0, h, 0, h - baseH)
+  const pulse = Math.sin(t * 0.02) * 0.05 + 0.95
+  baseGrad.addColorStop(0, `rgba(255, 120, 0, ${0.25 * pulse})`)
+  baseGrad.addColorStop(0.3, `rgba(255, 60, 0, ${0.12 * pulse})`)
+  baseGrad.addColorStop(0.7, `rgba(180, 20, 0, ${0.04 * pulse})`)
+  baseGrad.addColorStop(1, 'rgba(100, 0, 0, 0)')
+  ctx.fillStyle = baseGrad
+  ctx.fillRect(0, h - baseH, w, baseH)
 
-  // Flame color shifts: white-yellow at base → orange → red → transparent at top
-  const flicker = Math.sin((p.phase ?? 0) + t * 0.008) * 0.2 + 0.8
-  const r = p.size * (1.2 - life * 0.8) * flicker
+  // 2) Draw each flame tongue as a bezier shape
+  for (const p of particles) {
+    const life = (h - p.y) / (h * 0.6)  // 0=bottom, 1=risen 60% of screen
+    if (life < 0 || life > 1) continue
 
-  // Wobble horizontally as it rises
-  const wobble = Math.sin((p.phase ?? 0) * 2 + t * 0.012 + p.y * 0.01) * (8 + p.size * 2)
-  const drawX = p.x + wobble
+    const flicker = Math.sin((p.phase ?? 0) + t * 0.01) * 0.15 + 0.85
+    const wobble = Math.sin((p.phase ?? 0) * 1.7 + t * 0.008) * (12 + p.size * 3)
 
-  const fadeOpacity = p.opacity * (1 - life * life) * flicker
+    // Tongue width narrows as it rises
+    const tongueW = (p.size * 3 + 8) * (1 - life * 0.7) * flicker
+    // Tongue height from its base position
+    const tongueH = (p.size * 12 + 40) * flicker
 
-  if (fadeOpacity < 0.02) return
+    const cx = p.x + wobble
+    const baseY = p.y + tongueH * 0.5  // bottom of tongue
+    const tipY = p.y - tongueH * 0.5   // top tip
 
-  const gradient = ctx.createRadialGradient(drawX, p.y, 0, drawX, p.y, r * 5)
+    // Opacity: bright at base, fades at tip
+    const fadeOp = p.opacity * (1 - life * life) * flicker
+    if (fadeOp < 0.01) continue
 
-  if (life < 0.25) {
-    // Base: bright white-yellow core
-    gradient.addColorStop(0, `rgba(255, 255, 220, ${fadeOpacity})`)
-    gradient.addColorStop(0.3, `rgba(255, 220, 80, ${fadeOpacity * 0.8})`)
-    gradient.addColorStop(0.7, `rgba(255, 140, 20, ${fadeOpacity * 0.5})`)
-    gradient.addColorStop(1, 'rgba(200, 60, 0, 0)')
-  } else if (life < 0.6) {
-    // Mid: orange
-    gradient.addColorStop(0, `rgba(255, 180, 40, ${fadeOpacity * 0.9})`)
-    gradient.addColorStop(0.4, `rgba(255, 100, 20, ${fadeOpacity * 0.6})`)
-    gradient.addColorStop(1, 'rgba(180, 30, 0, 0)')
-  } else {
-    // Top: red fading
-    gradient.addColorStop(0, `rgba(200, 60, 10, ${fadeOpacity * 0.6})`)
-    gradient.addColorStop(0.5, `rgba(120, 20, 0, ${fadeOpacity * 0.3})`)
-    gradient.addColorStop(1, 'rgba(60, 0, 0, 0)')
+    ctx.save()
+
+    // Draw tongue shape with bezier curves
+    ctx.beginPath()
+    ctx.moveTo(cx, baseY)
+    // Left edge curves out then in to tip
+    ctx.bezierCurveTo(
+      cx - tongueW * 0.8, baseY - tongueH * 0.2,
+      cx - tongueW * 0.5, tipY + tongueH * 0.3,
+      cx + wobble * 0.1, tipY
+    )
+    // Right edge mirrors back
+    ctx.bezierCurveTo(
+      cx + tongueW * 0.5, tipY + tongueH * 0.3,
+      cx + tongueW * 0.8, baseY - tongueH * 0.2,
+      cx, baseY
+    )
+
+    // Vertical gradient per tongue: yellow-white base → orange mid → red tip
+    const tongueGrad = ctx.createLinearGradient(cx, baseY, cx, tipY)
+    tongueGrad.addColorStop(0, `rgba(255, 240, 160, ${fadeOp * 0.9})`)
+    tongueGrad.addColorStop(0.15, `rgba(255, 200, 60, ${fadeOp * 0.85})`)
+    tongueGrad.addColorStop(0.4, `rgba(255, 120, 10, ${fadeOp * 0.7})`)
+    tongueGrad.addColorStop(0.7, `rgba(220, 50, 0, ${fadeOp * 0.4})`)
+    tongueGrad.addColorStop(1, `rgba(120, 10, 0, ${fadeOp * 0.05})`)
+
+    ctx.fillStyle = tongueGrad
+    ctx.fill()
+
+    // Inner bright core — narrower, brighter
+    if (p.size > 3) {
+      ctx.beginPath()
+      const coreW = tongueW * 0.3
+      const coreH = tongueH * 0.6
+      const coreBase = baseY
+      const coreTip = baseY - coreH
+      ctx.moveTo(cx, coreBase)
+      ctx.bezierCurveTo(
+        cx - coreW, coreBase - coreH * 0.3,
+        cx - coreW * 0.5, coreTip + coreH * 0.2,
+        cx, coreTip
+      )
+      ctx.bezierCurveTo(
+        cx + coreW * 0.5, coreTip + coreH * 0.2,
+        cx + coreW, coreBase - coreH * 0.3,
+        cx, coreBase
+      )
+      const coreGrad = ctx.createLinearGradient(cx, coreBase, cx, coreTip)
+      coreGrad.addColorStop(0, `rgba(255, 255, 240, ${fadeOp * 0.6})`)
+      coreGrad.addColorStop(0.5, `rgba(255, 230, 120, ${fadeOp * 0.3})`)
+      coreGrad.addColorStop(1, 'rgba(255, 180, 60, 0)')
+      ctx.fillStyle = coreGrad
+      ctx.fill()
+    }
+
+    ctx.restore()
   }
-
-  ctx.beginPath()
-  ctx.arc(drawX, p.y, r * 5, 0, Math.PI * 2)
-  ctx.fillStyle = gradient
-  ctx.fill()
 }
 
 // ── Digital rain (Matrix) helpers ──
@@ -431,13 +493,15 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
         p.vr = (Math.random() - 0.5) * 0.008  // slow rotation
       }
     } else if (activeEffect === 'stars') {
-      // Starfield: distribute across depth layers with appropriate sizes
+      // Starfield: depth layers with parallax drift (flying through space)
       for (const p of particles) {
         const layer = p.layer ?? 0
         p.size = [1.0, 1.8, 3.0][layer] + Math.random() * [0.5, 1.0, 2.0][layer]
         p.opacity = [0.3, 0.55, 0.85][layer] + Math.random() * 0.15
-        p.vx = 0
-        p.vy = 0
+        // Slow downward drift — far stars barely move, near stars drift faster
+        const speed = [0.03, 0.12, 0.35][layer]
+        p.vx = (Math.random() - 0.5) * speed * 0.3  // very slight horizontal
+        p.vy = speed + Math.random() * speed * 0.5   // mostly downward
       }
     } else if (activeEffect === 'sakura') {
       for (const p of particles) {
@@ -447,14 +511,13 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
         p.vr = (Math.random() - 0.5) * 0.015 // slow tumble
       }
     } else if (activeEffect === 'flames') {
-      // Flames rise from bottom
+      // Flame tongues — spread across bottom, staggered heights
       for (const p of particles) {
-        p.y = canvas.height - Math.random() * canvas.height * 0.15  // start near bottom
         p.x = Math.random() * canvas.width
-        p.vy = -(Math.random() * 1.5 + 0.5)  // rise up
-        p.vx = 0
-        p.size = Math.random() * 4 + 2
-        p.opacity = Math.random() * 0.5 + 0.5
+        p.y = canvas.height - Math.random() * canvas.height * 0.08  // near bottom
+        p.vy = -(Math.random() * 0.4 + 0.15)  // slow rise
+        p.size = Math.random() * 5 + 2
+        p.opacity = Math.random() * 0.4 + 0.4
       }
     }
 
@@ -463,8 +526,31 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       t++
 
+      const w = canvas.width
+      const h = canvas.height
+
       if (activeEffect === 'digital-rain') {
-        drawDigitalRain(ctx, rainColumns, canvas.height, t)
+        drawDigitalRain(ctx, rainColumns, h, t)
+        rafRef.current = requestAnimationFrame(animate)
+        return
+      }
+
+      // Flames use a batch draw (base glow + tongues together)
+      if (activeEffect === 'flames') {
+        drawFlames(ctx, particles, t, w, h)
+        // Move flame particles
+        for (const p of particles) {
+          p.y += p.vy
+          if (p.y < h * 0.3) {
+            // Reset when risen too high
+            p.y = h - Math.random() * h * 0.05
+            p.x = Math.random() * w
+            p.vy = -(Math.random() * 0.4 + 0.15)
+            p.opacity = Math.random() * 0.4 + 0.4
+            p.phase = Math.random() * Math.PI * 2
+            p.size = Math.random() * 5 + 2
+          }
+        }
         rafRef.current = requestAnimationFrame(animate)
         return
       }
@@ -474,23 +560,25 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
         switch (activeEffect) {
           case 'snow':      drawSnowflake(ctx, p); break
           case 'leaves':    drawLeaf(ctx, p); break
-          case 'rain':      drawRain(ctx, p, canvas.width); break
+          case 'rain':      drawRain(ctx, p, w); break
           case 'fireflies': drawFirefly(ctx, p, t); break
           case 'stars':     drawStarfield(ctx, p, t); break
           case 'sakura':    drawSakuraPetal(ctx, p); break
           case 'embers':    drawEmber(ctx, p, t); break
-          case 'flames':    drawFlameParticle(ctx, p, t, canvas.height); break
         }
 
         // Move
-        const w = canvas.width
-        const h = canvas.height
-
         if (activeEffect === 'fireflies') {
           p.x += Math.sin((p.phase ?? 0) + t * 0.01) * 0.5
           p.y += Math.sin((p.phase ?? 0) * 1.3 + t * 0.008) * 0.4
         } else if (activeEffect === 'stars') {
-          // Stars don't move — pure twinkle
+          // Parallax drift — slow travel through space
+          p.x += p.vx
+          p.y += p.vy
+          // Wrap with seamless re-entry
+          if (p.y > h + 10)  { p.y = -10; p.x = Math.random() * w }
+          if (p.x > w + 10)  p.x = -10
+          if (p.x < -10)     p.x = w + 10
         } else if (activeEffect === 'rain') {
           p.x += 1.5
           p.y += 12
@@ -503,25 +591,14 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
             p.y = h + 10
             p.x = Math.random() * w
           }
-        } else if (activeEffect === 'flames') {
-          p.y += p.vy
-          // Reset when risen off top or faded
-          if (p.y < -50) {
-            p.y = h - Math.random() * h * 0.1
-            p.x = Math.random() * w
-            p.vy = -(Math.random() * 1.5 + 0.5)
-            p.opacity = Math.random() * 0.5 + 0.5
-            p.phase = Math.random() * Math.PI * 2
-            p.size = Math.random() * 4 + 2
-          }
         } else {
           p.x += p.vx
           p.y += p.vy
           if (p.rotation !== undefined && p.vr !== undefined) p.rotation += p.vr
         }
 
-        // Wrap (except flames/stars which handle their own lifecycle)
-        if (activeEffect !== 'flames' && activeEffect !== 'stars') {
+        // Wrap (stars/embers handle their own)
+        if (activeEffect !== 'stars' && activeEffect !== 'embers') {
           if (p.y > h + 20) p.y = -20
           if (p.y < -20)    p.y = h + 20
           if (p.x > w + 20) p.x = -20
