@@ -453,7 +453,7 @@ function initRainColumns(w: number, h: number, layer: 'bg' | 'fg' = 'bg'): RainC
       speed: Math.random() * 3 + 2.5,   // faster (closer = faster)
       length: Math.floor(Math.random() * 8) + 5,
       charSize,
-      opacity: 0.4,   // softer so they don't dominate
+      opacity: 0.9,   // bright — closer = more vivid
     })
   }
 
@@ -470,7 +470,7 @@ function initRainColumns(w: number, h: number, layer: 'bg' | 'fg' = 'bg'): RainC
       speed: Math.random() * 4 + 4,     // fastest (very close)
       length: Math.floor(Math.random() * 5) + 3,  // shorter trails
       charSize,
-      opacity: 0.18,  // very faint — ghostly
+      opacity: 0.6,   // large + bright — dramatic close-up
     })
   }
 
@@ -584,7 +584,7 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
     if (foreground) {
       for (const p of particles) {
         p.size *= 1.5
-        p.opacity = Math.min(1, p.opacity * 0.6)  // softer so they don't dominate
+        p.opacity = Math.min(1, p.opacity * 1.2)  // brighter — closer = more vivid
       }
     }
 
