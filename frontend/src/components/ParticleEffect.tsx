@@ -971,7 +971,7 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
     }
     // Foreground: ~15% of background for subtle depth
     const fgCountMap: Record<EffectName, number> = {
-      snow: 6, leaves: 8, rain: 20, fireflies: 6, stars: 0, sakura: 6,
+      snow: 6, leaves: 1, rain: 20, fireflies: 6, stars: 0, sakura: 6,
       embers: 10, 'digital-rain': 0, flames: 15, water: 0, boba: 0, none: 0,
     }
     const countMap = foreground ? fgCountMap : bgCountMap
@@ -981,8 +981,20 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
     // Foreground particles: larger + slightly more opaque for depth
     if (foreground) {
       for (const p of particles) {
-        p.size *= 1.5
-        p.opacity = Math.min(1, p.opacity * 1.2)  // brighter — closer = more vivid
+        if (activeEffect === 'leaves') {
+          // Very rare giant leaf — like matrix extreme close-ups
+          // 85% chance it doesn't even appear; when it does, it's huge
+          if (Math.random() < 0.85) {
+            p.opacity = 0  // invisible — effectively skip
+          } else {
+            p.size *= 4           // very large
+            p.opacity = 0.9       // bold
+            p.speed *= 0.4        // slow drift
+          }
+        } else {
+          p.size *= 1.5
+          p.opacity = Math.min(1, p.opacity * 1.2)
+        }
       }
     }
 
