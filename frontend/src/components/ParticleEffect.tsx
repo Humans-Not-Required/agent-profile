@@ -421,10 +421,10 @@ interface RainColumn {
 
 function initRainColumns(w: number, h: number, layer: 'bg' | 'fg' = 'bg'): RainColumn[] {
   if (layer === 'bg') {
-    // Background: varied depth columns — size drives speed & opacity
+    // Background: dense grid with varied depth — size drives speed & opacity
     // depth 0 = far (small, slow, dim), depth 1 = near (larger, faster, bright)
-    const baseSize = 14
-    const cols = Math.floor(w / (baseSize * 0.85))
+    const spacing = 11                                    // tight spacing for full coverage
+    const cols = Math.ceil(w / spacing) + 1
     return Array.from({ length: cols }, (_, i) => {
       const depth = Math.random()                         // 0=far, 1=near
       const charSize = Math.round(10 + depth * 8)         // 10–18px
@@ -432,7 +432,7 @@ function initRainColumns(w: number, h: number, layer: 'bg' | 'fg' = 'bg'): RainC
       const speed = baseSpeed + (Math.random() - 0.5) * 1.2  // ±0.6 randomness
       const opacity = 0.3 + depth * 0.6                   // 0.3–0.9
       return {
-        x: i * (baseSize * 0.85) + baseSize * 0.4,
+        x: i * spacing,
         chars: Array.from({ length: Math.floor(h / charSize) + 10 }, () =>
           MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)]
         ),
@@ -479,7 +479,7 @@ function initRainColumns(w: number, h: number, layer: 'bg' | 'fg' = 'bg'): RainC
       speed: 5 + Math.random() * 4,                       // 5–9, fastest
       length: Math.floor(Math.random() * 5) + 3,
       charSize,
-      opacity: 0.6,
+      opacity: 0.95,                                       // almost opaque — right in your face
     })
   }
 
