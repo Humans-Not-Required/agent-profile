@@ -466,8 +466,8 @@ function initRainColumns(w: number, h: number, layer: 'bg' | 'fg' = 'bg'): RainC
     })
   }
 
-  // Extreme close-up columns: 1-2 very rare, very large (48-72px), fastest
-  const extremeCount = Math.random() < 0.6 ? 1 : 2
+  // Extreme close-up columns: very rare — 85% chance of 0, 15% chance of 1
+  const extremeCount = Math.random() < 0.15 ? 1 : 0
   for (let i = 0; i < extremeCount; i++) {
     const charSize = 48 + Math.random() * 24
     fgColumns.push({
@@ -486,7 +486,7 @@ function initRainColumns(w: number, h: number, layer: 'bg' | 'fg' = 'bg'): RainC
   return fgColumns
 }
 
-function drawDigitalRain(ctx: CanvasRenderingContext2D, columns: RainColumn[], h: number, _t: number) {
+function drawDigitalRain(ctx: CanvasRenderingContext2D, columns: RainColumn[], w: number, h: number, _t: number) {
   for (const col of columns) {
     const headY = col.y
     for (let i = 0; i < col.length; i++) {
@@ -514,17 +514,21 @@ function drawDigitalRain(ctx: CanvasRenderingContext2D, columns: RainColumn[], h
 
     col.y += col.speed
     if (col.y - col.length * col.charSize > h) {
-      col.y = -col.length * col.charSize * Math.random()
       // Respawn with speed proportional to size (closer = faster) + randomness
       if (col.charSize > 40) {
+        // Extreme: very long off-screen delay before next appearance
+        col.y = -(h * (8 + Math.random() * 15))       // 8–23 screen-heights above
+        col.x = Math.random() * w                     // new random x position
         col.speed = 5 + Math.random() * 4             // extreme: 5–9
       } else if (col.charSize > 20) {
+        col.y = -col.length * col.charSize * Math.random()
         col.speed = 3.5 + Math.random() * 2.5         // foreground: 3.5–6
       } else {
         // Background: depth-based — larger chars faster
         const depth = (col.charSize - 10) / 8          // 0–1 from charSize 10–18
         const base = 0.6 + depth * 2.4
         col.speed = Math.max(0.3, base + (Math.random() - 0.5) * 1.2)
+        col.y = -col.length * col.charSize * Math.random()
       }
       col.length = col.charSize > 40
         ? Math.floor(Math.random() * 5) + 3
@@ -765,7 +769,7 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
       const h = canvas.height
 
       if (activeEffect === 'digital-rain') {
-        drawDigitalRain(ctx, rainColumns, h, t)
+        drawDigitalRain(ctx, rainColumns, w, h, t)
         rafRef.current = requestAnimationFrame(animate)
         return
       }
