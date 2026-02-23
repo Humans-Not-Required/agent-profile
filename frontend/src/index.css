@@ -95,10 +95,10 @@
 /* ── Cinematic Themes ── */
 
 [data-theme="terminator"] {
-  --bg: #06080c; --card: #30363f; --border: #5a6070;
-  --text: #d0d6e0; --text-muted: #8a94a8; --text-bright: #eef0f4;
-  --accent: #ff1020; --accent2: #4488cc; --tag-bg: #282e38;
-  --tag-border: #4a5060;
+  --bg: #06080c; --card: #6a7380; --border: #78828e;
+  --text: #1a1e24; --text-muted: #3a3f48; --text-bright: #0a0c10;
+  --accent: #cc0018; --accent2: #2266aa; --tag-bg: #585f6c;
+  --tag-border: #8a929e;
 }
 
 [data-theme="matrix"] {
@@ -556,43 +556,50 @@
   border-color: #78828e #484f5a #3a4048 #687078 !important;
   border-radius: 4px !important;
   box-shadow:
+    /* outer depth */
     0 4px 30px rgba(0,0,0,0.8),
     0 0 40px rgba(255,16,32,0.03),
-    inset 0 1px 0 rgba(220,230,245,0.35),
-    inset 0 -1px 0 rgba(0,0,0,0.5),
-    inset 2px 0 0 rgba(200,210,225,0.1),
-    inset -2px 0 0 rgba(0,0,0,0.15);
+    /* inner bevel — top bright, bottom dark = lit from above */
+    inset 0 2px 0 rgba(220,230,245,0.4),
+    inset 0 -2px 0 rgba(0,0,0,0.5),
+    inset 2px 0 0 rgba(200,210,225,0.12),
+    inset -2px 0 0 rgba(0,0,0,0.18),
+    /* deep inner shadow for recessed plate feel */
+    inset 0 0 30px rgba(0,0,0,0.15);
   background:
-    /* diagonal metallic sheen — broad reflective highlight */
-    linear-gradient(125deg,
-      rgba(255,255,255,0) 0%,
-      rgba(200,210,225,0.06) 20%,
-      rgba(220,230,245,0.14) 42%,
-      rgba(255,255,255,0.18) 50%,
-      rgba(220,230,245,0.14) 58%,
-      rgba(200,210,225,0.06) 80%,
-      rgba(255,255,255,0) 100%
-    ),
-    /* horizontal brushed texture — visible fine striations */
+    /* ── Simurai technique: 3 repeating-gradients at different lengths ── */
+    /* Layer 1: wide light streaks (7.5% repeat ≈ every ~54px) */
     repeating-linear-gradient(90deg,
-      rgba(180,195,215,0.10) 0px,
-      rgba(80,90,105,0.06) 1px,
-      rgba(160,175,195,0.12) 2px,
-      rgba(100,110,125,0.04) 3px,
-      rgba(190,200,218,0.11) 4px,
-      rgba(110,120,135,0.05) 5px,
-      rgba(170,185,205,0.10) 6px
+      rgba(255,255,255,0) 0%,
+      rgba(255,255,255,0) 6%,
+      rgba(255,255,255,0.10) 7.5%
     ),
-    /* secondary vertical micro-grain for cross-hatch feel */
-    repeating-linear-gradient(180deg,
-      rgba(150,165,185,0.04) 0px,
-      transparent 1px,
-      rgba(130,145,165,0.03) 2px,
-      transparent 3px
+    /* Layer 2: medium dark grooves (4.5% repeat ≈ every ~32px) */
+    repeating-linear-gradient(90deg,
+      transparent 0%,
+      transparent 4%,
+      rgba(0,0,0,0.06) 4.5%
     ),
-    /* base plate color — fully opaque steel */
-    linear-gradient(180deg, #454d5c 0%, #3a4250 25%, #333b48 50%, #2e3540 75%, #282f38 100%) !important;
-  background-color: #333b48 !important;
+    /* Layer 3: fine bright highlights (2.2% repeat ≈ every ~16px) */
+    repeating-linear-gradient(90deg,
+      rgba(255,255,255,0) 0%,
+      rgba(255,255,255,0) 1.2%,
+      rgba(255,255,255,0.12) 2.2%
+    ),
+    /* ── Metallic sheen: multi-stop gradient for reflective band ── */
+    linear-gradient(180deg,
+      #5a6270 0%,
+      #8a929e 8%,
+      #a0a8b4 15%,
+      #78818e 25%,
+      #6a7380 40%,
+      #8a929e 50%,
+      #6a7380 60%,
+      #78818e 75%,
+      #a0a8b4 88%,
+      #5a6270 100%
+    ) !important;
+  background-color: #6a7380 !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   opacity: 1 !important;
@@ -606,61 +613,64 @@
   pointer-events: none;
   z-index: 1;
   background:
-    /* ── Top row rivets ── */
-    radial-gradient(circle 4px at 24px 14px,
-      rgba(180,190,205,0.5) 0%, rgba(140,150,165,0.3) 40%, rgba(60,68,80,0.5) 60%, transparent 70%),
-    radial-gradient(circle 4px at 64px 14px,
-      rgba(180,190,205,0.5) 0%, rgba(140,150,165,0.3) 40%, rgba(60,68,80,0.5) 60%, transparent 70%),
-    radial-gradient(circle 4px at 104px 14px,
-      rgba(180,190,205,0.5) 0%, rgba(140,150,165,0.3) 40%, rgba(60,68,80,0.5) 60%, transparent 70%),
-    radial-gradient(circle 4px at calc(100% - 24px) 14px,
-      rgba(180,190,205,0.5) 0%, rgba(140,150,165,0.3) 40%, rgba(60,68,80,0.5) 60%, transparent 70%),
-    radial-gradient(circle 4px at calc(100% - 64px) 14px,
-      rgba(180,190,205,0.5) 0%, rgba(140,150,165,0.3) 40%, rgba(60,68,80,0.5) 60%, transparent 70%),
-    radial-gradient(circle 4px at calc(100% - 104px) 14px,
-      rgba(180,190,205,0.5) 0%, rgba(140,150,165,0.3) 40%, rgba(60,68,80,0.5) 60%, transparent 70%),
+    /* ── Top row rivets — raised bolt look ── */
+    radial-gradient(circle 5px at 20px 16px,
+      rgba(210,215,225,0.7) 0%, rgba(160,168,180,0.5) 35%, rgba(80,88,100,0.6) 55%, rgba(40,44,52,0.3) 70%, transparent 75%),
+    radial-gradient(circle 5px at 60px 16px,
+      rgba(210,215,225,0.7) 0%, rgba(160,168,180,0.5) 35%, rgba(80,88,100,0.6) 55%, rgba(40,44,52,0.3) 70%, transparent 75%),
+    radial-gradient(circle 5px at calc(50% - 20px) 16px,
+      rgba(210,215,225,0.7) 0%, rgba(160,168,180,0.5) 35%, rgba(80,88,100,0.6) 55%, rgba(40,44,52,0.3) 70%, transparent 75%),
+    radial-gradient(circle 5px at calc(50% + 20px) 16px,
+      rgba(210,215,225,0.7) 0%, rgba(160,168,180,0.5) 35%, rgba(80,88,100,0.6) 55%, rgba(40,44,52,0.3) 70%, transparent 75%),
+    radial-gradient(circle 5px at calc(100% - 60px) 16px,
+      rgba(210,215,225,0.7) 0%, rgba(160,168,180,0.5) 35%, rgba(80,88,100,0.6) 55%, rgba(40,44,52,0.3) 70%, transparent 75%),
+    radial-gradient(circle 5px at calc(100% - 20px) 16px,
+      rgba(210,215,225,0.7) 0%, rgba(160,168,180,0.5) 35%, rgba(80,88,100,0.6) 55%, rgba(40,44,52,0.3) 70%, transparent 75%),
     /* ── Bottom row rivets ── */
-    radial-gradient(circle 4px at 24px calc(100% - 14px),
-      rgba(180,190,205,0.5) 0%, rgba(140,150,165,0.3) 40%, rgba(60,68,80,0.5) 60%, transparent 70%),
-    radial-gradient(circle 4px at 64px calc(100% - 14px),
-      rgba(180,190,205,0.5) 0%, rgba(140,150,165,0.3) 40%, rgba(60,68,80,0.5) 60%, transparent 70%),
-    radial-gradient(circle 4px at 104px calc(100% - 14px),
-      rgba(180,190,205,0.5) 0%, rgba(140,150,165,0.3) 40%, rgba(60,68,80,0.5) 60%, transparent 70%),
-    radial-gradient(circle 4px at calc(100% - 24px) calc(100% - 14px),
-      rgba(180,190,205,0.5) 0%, rgba(140,150,165,0.3) 40%, rgba(60,68,80,0.5) 60%, transparent 70%),
-    radial-gradient(circle 4px at calc(100% - 64px) calc(100% - 14px),
-      rgba(180,190,205,0.5) 0%, rgba(140,150,165,0.3) 40%, rgba(60,68,80,0.5) 60%, transparent 70%),
-    radial-gradient(circle 4px at calc(100% - 104px) calc(100% - 14px),
-      rgba(180,190,205,0.5) 0%, rgba(140,150,165,0.3) 40%, rgba(60,68,80,0.5) 60%, transparent 70%);
+    radial-gradient(circle 5px at 20px calc(100% - 16px),
+      rgba(210,215,225,0.7) 0%, rgba(160,168,180,0.5) 35%, rgba(80,88,100,0.6) 55%, rgba(40,44,52,0.3) 70%, transparent 75%),
+    radial-gradient(circle 5px at 60px calc(100% - 16px),
+      rgba(210,215,225,0.7) 0%, rgba(160,168,180,0.5) 35%, rgba(80,88,100,0.6) 55%, rgba(40,44,52,0.3) 70%, transparent 75%),
+    radial-gradient(circle 5px at calc(50% - 20px) calc(100% - 16px),
+      rgba(210,215,225,0.7) 0%, rgba(160,168,180,0.5) 35%, rgba(80,88,100,0.6) 55%, rgba(40,44,52,0.3) 70%, transparent 75%),
+    radial-gradient(circle 5px at calc(50% + 20px) calc(100% - 16px),
+      rgba(210,215,225,0.7) 0%, rgba(160,168,180,0.5) 35%, rgba(80,88,100,0.6) 55%, rgba(40,44,52,0.3) 70%, transparent 75%),
+    radial-gradient(circle 5px at calc(100% - 60px) calc(100% - 16px),
+      rgba(210,215,225,0.7) 0%, rgba(160,168,180,0.5) 35%, rgba(80,88,100,0.6) 55%, rgba(40,44,52,0.3) 70%, transparent 75%),
+    radial-gradient(circle 5px at calc(100% - 20px) calc(100% - 16px),
+      rgba(210,215,225,0.7) 0%, rgba(160,168,180,0.5) 35%, rgba(80,88,100,0.6) 55%, rgba(40,44,52,0.3) 70%, transparent 75%);
 }
 [data-theme="terminator"] .card:hover {
   box-shadow:
     0 4px 30px rgba(0,0,0,0.8),
     0 0 50px rgba(255,16,32,0.06),
-    inset 0 1px 0 rgba(220,230,245,0.45),
-    inset 0 -1px 0 rgba(0,0,0,0.5),
-    inset 2px 0 0 rgba(200,210,225,0.15),
-    inset -2px 0 0 rgba(0,0,0,0.2);
+    inset 0 2px 0 rgba(220,230,245,0.5),
+    inset 0 -2px 0 rgba(0,0,0,0.5),
+    inset 2px 0 0 rgba(200,210,225,0.18),
+    inset -2px 0 0 rgba(0,0,0,0.22),
+    inset 0 0 30px rgba(0,0,0,0.1);
 }
 [data-theme="terminator"] .profile-name {
-  text-shadow: 0 0 20px rgba(255,16,32,0.3), 0 0 40px rgba(255,16,32,0.1);
-  color: #e0e8f0;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.3), 0 0 15px rgba(255,16,32,0.25);
+  color: #0e1014;
 }
 [data-theme="terminator"] .section-title {
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: #4488cc;
-  text-shadow: 0 0 10px rgba(68,136,204,0.3);
+  color: #1a2030;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.25);
   padding-top: 0.8rem;
-  border-top: 1px solid rgba(120,135,155,0.3);
-  box-shadow: 0 -1px 0 rgba(0,0,0,0.4);
+  border-top: 1px solid rgba(200,210,225,0.4);
+  box-shadow: 0 -1px 0 rgba(0,0,0,0.3);
 }
 [data-theme="terminator"] .badge {
-  border-color: rgba(255,16,32,0.3);
+  border-color: rgba(0,0,0,0.2);
+  background: rgba(0,0,0,0.08);
+  color: #1a1e24;
 }
 [data-theme="terminator"] .profile-tagline {
-  color: #ff1020;
-  text-shadow: 0 0 12px rgba(255,16,32,0.25);
+  color: #cc0018;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.2);
 }
 
 /* Matrix — CRT phosphor glow, monospace everything */
