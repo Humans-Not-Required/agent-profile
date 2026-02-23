@@ -421,43 +421,52 @@ interface RainColumn {
 
 function initRainColumns(w: number, h: number, layer: 'bg' | 'fg' = 'bg'): RainColumn[] {
   if (layer === 'bg') {
-    // Background: normal dense grid of columns
-    const charSize = 14
-    const cols = Math.floor(w / (charSize * 0.85))
-    return Array.from({ length: cols }, (_, i) => ({
-      x: i * (charSize * 0.85) + charSize * 0.4,
-      chars: Array.from({ length: Math.floor(h / charSize) + 10 }, () =>
-        MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)]
-      ),
-      y: Math.random() * h * 2 - h,
-      speed: Math.random() * 2 + 1.5,
-      length: Math.floor(Math.random() * 12) + 8,
-      charSize,
-      opacity: 0.8,
-    }))
+    // Background: varied depth columns — size drives speed & opacity
+    // depth 0 = far (small, slow, dim), depth 1 = near (larger, faster, bright)
+    const baseSize = 14
+    const cols = Math.floor(w / (baseSize * 0.85))
+    return Array.from({ length: cols }, (_, i) => {
+      const depth = Math.random()                         // 0=far, 1=near
+      const charSize = Math.round(10 + depth * 8)         // 10–18px
+      const baseSpeed = 0.6 + depth * 2.4                 // 0.6–3.0 base
+      const speed = baseSpeed + (Math.random() - 0.5) * 1.2  // ±0.6 randomness
+      const opacity = 0.3 + depth * 0.6                   // 0.3–0.9
+      return {
+        x: i * (baseSize * 0.85) + baseSize * 0.4,
+        chars: Array.from({ length: Math.floor(h / charSize) + 10 }, () =>
+          MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)]
+        ),
+        y: Math.random() * h * 2 - h,
+        speed: Math.max(0.3, speed),
+        length: Math.floor(Math.random() * 12) + 8,
+        charSize,
+        opacity,
+      }
+    })
   }
 
   // Foreground: sparse, larger columns at random positions
   const fgColumns: RainColumn[] = []
 
-  // Regular foreground columns: ~8-12, slightly larger (22-28px), semi-transparent
+  // Regular foreground columns: ~8-12, larger (22-28px), bright
   const fgCount = 8 + Math.floor(Math.random() * 5)
   for (let i = 0; i < fgCount; i++) {
     const charSize = 22 + Math.random() * 6
+    const baseSpeed = 3.5 + Math.random() * 2.5           // 3.5–6.0
     fgColumns.push({
       x: Math.random() * w,
       chars: Array.from({ length: Math.floor(h / charSize) + 10 }, () =>
         MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)]
       ),
       y: Math.random() * h * 2 - h,
-      speed: Math.random() * 3 + 2.5,   // faster (closer = faster)
+      speed: baseSpeed,
       length: Math.floor(Math.random() * 8) + 5,
       charSize,
-      opacity: 0.9,   // bright — closer = more vivid
+      opacity: 0.9,
     })
   }
 
-  // Extreme close-up columns: 1-2 very rare, very large (48-72px)
+  // Extreme close-up columns: 1-2 very rare, very large (48-72px), fastest
   const extremeCount = Math.random() < 0.6 ? 1 : 2
   for (let i = 0; i < extremeCount; i++) {
     const charSize = 48 + Math.random() * 24
@@ -467,10 +476,10 @@ function initRainColumns(w: number, h: number, layer: 'bg' | 'fg' = 'bg'): RainC
         MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)]
       ),
       y: Math.random() * h * 2 - h,
-      speed: Math.random() * 4 + 4,     // fastest (very close)
-      length: Math.floor(Math.random() * 5) + 3,  // shorter trails
+      speed: 5 + Math.random() * 4,                       // 5–9, fastest
+      length: Math.floor(Math.random() * 5) + 3,
       charSize,
-      opacity: 0.6,   // large + bright — dramatic close-up
+      opacity: 0.6,
     })
   }
 
@@ -506,11 +515,17 @@ function drawDigitalRain(ctx: CanvasRenderingContext2D, columns: RainColumn[], h
     col.y += col.speed
     if (col.y - col.length * col.charSize > h) {
       col.y = -col.length * col.charSize * Math.random()
-      col.speed = col.charSize > 40
-        ? Math.random() * 4 + 4          // extreme: fast
-        : col.charSize > 20
-          ? Math.random() * 3 + 2.5      // foreground: medium-fast
-          : Math.random() * 2 + 1.5      // background: normal
+      // Respawn with speed proportional to size (closer = faster) + randomness
+      if (col.charSize > 40) {
+        col.speed = 5 + Math.random() * 4             // extreme: 5–9
+      } else if (col.charSize > 20) {
+        col.speed = 3.5 + Math.random() * 2.5         // foreground: 3.5–6
+      } else {
+        // Background: depth-based — larger chars faster
+        const depth = (col.charSize - 10) / 8          // 0–1 from charSize 10–18
+        const base = 0.6 + depth * 2.4
+        col.speed = Math.max(0.3, base + (Math.random() - 0.5) * 1.2)
+      }
       col.length = col.charSize > 40
         ? Math.floor(Math.random() * 5) + 3
         : col.charSize > 20
