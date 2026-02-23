@@ -518,11 +518,11 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
       rainColumns = initRainColumns(canvas.width, canvas.height)
     }
 
-    // 3D starfield has its own system
+    // 3D starfield has its own system — skip foreground (depth is built into z-projection)
     let stars3D: Star3D[] = []
     if (activeEffect === 'stars') {
-      const starCount = foreground ? 80 : 800
-      stars3D = initStars3D(starCount, canvas.width, canvas.height)
+      if (foreground) return  // no foreground layer for 3D starfield
+      stars3D = initStars3D(800, canvas.width, canvas.height)
     }
 
     // Background counts — generous for immersion
