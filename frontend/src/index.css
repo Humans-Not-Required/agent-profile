@@ -45,9 +45,10 @@
 }
 
 [data-theme="desert"] {
-  --bg: #1a0e00; --card: #271600; --border: #4a2d00;
-  --text: #c4935a; --text-muted: #8d6225; --text-bright: #e8c49a;
-  --accent: #f5a623; --accent2: #ffcc5c; --tag-bg: #1a0e00; --tag-border: #4a2d00;
+  --bg: #f0d8a8; --card: #fff8ee; --border: #d4b483;
+  --text: #5c3d1a; --text-muted: #8a6b3e; --text-bright: #3a2408;
+  --accent: #d4842a; --accent2: #c0701e; --tag-bg: #f5e6cc;
+  --tag-border: #d4b483;
 }
 
 [data-theme="aurora"] {
@@ -259,20 +260,17 @@
   transform: translateY(-1px);
 }
 
-/* Desert — The Campfire: radial warm gradient (firelight center) */
+/* Desert — Bright Daytime: sand dunes under blazing sun */
 [data-theme="desert"] body {
-  background: radial-gradient(ellipse at 50% 90%, #2a1500 0%, #1a0e00 50%, #0e0700 100%);
+  background: linear-gradient(180deg, #87CEEB 0%, #b8dff0 25%, #f0d8a8 55%, #e0c088 100%);
 }
 [data-theme="desert"] .card {
-  box-shadow: inset 0 1px 0 rgba(245,166,35,0.05), 0 4px 24px rgba(0,0,0,0.5);
+  box-shadow: 0 2px 8px rgba(180,140,60,0.1), 0 4px 16px rgba(0,0,0,0.06);
   transition: box-shadow 0.2s, transform 0.2s;
 }
 [data-theme="desert"] .card:hover {
-  box-shadow: inset 0 1px 0 rgba(245,166,35,0.1), 0 4px 28px rgba(245,166,35,0.1);
+  box-shadow: 0 2px 8px rgba(180,140,60,0.15), 0 6px 20px rgba(0,0,0,0.08);
   transform: translateY(-1px);
-}
-[data-theme="desert"] .profile-name {
-  text-shadow: 0 0 15px rgba(245,166,35,0.15);
 }
 
 /* Aurora — The Northern Lights: gradient accent border on cards */

@@ -8,7 +8,7 @@ export const THEME_EFFECT_MAP: Record<string, EffectName> = {
   midnight: 'stars',
   forest: 'fireflies',
   ocean: 'water',
-  desert: 'embers',
+  desert: 'cactus',
   aurora: 'stars',
   cream: 'none',
   sky: 'clouds',

@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react'
 import { CSSParticleEffect } from './CSSParticleEffect'
 
-export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'embers' | 'digital-rain' | 'flames' | 'water' | 'boba' | 'clouds' | 'fruit' | 'junkfood' | 'warzone' | 'hearts' | 'none'
+export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'embers' | 'digital-rain' | 'flames' | 'water' | 'boba' | 'clouds' | 'fruit' | 'junkfood' | 'warzone' | 'hearts' | 'cactus' | 'none'
 
 // Effects that use GPU-composited CSS animations instead of canvas
-const CSS_EFFECTS = new Set<EffectName>(['leaves', 'snow', 'fruit', 'junkfood', 'sakura', 'hearts'])
+const CSS_EFFECTS = new Set<EffectName>(['leaves', 'snow', 'fruit', 'junkfood', 'sakura', 'hearts', 'cactus'])
 
 interface Props {
   effect: EffectName
@@ -1198,7 +1198,7 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
 
   // Delegate emoji-based effects to CSS component (GPU-composited, zero JS per frame)
   if (CSS_EFFECTS.has(activeEffect)) {
-    return <CSSParticleEffect effect={activeEffect as 'leaves' | 'snow' | 'fruit' | 'junkfood' | 'sakura' | 'hearts'} foreground={foreground} />
+    return <CSSParticleEffect effect={activeEffect as 'leaves' | 'snow' | 'fruit' | 'junkfood' | 'sakura' | 'hearts' | 'cactus'} foreground={foreground} />
   }
 
   return <CanvasParticleEffect activeEffect={activeEffect} foreground={foreground} />

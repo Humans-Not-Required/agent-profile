@@ -5,7 +5,7 @@ import { useMemo } from 'react'
 // Used for: leaves, snow, fruit, junkfood, sakura
 
 interface Props {
-  effect: 'leaves' | 'snow' | 'fruit' | 'junkfood' | 'sakura' | 'hearts'
+  effect: 'leaves' | 'snow' | 'fruit' | 'junkfood' | 'sakura' | 'hearts' | 'cactus'
   foreground?: boolean
 }
 
@@ -33,6 +33,7 @@ const JUNKFOOD_EMOJI = [
 ]
 const SAKURA_EMOJI = ['🌸']
 const HEART_EMOJI = ['❤️', '💕', '💖', '💗', '💘', '💝', '🩷', '♥️']
+const CACTUS_EMOJI = ['🌵', '🏜️', '☀️', '🦎', '🐪', '🌵', '🌵', '🌵']  // weighted toward cactus
 
 function getConfig(effect: Props['effect'], foreground: boolean) {
   if (foreground) {
@@ -64,6 +65,7 @@ function getConfig(effect: Props['effect'], foreground: boolean) {
     case 'junkfood': return { count: 55, sizeMin: 24, sizeMax: 48, durationMin: 4, durationMax: 10, opacityMin: 0.6, opacityMax: 1.0, invisibleChance: 0, swayMin: 1, swayMax: 3 }
     case 'sakura':  return { count: 50, sizeMin: 14, sizeMax: 28, durationMin: 8, durationMax: 20, opacityMin: 0.5, opacityMax: 0.9, invisibleChance: 0, swayMin: 4, swayMax: 14 }
     case 'hearts':  return { count: 35, sizeMin: 20, sizeMax: 48, durationMin: 8, durationMax: 18, opacityMin: 0.6, opacityMax: 1.0, invisibleChance: 0, swayMin: 3, swayMax: 10 }
+    case 'cactus':  return { count: 25, sizeMin: 28, sizeMax: 56, durationMin: 12, durationMax: 28, opacityMin: 0.6, opacityMax: 1.0, invisibleChance: 0, swayMin: 2, swayMax: 6 }
   }
 }
 
@@ -75,6 +77,7 @@ function getEmojiSet(effect: Props['effect']): string[] {
     case 'junkfood': return JUNKFOOD_EMOJI
     case 'sakura':   return SAKURA_EMOJI
     case 'hearts':   return HEART_EMOJI
+    case 'cactus':   return CACTUS_EMOJI
   }
 }
 
@@ -166,7 +169,7 @@ export function CSSParticleEffect({ effect, foreground = false }: Props) {
               fontSize: `${p.size}px`,
               opacity: p.opacity,
               willChange: 'transform',
-              animation: `${effect === 'fruit' ? 'cssDrift' : 'cssFall'} ${p.duration}s linear ${p.delay}s infinite`,
+              animation: `${(effect === 'fruit' || effect === 'cactus') ? 'cssDrift' : 'cssFall'} ${p.duration}s linear ${p.delay}s infinite`,
               '--sway': `${p.sway}vw`,
               '--rot-start': `${p.rotation}deg`,
               '--rot-delta': `${p.rotationEnd}deg`,
