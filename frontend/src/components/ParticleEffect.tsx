@@ -539,21 +539,54 @@ function drawDigitalRain(ctx: CanvasRenderingContext2D, columns: RainColumn[], w
   }
 }
 
-// ── Water caustics + bubbles ──
+// ── Water caustics (Voronoi-based) + bubbles ──
+
+interface WaterPoint {
+  x: number; y: number; vx: number; vy: number
+}
 
 interface Bubble {
   x: number; y: number; r: number; speed: number; wobblePhase: number; opacity: number
 }
 
-function initBubbles(count: number, w: number, h: number): Bubble[] {
-  return Array.from({ length: count }, () => ({
+interface WaterState {
+  points: WaterPoint[]
+  offscreen: HTMLCanvasElement
+  offCtx: CanvasRenderingContext2D
+  scale: number
+  bubbles: Bubble[]
+}
+
+function initWaterState(w: number, h: number, foreground: boolean): WaterState | null {
+  const scale = 6  // render at 1/6 resolution for performance
+  const ow = Math.ceil(w / scale)
+  const oh = Math.ceil(h / scale)
+  const offscreen = document.createElement('canvas')
+  offscreen.width = ow
+  offscreen.height = oh
+  const offCtx = offscreen.getContext('2d')
+  if (!offCtx) return null
+
+  // Wandering Voronoi seed points
+  const pointCount = foreground ? 0 : 14
+  const points: WaterPoint[] = Array.from({ length: pointCount }, () => ({
+    x: Math.random() * ow,
+    y: Math.random() * oh,
+    vx: (Math.random() - 0.5) * 0.4,
+    vy: (Math.random() - 0.5) * 0.4,
+  }))
+
+  const bubbleCount = foreground ? 12 : 60
+  const bubbles: Bubble[] = Array.from({ length: bubbleCount }, () => ({
     x: Math.random() * w,
     y: h + Math.random() * h,
-    r: 1.5 + Math.random() * 4,
-    speed: 0.3 + Math.random() * 0.8,
+    r: foreground ? 4 + Math.random() * 8 : 2 + Math.random() * 5,
+    speed: 0.4 + Math.random() * 1.0,
     wobblePhase: Math.random() * Math.PI * 2,
-    opacity: 0.15 + Math.random() * 0.35,
+    opacity: foreground ? 0.4 + Math.random() * 0.4 : 0.2 + Math.random() * 0.4,
   }))
+
+  return { points, offscreen, offCtx, scale, bubbles }
 }
 
 function drawWater(
@@ -561,99 +594,97 @@ function drawWater(
   w: number,
   h: number,
   t: number,
-  bubbles: Bubble[],
+  state: WaterState,
   foreground: boolean,
 ) {
-  // ── Caustic light network ──
-  if (!foreground) {
+  // ── Voronoi caustic pattern (background only) ──
+  if (!foreground && state.points.length > 0) {
+    const { points, offscreen, offCtx, scale } = state
+    const ow = offscreen.width
+    const oh = offscreen.height
+
+    // Move seed points (gentle drift with wrap)
+    for (const p of points) {
+      p.x += p.vx + Math.sin(t * 0.001 + p.y * 0.1) * 0.15
+      p.y += p.vy + Math.cos(t * 0.0008 + p.x * 0.1) * 0.15
+      if (p.x < 0) p.x += ow; if (p.x >= ow) p.x -= ow
+      if (p.y < 0) p.y += oh; if (p.y >= oh) p.y -= oh
+    }
+
+    // Render caustics at low res: for each pixel, find distance to two nearest points
+    const imgData = offCtx.createImageData(ow, oh)
+    const data = imgData.data
+    for (let py = 0; py < oh; py++) {
+      for (let px = 0; px < ow; px++) {
+        let d1 = 1e9, d2 = 1e9
+        for (const pt of points) {
+          // Toroidal distance for seamless wrapping
+          let dx = Math.abs(px - pt.x)
+          let dy = Math.abs(py - pt.y)
+          if (dx > ow / 2) dx = ow - dx
+          if (dy > oh / 2) dy = oh - dy
+          const d = dx * dx + dy * dy
+          if (d < d1) { d2 = d1; d1 = d }
+          else if (d < d2) { d2 = d }
+        }
+        // Caustic brightness: bright where d2 - d1 is small (cell edges)
+        const edge = Math.sqrt(d2) - Math.sqrt(d1)
+        const brightness = Math.max(0, 1 - edge / 8)  // sharp bright edges
+        const caustic = brightness * brightness * 255   // quadratic falloff
+
+        const idx = (py * ow + px) * 4
+        // Aqua-tinted light: brighter = whiter, dimmer = blue
+        data[idx    ] = Math.min(255, caustic * 0.7 + 20)  // R
+        data[idx + 1] = Math.min(255, caustic * 0.9 + 40)  // G
+        data[idx + 2] = Math.min(255, caustic + 60)         // B
+        data[idx + 3] = Math.min(255, caustic * 0.8)        // A
+      }
+    }
+    offCtx.putImageData(imgData, 0, 0)
+
+    // Draw upscaled to main canvas with additive blending
     ctx.save()
     ctx.globalCompositeOperation = 'lighter'
-
-    // Multiple overlapping sine-based caustic layers
-    const layers = [
-      { freq: 0.008, amp: 18, speed: 0.0004, alpha: 0.07, color: '120,200,255' },
-      { freq: 0.012, amp: 14, speed: -0.0006, alpha: 0.05, color: '80,180,240' },
-      { freq: 0.006, amp: 22, speed: 0.0003, alpha: 0.06, color: '160,220,255' },
-    ]
-
-    for (const layer of layers) {
-      ctx.beginPath()
-      const phase = t * layer.speed
-      // Draw a mesh of curved caustic lines (horizontal)
-      for (let row = 0; row < h + 40; row += 40) {
-        ctx.moveTo(0, row)
-        for (let x = 0; x <= w; x += 8) {
-          const y = row
-            + Math.sin(x * layer.freq + phase) * layer.amp
-            + Math.sin(x * layer.freq * 1.7 + phase * 1.3 + row * 0.01) * layer.amp * 0.6
-          ctx.lineTo(x, y)
-        }
-      }
-      // Vertical caustic lines
-      for (let col = 0; col < w + 40; col += 40) {
-        ctx.moveTo(col, 0)
-        for (let y = 0; y <= h; y += 8) {
-          const x = col
-            + Math.sin(y * layer.freq + phase * 0.8) * layer.amp
-            + Math.sin(y * layer.freq * 1.4 + phase * 1.1 + col * 0.01) * layer.amp * 0.5
-          ctx.lineTo(x, y)
-        }
-      }
-      ctx.strokeStyle = `rgba(${layer.color}, ${layer.alpha})`
-      ctx.lineWidth = 1.5
-      ctx.stroke()
-    }
-
-    // Bright caustic spots where lines would intersect
-    const spotCount = 18
-    for (let i = 0; i < spotCount; i++) {
-      const sx = (Math.sin(t * 0.0002 + i * 1.7) * 0.5 + 0.5) * w
-      const sy = (Math.cos(t * 0.00015 + i * 2.3) * 0.5 + 0.5) * h
-      const sr = 30 + Math.sin(t * 0.001 + i) * 15
-      const spotAlpha = 0.03 + Math.sin(t * 0.0008 + i * 0.9) * 0.02
-      const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr)
-      grad.addColorStop(0, `rgba(180, 230, 255, ${spotAlpha})`)
-      grad.addColorStop(1, 'rgba(180, 230, 255, 0)')
-      ctx.fillStyle = grad
-      ctx.fillRect(sx - sr, sy - sr, sr * 2, sr * 2)
-    }
-
+    ctx.imageSmoothingEnabled = true
+    ctx.drawImage(offscreen, 0, 0, w, h)
     ctx.restore()
   }
 
   // ── Bubbles ──
-  for (const b of bubbles) {
-    ctx.save()
-    const wobble = Math.sin(t * 0.002 + b.wobblePhase) * 1.5
+  for (const b of state.bubbles) {
+    const wobble = Math.sin(t * 0.002 + b.wobblePhase) * 2.5
+    const bx = b.x + wobble
 
-    // Outer glow
-    const g = ctx.createRadialGradient(b.x + wobble, b.y, b.r * 0.2, b.x + wobble, b.y, b.r)
-    g.addColorStop(0, `rgba(200, 240, 255, ${b.opacity * 0.4})`)
-    g.addColorStop(0.7, `rgba(160, 220, 255, ${b.opacity * 0.15})`)
+    ctx.save()
+
+    // Glow
+    const g = ctx.createRadialGradient(bx, b.y, b.r * 0.1, bx, b.y, b.r)
+    g.addColorStop(0, `rgba(220, 245, 255, ${b.opacity * 0.5})`)
+    g.addColorStop(0.6, `rgba(160, 220, 255, ${b.opacity * 0.2})`)
     g.addColorStop(1, 'rgba(160, 220, 255, 0)')
     ctx.fillStyle = g
     ctx.beginPath()
-    ctx.arc(b.x + wobble, b.y, b.r, 0, Math.PI * 2)
+    ctx.arc(bx, b.y, b.r, 0, Math.PI * 2)
     ctx.fill()
 
-    // Rim highlight
-    ctx.strokeStyle = `rgba(220, 245, 255, ${b.opacity * 0.5})`
-    ctx.lineWidth = 0.5
+    // Rim
+    ctx.strokeStyle = `rgba(230, 248, 255, ${b.opacity * 0.6})`
+    ctx.lineWidth = 0.7
     ctx.stroke()
 
-    // Specular dot
-    ctx.fillStyle = `rgba(255, 255, 255, ${b.opacity * 0.6})`
+    // Specular
+    ctx.fillStyle = `rgba(255, 255, 255, ${b.opacity * 0.8})`
     ctx.beginPath()
-    ctx.arc(b.x + wobble - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.2, 0, Math.PI * 2)
+    ctx.arc(bx - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.22, 0, Math.PI * 2)
     ctx.fill()
 
     ctx.restore()
 
     // Animate
     b.y -= b.speed
-    b.x += wobble * 0.02
+    b.x += wobble * 0.015
     if (b.y < -b.r * 2) {
-      b.y = h + b.r * 2 + Math.random() * 40
+      b.y = h + b.r * 2 + Math.random() * 60
       b.x = Math.random() * w
     }
   }
@@ -705,11 +736,10 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
       flameParticles = initFlameParticles(flameCount, canvas.width, canvas.height)
     }
 
-    // Water caustics + bubbles
-    let waterBubbles: Bubble[] = []
+    // Water caustics + bubbles (Voronoi-based)
+    let waterState: WaterState | null = null
     if (activeEffect === 'water') {
-      const bubbleCount = foreground ? 8 : 50
-      waterBubbles = initBubbles(bubbleCount, canvas.width, canvas.height)
+      waterState = initWaterState(canvas.width, canvas.height, foreground)
     }
 
     // Background counts — generous for immersion
@@ -791,8 +821,8 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
       }
 
       // Water caustics + bubbles
-      if (activeEffect === 'water') {
-        drawWater(ctx, w, h, t, waterBubbles, foreground)
+      if (activeEffect === 'water' && waterState) {
+        drawWater(ctx, w, h, t, waterState, foreground)
         rafRef.current = requestAnimationFrame(animate)
         return
       }
