@@ -886,33 +886,14 @@
   inset: 0;
   pointer-events: none;
   background:
-    /* ── Top-left corner: L-shape (corner + one right + one down) ── */
+    /* ── Single rivet per corner ── */
     radial-gradient(circle 5px at 14px 14px,
       rgba(230,235,245,0.9) 0%, rgba(180,188,200,0.6) 35%, rgba(80,88,100,0.7) 55%, rgba(40,44,52,0.4) 70%, transparent 80%),
-    radial-gradient(circle 5px at 34px 14px,
-      rgba(230,235,245,0.9) 0%, rgba(180,188,200,0.6) 35%, rgba(80,88,100,0.7) 55%, rgba(40,44,52,0.4) 70%, transparent 80%),
-    radial-gradient(circle 5px at 14px 34px,
-      rgba(230,235,245,0.9) 0%, rgba(180,188,200,0.6) 35%, rgba(80,88,100,0.7) 55%, rgba(40,44,52,0.4) 70%, transparent 80%),
-    /* ── Top-right corner: L-shape ── */
     radial-gradient(circle 5px at calc(100% - 14px) 14px,
       rgba(230,235,245,0.9) 0%, rgba(180,188,200,0.6) 35%, rgba(80,88,100,0.7) 55%, rgba(40,44,52,0.4) 70%, transparent 80%),
-    radial-gradient(circle 5px at calc(100% - 34px) 14px,
-      rgba(230,235,245,0.9) 0%, rgba(180,188,200,0.6) 35%, rgba(80,88,100,0.7) 55%, rgba(40,44,52,0.4) 70%, transparent 80%),
-    radial-gradient(circle 5px at calc(100% - 14px) 34px,
-      rgba(230,235,245,0.9) 0%, rgba(180,188,200,0.6) 35%, rgba(80,88,100,0.7) 55%, rgba(40,44,52,0.4) 70%, transparent 80%),
-    /* ── Bottom-left corner: L-shape ── */
     radial-gradient(circle 5px at 14px calc(100% - 14px),
       rgba(230,235,245,0.9) 0%, rgba(180,188,200,0.6) 35%, rgba(80,88,100,0.7) 55%, rgba(40,44,52,0.4) 70%, transparent 80%),
-    radial-gradient(circle 5px at 34px calc(100% - 14px),
-      rgba(230,235,245,0.9) 0%, rgba(180,188,200,0.6) 35%, rgba(80,88,100,0.7) 55%, rgba(40,44,52,0.4) 70%, transparent 80%),
-    radial-gradient(circle 5px at 14px calc(100% - 34px),
-      rgba(230,235,245,0.9) 0%, rgba(180,188,200,0.6) 35%, rgba(80,88,100,0.7) 55%, rgba(40,44,52,0.4) 70%, transparent 80%),
-    /* ── Bottom-right corner: L-shape ── */
     radial-gradient(circle 5px at calc(100% - 14px) calc(100% - 14px),
-      rgba(230,235,245,0.9) 0%, rgba(180,188,200,0.6) 35%, rgba(80,88,100,0.7) 55%, rgba(40,44,52,0.4) 70%, transparent 80%),
-    radial-gradient(circle 5px at calc(100% - 34px) calc(100% - 14px),
-      rgba(230,235,245,0.9) 0%, rgba(180,188,200,0.6) 35%, rgba(80,88,100,0.7) 55%, rgba(40,44,52,0.4) 70%, transparent 80%),
-    radial-gradient(circle 5px at calc(100% - 14px) calc(100% - 34px),
       rgba(230,235,245,0.9) 0%, rgba(180,188,200,0.6) 35%, rgba(80,88,100,0.7) 55%, rgba(40,44,52,0.4) 70%, transparent 80%);
 }
 /* Blocks need position:relative for the ::after to anchor to */
