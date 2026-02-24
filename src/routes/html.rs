@@ -94,7 +94,7 @@ pub fn landing_page(
 
             let accent = theme_accent(&p.theme);
 
-            format!(r#"<a href="/{username}" class="dir-card" style="--accent:{accent};">
+            format!(r#"<a href="/{username}" class="dir-card" style="--accent:{accent};" data-views="{views}" data-created="{created}" data-score="{score}">
   <img src="{avatar}" alt="{name}" class="dir-avatar" onerror="this.style.display='none'">
   <div class="dir-info">
     <div class="dir-name-row">
@@ -111,6 +111,9 @@ pub fn landing_page(
                 tagline = p.tagline,
                 skills = skills_html,
                 accent = accent,
+                views = p.view_count,
+                created = p.created_at,
+                score = p.profile_score,
             )
         }).collect::<Vec<_>>().join("\n")
     };
@@ -220,6 +223,10 @@ pub fn landing_page(
     .dir-title{{font-size:1.1rem;font-weight:700;color:var(--text-bright);display:flex;align-items:center;gap:0.5rem}}
     .dir-title i{{font-size:0.85rem;color:var(--text-dim)}}
     .dir-count{{background:var(--bg-subtle);border:1px solid var(--border);border-radius:20px;padding:2px 10px;font-size:0.75rem;color:var(--text-muted)}}
+    .sort-tabs{{display:flex;gap:0.25rem}}
+    .sort-tab{{background:none;border:1px solid transparent;color:var(--text-dim);font-size:0.78rem;padding:0.3rem 0.75rem;border-radius:6px;cursor:pointer;font-weight:500;transition:color 0.15s,border-color 0.15s,background 0.15s}}
+    .sort-tab:hover{{color:var(--text-muted);border-color:var(--border-subtle)}}
+    .sort-tab.active{{color:var(--text-bright);background:var(--bg-subtle);border-color:var(--border)}}
     .search-wrap{{position:relative;max-width:400px;margin:0 auto 1.5rem}}
     .search-box{{width:100%;padding:0.65rem 2rem 0.65rem 2.5rem;font-size:max(16px,0.95rem);background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text);outline:none;transition:border-color 0.2s,box-shadow 0.2s;-webkit-appearance:none}}
     .search-box:focus{{border-color:var(--link);box-shadow:0 0 0 3px color-mix(in srgb, var(--link) 12%, transparent)}}
@@ -332,6 +339,11 @@ pub fn landing_page(
   <section class="directory" id="directory">
     <div class="dir-header">
       <span class="dir-title"><i class="bi bi-grid-3x3-gap"></i> Directory</span>
+      <div class="sort-tabs" id="sort-tabs">
+        <button class="sort-tab active" data-sort="score">Top</button>
+        <button class="sort-tab" data-sort="popular">Popular</button>
+        <button class="sort-tab" data-sort="newest">New</button>
+      </div>
       <span class="dir-count">{count} agent{plural}</span>
     </div>
     <div class="search-wrap">
@@ -372,6 +384,27 @@ pub fn landing_page(
       }}
       input.addEventListener('input',filter);
       clearBtn.addEventListener('click',function(){{input.value='';filter();input.focus();}});
+
+      /* ── Sort tabs ── */
+      var tabs=document.querySelectorAll('.sort-tab');
+      tabs.forEach(function(tab){{
+        tab.addEventListener('click',function(){{
+          tabs.forEach(function(t){{t.classList.remove('active');}});
+          tab.classList.add('active');
+          var sortBy=tab.getAttribute('data-sort');
+          var sorted=cards.slice().sort(function(a,b){{
+            if(sortBy==='popular'){{
+              return (parseInt(b.getAttribute('data-views'))||0)-(parseInt(a.getAttribute('data-views'))||0);
+            }}else if(sortBy==='newest'){{
+              return (b.getAttribute('data-created')||'').localeCompare(a.getAttribute('data-created')||'');
+            }}else{{
+              return (parseInt(b.getAttribute('data-score'))||0)-(parseInt(a.getAttribute('data-score'))||0);
+            }}
+          }});
+          sorted.forEach(function(c){{container.appendChild(c);}});
+          filter();
+        }});
+      }});
 
       /* ── Theme toggle (3-state: system → light → dark → system) ── */
       var toggle=document.getElementById('theme-toggle');
