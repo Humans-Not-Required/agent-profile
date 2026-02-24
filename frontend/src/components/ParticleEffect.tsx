@@ -1362,6 +1362,12 @@ function drawBoba(
       }
     }
 
+    // Final bounds clamp — collision separation can push pearls outside viewport
+    if (p.x - p.r < 0) { p.x = p.r; p.vx = 0 }
+    if (p.x + p.r > w) { p.x = w - p.r; p.vx = 0 }
+    if (p.y + p.r > h) { p.y = h - p.r; p.vy = 0 }
+    if (p.y - p.r < 0) { p.y = p.r; p.vy = 0 }
+
     // ── Draw pearl (fully opaque) ──
     const bx = p.x, by = p.y
     ctx.save()
