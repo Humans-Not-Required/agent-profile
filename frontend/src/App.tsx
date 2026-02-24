@@ -185,16 +185,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* ── Badges ── */}
-        <div className="badges">
-          {profile.pubkey && (
-            <span className="badge badge-verified" title="secp256k1 identity key set">
-              🔐 Cryptographic ID
-            </span>
-          )}
-        </div>
-
-        {/* ── Profile content: multi-column on desktop ── */}
+        {/* ── Profile content ── */}
         <div className="profile-content">
           {/* ── Freeform sections ── */}
           {profile.sections.length > 0 && <Sections sections={profile.sections} />}
