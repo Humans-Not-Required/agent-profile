@@ -998,10 +998,20 @@ body {
   font-weight: 600;
 }
 .section-content { color: var(--text); line-height: 1.65; font-size: 0.95rem; overflow-wrap: anywhere; }
+.section-content p { margin: 0 0 0.6rem; }
+.section-content p:last-child { margin-bottom: 0; }
+.section-content ul, .section-content ol { margin: 0.3rem 0 0.6rem; padding-left: 1.4rem; }
+.section-content li { margin-bottom: 0.2rem; }
+.section-content code { background: var(--tag-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.1rem 0.35rem; font-size: 0.88em; }
+.section-content pre { background: var(--tag-bg); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem; overflow-x: auto; margin: 0.5rem 0; }
+.section-content pre code { background: none; border: none; padding: 0; font-size: 0.85em; }
+.section-content blockquote { border-left: 3px solid var(--accent); margin: 0.5rem 0; padding: 0.3rem 0 0.3rem 0.8rem; color: var(--text-muted); }
 .section-content .section-link { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.15s; }
 .section-content .section-link:hover { border-bottom-color: var(--accent); }
 .section-content strong { color: var(--text-bright, var(--text)); font-weight: 600; }
 .section-content em { font-style: italic; }
+.section-content .md-heading { display: block; color: var(--text-bright, var(--text)); font-size: 1rem; margin: 0.8rem 0 0.3rem; }
+.section-content img { max-width: 100%; border-radius: 6px; }
 
 /* ── Links ── */
 .links-row { display: flex; flex-wrap: wrap; gap: 0.6rem; }
