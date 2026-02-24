@@ -832,20 +832,22 @@ interface CrossfireLaser {
   maxLife: number
 }
 
-interface GroundFire {
-  x: number           // center x position
-  width: number       // fire width
-  intensity: number   // 0-1, current brightness
-  targetIntensity: number  // fading toward this
-  phase: number       // animation phase offset
+interface LaserBurst {
+  y: number           // base Y position for the burst
+  fromLeft: boolean
+  angle: number
+  color: string
+  width: number
+  remaining: number   // shots left in this burst
+  delay: number       // frames between shots
+  delayTimer: number  // current countdown
 }
 
 interface WarzoneState {
   searchlights: Searchlight[]
   crossfireLasers: CrossfireLaser[]
   laserCooldown: number
-  groundFires: GroundFire[]
-  fireCooldown: number
+  activeBurst: LaserBurst | null
   sparks: Particle[]
   redEyePhase: number
   flashTimer: number
@@ -875,13 +877,13 @@ function spawnCrossfireLaser(w: number, h: number): CrossfireLaser {
 }
 
 function initWarzoneState(w: number, h: number, foreground: boolean): WarzoneState {
-  // Searchlights from the SKY, sweeping downward to search the ground
+  // Searchlights — strong, fast-sweeping beams from the sky
   const searchlights: Searchlight[] = foreground ? [] : Array.from({ length: 3 }, () => ({
-    x: w * 0.15 + Math.random() * w * 0.7,  // spread across top
-    angle: Math.PI / 2 + (Math.random() - 0.5) * 0.4,  // pointing downward
-    sweepSpeed: 0.001 + Math.random() * 0.002,
-    width: 35 + Math.random() * 50,
-    alpha: 0.05 + Math.random() * 0.04,
+    x: w * 0.1 + Math.random() * w * 0.8,
+    angle: Math.PI / 2 + (Math.random() - 0.5) * 0.4,
+    sweepSpeed: 0.003 + Math.random() * 0.004,  // 2-3x faster sweep
+    width: 40 + Math.random() * 60,
+    alpha: 0.12 + Math.random() * 0.08,  // much brighter (was 0.05-0.09)
   }))
 
   // Sparks — small bright particles
@@ -896,16 +898,7 @@ function initWarzoneState(w: number, h: number, foreground: boolean): WarzoneSta
     phase: Math.random() * Math.PI * 2,
   }))
 
-  // Ground fires — intermittent flames along the bottom
-  const groundFires: GroundFire[] = foreground ? [] : Array.from({ length: 5 }, (_, i) => ({
-    x: w * 0.1 + (i / 4) * w * 0.8,  // spread across bottom
-    width: 40 + Math.random() * 60,
-    intensity: 0,
-    targetIntensity: 0,
-    phase: Math.random() * Math.PI * 2,
-  }))
-
-  return { searchlights, crossfireLasers: [], laserCooldown: 60, groundFires, fireCooldown: 30, sparks, redEyePhase: 0, flashTimer: 0, flashAlpha: 0 }
+  return { searchlights, crossfireLasers: [], laserCooldown: 120, activeBurst: null, sparks, redEyePhase: 0, flashTimer: 0, flashAlpha: 0 }
 }
 
 function drawWarzone(
@@ -943,17 +936,45 @@ function drawWarzone(
       ctx.fill()
     }
 
-    // Crossfire lasers — occasional horizontal flashes from both sides
-    state.laserCooldown--
-    if (state.laserCooldown <= 0) {
-      // Spawn 1-3 lasers in a burst
-      const burstCount = 1 + Math.floor(Math.random() * 3)
-      for (let i = 0; i < burstCount; i++) {
+    // ── Laser bursts — rapid-fire succession, same color, same line ──
+    // Manage active burst: fire shots at intervals
+    if (state.activeBurst) {
+      const burst = state.activeBurst
+      burst.delayTimer--
+      if (burst.delayTimer <= 0 && burst.remaining > 0) {
+        // Fire one shot from the burst
+        const yJitter = (Math.random() - 0.5) * 8  // very tight grouping
         const laser = spawnCrossfireLaser(w, h)
+        laser.fromLeft = burst.fromLeft
+        laser.y = burst.y + yJitter
+        laser.angle = burst.angle + (Math.random() - 0.5) * 0.02  // near-parallel
+        laser.color = burst.color
+        laser.width = burst.width
         laser.maxLife = laser.life
         state.crossfireLasers.push(laser)
+        burst.remaining--
+        burst.delayTimer = burst.delay
       }
-      state.laserCooldown = 40 + Math.floor(Math.random() * 120) // 0.7-2.7s between bursts
+      if (burst.remaining <= 0) state.activeBurst = null
+    }
+
+    // Spawn new burst after cooldown
+    state.laserCooldown--
+    if (state.laserCooldown <= 0 && !state.activeBurst) {
+      const burstCount = 3 + Math.floor(Math.random() * 8)  // 3-10 shots per burst
+      const fromLeft = Math.random() > 0.5
+      const color = LASER_COLORS[Math.floor(Math.random() * LASER_COLORS.length)]
+      state.activeBurst = {
+        y: h * 0.15 + Math.random() * h * 0.7,
+        fromLeft,
+        angle: (Math.random() - 0.5) * 0.12,
+        color,
+        width: 1.5 + Math.random() * 1.5,
+        remaining: burstCount,
+        delay: 2 + Math.floor(Math.random() * 3),  // 2-4 frames between shots (rapid)
+        delayTimer: 0,
+      }
+      state.laserCooldown = 120 + Math.floor(Math.random() * 240)  // 2-6s between bursts (less frequent)
     }
 
     // Draw + update crossfire lasers
@@ -963,9 +984,8 @@ function drawWarzone(
       laser.life--
       if (laser.life <= 0) { state.crossfireLasers.splice(i, 1); continue }
 
-      // Flash envelope: bright start, quick fade
       const lifeRatio = laser.life / laser.maxLife
-      const envelope = lifeRatio > 0.7 ? 1.0 : lifeRatio / 0.7  // instant on, fade out
+      const envelope = lifeRatio > 0.7 ? 1.0 : lifeRatio / 0.7
       const a = laser.alpha * envelope
 
       const startX = laser.fromLeft ? -10 : w + 10
@@ -988,7 +1008,7 @@ function drawWarzone(
     }
     ctx.globalCompositeOperation = 'source-over'
 
-    // Red eye scan line — horizontal sweep across screen
+    // Red eye scan line
     state.redEyePhase += 0.008
     const eyeY = h * 0.3 + Math.sin(state.redEyePhase) * h * 0.25
     const eyeGrad = ctx.createLinearGradient(0, eyeY - 2, 0, eyeY + 2)
@@ -997,62 +1017,6 @@ function drawWarzone(
     eyeGrad.addColorStop(1, 'rgba(255,16,32,0)')
     ctx.fillStyle = eyeGrad
     ctx.fillRect(0, eyeY - 15, w, 30)
-
-    // Ground fires — intermittent flames along the bottom
-    state.fireCooldown--
-    if (state.fireCooldown <= 0) {
-      // Randomly ignite or extinguish fires
-      const fire = state.groundFires[Math.floor(Math.random() * state.groundFires.length)]
-      fire.targetIntensity = fire.targetIntensity > 0.3 ? 0 : 0.4 + Math.random() * 0.6
-      state.fireCooldown = 30 + Math.floor(Math.random() * 90)
-    }
-
-    ctx.globalCompositeOperation = 'lighter'
-    for (const fire of state.groundFires) {
-      // Ease toward target
-      fire.intensity += (fire.targetIntensity - fire.intensity) * 0.03
-      if (fire.intensity < 0.02) { fire.intensity = 0; continue }
-
-      const flicker = Math.sin(t * 0.015 + fire.phase) * 0.15 + Math.sin(t * 0.037 + fire.phase * 2) * 0.1
-      const a = fire.intensity * (0.75 + flicker)
-      const flameH = (60 + fire.width * 0.8) * fire.intensity
-
-      // Outer glow
-      const outerGrad = ctx.createRadialGradient(fire.x, h, 0, fire.x, h - flameH * 0.3, fire.width * 1.5)
-      outerGrad.addColorStop(0, `rgba(255,80,20,${a * 0.3})`)
-      outerGrad.addColorStop(1, 'rgba(255,40,10,0)')
-      ctx.fillStyle = outerGrad
-      ctx.fillRect(fire.x - fire.width * 1.5, h - flameH * 1.5, fire.width * 3, flameH * 1.5)
-
-      // Main flame body
-      const grad = ctx.createLinearGradient(fire.x, h, fire.x, h - flameH)
-      grad.addColorStop(0, `rgba(255,200,60,${a})`)
-      grad.addColorStop(0.2, `rgba(255,120,20,${a * 0.9})`)
-      grad.addColorStop(0.5, `rgba(255,50,10,${a * 0.6})`)
-      grad.addColorStop(0.8, `rgba(180,20,5,${a * 0.3})`)
-      grad.addColorStop(1, 'rgba(100,10,0,0)')
-
-      // Draw flame shape with bezier curves
-      ctx.beginPath()
-      const halfW = fire.width / 2
-      const sway1 = Math.sin(t * 0.02 + fire.phase) * halfW * 0.3
-      const sway2 = Math.sin(t * 0.03 + fire.phase + 1) * halfW * 0.4
-      ctx.moveTo(fire.x - halfW, h)
-      ctx.bezierCurveTo(
-        fire.x - halfW * 0.6, h - flameH * 0.4,
-        fire.x + sway1 - halfW * 0.2, h - flameH * 0.7,
-        fire.x + sway2, h - flameH
-      )
-      ctx.bezierCurveTo(
-        fire.x - sway1 + halfW * 0.2, h - flameH * 0.7,
-        fire.x + halfW * 0.6, h - flameH * 0.4,
-        fire.x + halfW, h
-      )
-      ctx.closePath()
-      ctx.fillStyle = grad
-      ctx.fill()
-    }
-    ctx.globalCompositeOperation = 'source-over'
 
     // Occasional explosion flash
     state.flashTimer++
