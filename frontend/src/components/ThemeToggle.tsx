@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import type { EffectName } from './ParticleEffect'
+import { PickerModal } from './PickerModal'
 
 /** Maps each theme to its natural particle effect. */
 export const THEME_EFFECT_MAP: Record<string, EffectName> = {
@@ -106,36 +107,12 @@ interface Props {
 
 export function ThemeToggle({ current, username, onChange, onEffectChange }: Props) {
   const [open, setOpen] = useState(false)
-  const panelRef = useRef<HTMLDivElement>(null)
-
-  // Close on outside click
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
-
-  // Close on escape
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [open])
 
   function select(id: string) {
     onChange(id)
     localStorage.setItem(`theme:${username}`, id)
     document.documentElement.setAttribute('data-theme', id)
 
-    // Switch particle effect to match the new theme
     const mappedEffect = THEME_EFFECT_MAP[id] ?? 'none'
     if (onEffectChange) {
       onEffectChange(mappedEffect)
@@ -157,147 +134,42 @@ export function ThemeToggle({ current, username, onChange, onEffectChange }: Pro
     if (pick) select(pick.id)
   }
 
-  // Find current theme info
   const currentTheme = THEME_GROUPS.flatMap(g => g.themes).find(t => t.id === current)
 
   return (
-    <div ref={panelRef} style={{ position: 'fixed', bottom: '1.5rem', right: '1.5rem', zIndex: 100 }}>
-      {/* Picker panel */}
-      {open && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '52px',
-            right: 0,
-            background: 'var(--card)',
-            border: '1px solid var(--border)',
-            borderRadius: '12px',
-            padding: '0.75rem',
-            width: '260px',
-            maxHeight: '70vh',
-            overflowY: 'auto',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-          }}
-        >
-          <button
-            onClick={selectRandom}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.4rem',
-              width: '100%',
-              padding: '0.45rem',
-              marginBottom: '0.5rem',
-              background: 'var(--tag-bg)',
-              border: '1px solid var(--border)',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              color: 'var(--text-muted)',
-              fontSize: '0.78rem',
-              transition: 'border-color 0.15s, color 0.15s',
-            }}
-            onMouseEnter={e => {
-              const el = e.currentTarget as HTMLElement
-              el.style.borderColor = 'var(--accent)'
-              el.style.color = 'var(--accent)'
-            }}
-            onMouseLeave={e => {
-              const el = e.currentTarget as HTMLElement
-              el.style.borderColor = 'var(--border)'
-              el.style.color = 'var(--text-muted)'
-            }}
-          >
-            <span style={{ fontSize: '1rem' }}>🎲</span> Surprise Me
-          </button>
-          {THEME_GROUPS.map(group => (
-            <div key={group.label} style={{ marginBottom: '0.5rem' }}>
-              <div
-                style={{
-                  fontSize: '0.65rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
-                  color: 'var(--text-muted)',
-                  padding: '0.25rem 0.4rem',
-                  fontWeight: 600,
-                }}
-              >
-                {group.label}
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
-                {group.themes.map(t => (
-                  <button
-                    key={t.id}
-                    onClick={() => select(t.id)}
-                    title={t.name}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '2px',
-                      padding: '0.35rem 0.25rem',
-                      background: t.id === current ? 'var(--tag-bg)' : 'transparent',
-                      border: t.id === current ? '1px solid var(--accent)' : '1px solid transparent',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      color: 'var(--text)',
-                      fontSize: '0.72rem',
-                      transition: 'background 0.15s, border-color 0.15s',
-                    }}
-                    onMouseEnter={e => {
-                      if (t.id !== current) {
-                        ;(e.currentTarget as HTMLElement).style.background = 'var(--tag-bg)'
-                      }
-                    }}
-                    onMouseLeave={e => {
-                      if (t.id !== current) {
-                        ;(e.currentTarget as HTMLElement).style.background = 'transparent'
-                      }
-                    }}
-                  >
-                    <span style={{ fontSize: '1.1rem' }}>{t.emoji}</span>
-                    <span>{t.name}</span>
-                  </button>
-                ))}
-              </div>
+    <>
+      <PickerModal open={open} onClose={() => setOpen(false)} title="Choose Theme">
+        <button className="picker-surprise-btn" onClick={selectRandom}>
+          <span style={{ fontSize: '1rem' }}>🎲</span> Surprise Me
+        </button>
+        {THEME_GROUPS.map(group => (
+          <div key={group.label} style={{ marginBottom: '0.75rem' }}>
+            <div className="picker-group-label">{group.label}</div>
+            <div className="picker-grid picker-grid-themes">
+              {group.themes.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => select(t.id)}
+                  className={`picker-item ${t.id === current ? 'picker-item-active' : ''}`}
+                  title={t.name}
+                >
+                  <span style={{ fontSize: '1.3rem' }}>{t.emoji}</span>
+                  <span>{t.name}</span>
+                </button>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        ))}
+      </PickerModal>
 
-      {/* Toggle button */}
       <button
         onClick={() => setOpen(!open)}
         title={`Theme: ${currentTheme?.name ?? current}`}
-        style={{
-          background: 'var(--card)',
-          border: '1px solid var(--border)',
-          color: 'var(--text-muted)',
-          borderRadius: '50%',
-          width: '42px',
-          height: '42px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          fontSize: '1.1rem',
-          transition: 'border-color 0.15s, color 0.15s',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-        }}
-        onMouseEnter={e => {
-          const el = e.currentTarget as HTMLElement
-          el.style.borderColor = 'var(--accent)'
-          el.style.color = 'var(--accent)'
-        }}
-        onMouseLeave={e => {
-          const el = e.currentTarget as HTMLElement
-          el.style.borderColor = 'var(--border)'
-          el.style.color = 'var(--text-muted)'
-        }}
+        className="picker-fab"
         aria-label={`Theme: ${currentTheme?.name ?? current}. Click to open theme picker.`}
       >
         <i className="bi bi-palette" />
       </button>
-    </div>
+    </>
   )
 }

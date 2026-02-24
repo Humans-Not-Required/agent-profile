@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import type { EffectName } from './ParticleEffect'
+import { PickerModal } from './PickerModal'
 
 const ALL_EFFECTS: { id: EffectName; icon: string; name: string }[] = [
   { id: 'snow',         icon: 'bi-snow2',          name: 'Snow' },
@@ -31,29 +32,6 @@ interface Props {
 
 export function ParticleToggle({ enabled, activeEffect, username, onChange }: Props) {
   const [open, setOpen] = useState(false)
-  const panelRef = useRef<HTMLDivElement>(null)
-
-  // Close on outside click
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
-
-  // Close on escape
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [open])
 
   function select(id: EffectName | 'none') {
     onChange(id)
@@ -70,126 +48,43 @@ export function ParticleToggle({ enabled, activeEffect, username, onChange }: Pr
   const currentInfo = ALL_EFFECTS.find(e => e.id === activeEffect)
 
   return (
-    <div ref={panelRef} style={{ position: 'fixed', bottom: '1.5rem', right: '4.5rem', zIndex: 100 }}>
-      {/* Picker panel */}
-      {open && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '52px',
-            right: 0,
-            background: 'var(--card)',
-            border: '1px solid var(--border)',
-            borderRadius: '12px',
-            padding: '0.6rem',
-            width: '200px',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-          }}
+    <>
+      <PickerModal open={open} onClose={() => setOpen(false)} title="Particle Effect">
+        {/* Off option */}
+        <button
+          onClick={() => select('none')}
+          className={`picker-effect-item ${!enabled ? 'picker-item-active' : ''}`}
         >
-          <div
-            style={{
-              fontSize: '0.65rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              color: 'var(--text-muted)',
-              padding: '0.2rem 0.4rem 0.4rem',
-              fontWeight: 600,
-            }}
-          >
-            Particle Effect
-          </div>
+          <i className="bi bi-circle" style={{ fontSize: '1rem', opacity: 0.5 }} />
+          <span>Off</span>
+        </button>
 
-          {/* Off option */}
-          <button
-            onClick={() => select('none')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              width: '100%',
-              padding: '0.4rem 0.5rem',
-              background: !enabled ? 'var(--tag-bg)' : 'transparent',
-              border: !enabled ? '1px solid var(--accent)' : '1px solid transparent',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              color: 'var(--text)',
-              fontSize: '0.8rem',
-              transition: 'background 0.15s',
-              marginBottom: '2px',
-              textAlign: 'left',
-            }}
-            onMouseEnter={e => { if (enabled) (e.currentTarget as HTMLElement).style.background = 'var(--tag-bg)' }}
-            onMouseLeave={e => { if (enabled) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
-          >
-            <i className="bi bi-circle" style={{ fontSize: '0.9rem', opacity: 0.5 }} />
-            <span>Off</span>
-          </button>
-
-          {/* Effect options */}
+        {/* Effect options */}
+        <div className="picker-grid picker-grid-effects">
           {ALL_EFFECTS.map(eff => {
             const isActive = enabled && activeEffect === eff.id
             return (
               <button
                 key={eff.id}
                 onClick={() => select(eff.id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  width: '100%',
-                  padding: '0.4rem 0.5rem',
-                  background: isActive ? 'var(--tag-bg)' : 'transparent',
-                  border: isActive ? '1px solid var(--accent)' : '1px solid transparent',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  color: isActive ? 'var(--accent)' : 'var(--text)',
-                  fontSize: '0.8rem',
-                  transition: 'background 0.15s, color 0.15s',
-                  marginBottom: '2px',
-                  textAlign: 'left',
-                }}
-                onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--tag-bg)' }}
-                onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+                className={`picker-effect-item ${isActive ? 'picker-item-active' : ''}`}
               >
-                <i className={`bi ${eff.icon}`} style={{ fontSize: '0.9rem' }} />
+                <i className={`bi ${eff.icon}`} style={{ fontSize: '1rem' }} />
                 <span>{eff.name}</span>
               </button>
             )
           })}
         </div>
-      )}
+      </PickerModal>
 
-      {/* Toggle button */}
       <button
         onClick={() => setOpen(!open)}
         title={enabled ? `Effect: ${currentInfo?.name ?? activeEffect}` : 'Particles off'}
-        style={{
-          background: 'var(--card)',
-          border: '1px solid var(--border)',
-          color: enabled ? 'var(--accent)' : 'var(--text-muted)',
-          borderRadius: '50%',
-          width: '42px',
-          height: '42px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          fontSize: '1.1rem',
-          transition: 'border-color 0.15s, color 0.15s',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-        }}
-        onMouseEnter={e => {
-          const el = e.currentTarget as HTMLElement
-          el.style.borderColor = 'var(--accent)'
-        }}
-        onMouseLeave={e => {
-          const el = e.currentTarget as HTMLElement
-          el.style.borderColor = 'var(--border)'
-        }}
+        className="picker-fab picker-fab-secondary"
         aria-label={enabled ? `Particle effect: ${currentInfo?.name ?? activeEffect}` : 'Particles off. Click to choose effect.'}
       >
         <i className={`bi ${enabled && currentInfo ? currentInfo.icon : 'bi-circle'}`} />
       </button>
-    </div>
+    </>
   )
 }

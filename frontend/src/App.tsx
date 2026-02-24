@@ -194,23 +194,26 @@ export default function App() {
           )}
         </div>
 
-        {/* ── Freeform sections ── */}
-        {profile.sections.length > 0 && <Sections sections={profile.sections} />}
+        {/* ── Profile content: multi-column on desktop ── */}
+        <div className="profile-content">
+          {/* ── Freeform sections ── */}
+          {profile.sections.length > 0 && <Sections sections={profile.sections} />}
 
-        {/* ── Links ── */}
-        {profile.links.length > 0 && (
-          <Links links={profile.links} platformIcon={platformIcon} />
-        )}
+          {/* ── Links ── */}
+          {profile.links.length > 0 && (
+            <Links links={profile.links} platformIcon={platformIcon} />
+          )}
 
-        {/* ── Crypto addresses ── */}
-        {profile.crypto_addresses.length > 0 && (
-          <CryptoAddresses addresses={profile.crypto_addresses} />
-        )}
+          {/* ── Crypto addresses ── */}
+          {profile.crypto_addresses.length > 0 && (
+            <CryptoAddresses addresses={profile.crypto_addresses} />
+          )}
 
-        {/* ── Endorsements ── */}
-        {profile.endorsements && profile.endorsements.length > 0 && (
-          <Endorsements endorsements={profile.endorsements} />
-        )}
+          {/* ── Endorsements ── */}
+          {profile.endorsements && profile.endorsements.length > 0 && (
+            <Endorsements endorsements={profile.endorsements} />
+          )}
+        </div>
 
         {/* ── Meta footer ── */}
         <div className="profile-meta">
