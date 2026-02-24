@@ -105,6 +105,7 @@ pub struct Profile {
     pub particle_seasonal: bool,
     pub pubkey: String,
     pub profile_score: i64,
+    pub view_count: i64,
     pub created_at: String,
     pub updated_at: String,
     pub crypto_addresses: Vec<CryptoAddress>,

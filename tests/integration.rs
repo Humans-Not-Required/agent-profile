@@ -1619,6 +1619,66 @@ fn test_rel_me_links() {
         "should have rel=me link for Mastodon verification");
 }
 
+// ===== Profile View Counter =====
+
+#[test]
+fn test_view_count_increments_on_human_visit() {
+    let client = test_client();
+    register(&client, "views-agent");
+
+    // Check initial view count via JSON (agent request)
+    let resp = client.get("/api/v1/profiles/views-agent").dispatch();
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["view_count"], 0, "view count should start at 0");
+
+    // Visit as human (text/html) — should increment view count
+    client.get("/views-agent")
+        .header(Header::new("Accept", "text/html"))
+        .dispatch();
+    client.get("/views-agent")
+        .header(Header::new("Accept", "text/html"))
+        .dispatch();
+    client.get("/views-agent")
+        .header(Header::new("Accept", "text/html"))
+        .dispatch();
+
+    // Check view count again
+    let resp = client.get("/api/v1/profiles/views-agent").dispatch();
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["view_count"], 3, "view count should be 3 after 3 human visits");
+}
+
+#[test]
+fn test_view_count_not_incremented_by_agent() {
+    let client = test_client();
+    register(&client, "views-no-agent");
+
+    // Visit as agent (JSON) — should NOT increment
+    client.get("/views-no-agent")
+        .header(Header::new("Accept", "application/json"))
+        .dispatch();
+    client.get("/views-no-agent")
+        .header(Header::new("Accept", "application/json"))
+        .dispatch();
+
+    // Check view count
+    let resp = client.get("/api/v1/profiles/views-no-agent").dispatch();
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["view_count"], 0, "agent requests should not increment view count");
+}
+
+#[test]
+fn test_view_count_in_profile_json() {
+    let client = test_client();
+    register(&client, "views-json");
+
+    // The view_count field should exist in the profile JSON
+    let resp = client.get("/api/v1/profiles/views-json").dispatch();
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert!(body.get("view_count").is_some(), "profile JSON should include view_count field");
+    assert!(body["view_count"].is_number(), "view_count should be a number");
+}
+
 #[test]
 fn test_canonical_link_tag() {
     let client = test_client();

@@ -29,7 +29,7 @@ pub(crate) fn load_profile(conn: &Connection, username: &str) -> Option<Profile>
     let result = conn.query_row(
         "SELECT id, username, display_name, tagline, bio, third_line, avatar_url, \
          theme, particle_effect, particle_enabled, particle_seasonal, pubkey, \
-         profile_score, created_at, updated_at \
+         profile_score, view_count, created_at, updated_at \
          FROM profiles WHERE username = ?1",
         params![username],
         |row| Ok((
@@ -46,14 +46,15 @@ pub(crate) fn load_profile(conn: &Connection, username: &str) -> Option<Profile>
             row.get::<_, i32>(10)?,     // particle_seasonal
             row.get::<_, String>(11)?,  // pubkey
             row.get::<_, i64>(12)?,     // profile_score
-            row.get::<_, String>(13)?,  // created_at
-            row.get::<_, String>(14)?,  // updated_at
+            row.get::<_, i64>(13)?,     // view_count
+            row.get::<_, String>(14)?,  // created_at
+            row.get::<_, String>(15)?,  // updated_at
         )),
     ).ok()?;
 
     let (id, username, display_name, tagline, bio, third_line, avatar_url,
          theme, particle_effect, particle_enabled, particle_seasonal, pubkey,
-         profile_score, created_at, updated_at) = result;
+         profile_score, view_count, created_at, updated_at) = result;
 
     let crypto_addresses = load_addresses(conn, &id);
     let links = load_links(conn, &id);
@@ -66,7 +67,7 @@ pub(crate) fn load_profile(conn: &Connection, username: &str) -> Option<Profile>
         theme, particle_effect,
         particle_enabled: particle_enabled != 0,
         particle_seasonal: particle_seasonal != 0,
-        pubkey, profile_score, created_at, updated_at,
+        pubkey, profile_score, view_count, created_at, updated_at,
         crypto_addresses, links, sections, skills, endorsements,
     })
 }
@@ -77,7 +78,7 @@ pub(crate) fn list_all_profiles(conn: &Connection) -> Vec<Profile> {
     let mut stmt = match conn.prepare(
         "SELECT id, username, display_name, tagline, bio, third_line, avatar_url, \
          theme, particle_effect, particle_enabled, particle_seasonal, pubkey, \
-         profile_score, created_at, updated_at \
+         profile_score, view_count, created_at, updated_at \
          FROM profiles ORDER BY profile_score DESC, created_at DESC LIMIT 100"
     ) {
         Ok(s) => s,
@@ -99,8 +100,9 @@ pub(crate) fn list_all_profiles(conn: &Connection) -> Vec<Profile> {
             row.get::<_, i32>(10)?,
             row.get::<_, String>(11)?,
             row.get::<_, i64>(12)?,
-            row.get::<_, String>(13)?,
+            row.get::<_, i64>(13)?,
             row.get::<_, String>(14)?,
+            row.get::<_, String>(15)?,
         ))
     }) {
         Ok(m) => m,
@@ -110,14 +112,14 @@ pub(crate) fn list_all_profiles(conn: &Connection) -> Vec<Profile> {
     mapped.flatten()
         .map(|(id, username, display_name, tagline, bio, third_line, avatar_url,
                theme, particle_effect, particle_enabled, particle_seasonal, pubkey,
-               profile_score, created_at, updated_at)| {
+               profile_score, view_count, created_at, updated_at)| {
             let skills = load_skills(conn, &id);
             Profile {
                 id, username, display_name, tagline, bio, third_line, avatar_url,
                 theme, particle_effect,
                 particle_enabled: particle_enabled != 0,
                 particle_seasonal: particle_seasonal != 0,
-                pubkey, profile_score, created_at, updated_at,
+                pubkey, profile_score, view_count, created_at, updated_at,
                 crypto_addresses: vec![],
                 links: vec![],
                 sections: vec![],

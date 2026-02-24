@@ -94,6 +94,13 @@ pub fn init_db(conn: &Connection) -> Result<()> {
 
         CREATE INDEX IF NOT EXISTS idx_endorsements_endorsee ON endorsements(endorsee_id);
     ")?;
+
+    // ── Migrations ──────────────────────────────────────────────────────────
+    // Add view_count column (v0.6.0) — safe to run on existing DBs
+    if conn.prepare("SELECT view_count FROM profiles LIMIT 0").is_err() {
+        conn.execute("ALTER TABLE profiles ADD COLUMN view_count INTEGER NOT NULL DEFAULT 0", [])?;
+    }
+
     Ok(())
 }
 

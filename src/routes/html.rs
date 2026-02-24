@@ -1,4 +1,5 @@
 use rocket::{get, State, http::{ContentType, Status}};
+use rusqlite::params;
 
 use crate::routes::profiles::{DbConn, load_profile, list_all_profiles};
 use crate::assets::spa_index_html;
@@ -629,13 +630,20 @@ pub fn profile_page(
     let slug = username.to_lowercase();
     let conn = db.lock().unwrap();
     let profile = load_profile(&conn, &slug).ok_or(Status::NotFound)?;
-    drop(conn);
 
     if is_agent.0 {
-        // Agents get JSON
+        drop(conn);
+        // Agents get JSON (no view count increment)
         let json = serde_json::to_string(&profile).map_err(|_| Status::InternalServerError)?;
         Ok((ContentType::JSON, json.into_bytes()))
     } else {
+        // Increment view count for human visitors (fire-and-forget, don't fail on error)
+        let _ = conn.execute(
+            "UPDATE profiles SET view_count = view_count + 1 WHERE username = ?1",
+            params![slug],
+        );
+        drop(conn);
+
         // Humans get the React SPA with dynamic OG tags for social crawlers
         match spa_index_html() {
             Some(html) => Ok((ContentType::HTML, inject_og_tags(&html, &profile))),
