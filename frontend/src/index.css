@@ -222,6 +222,20 @@
   --tag-border: #f0c8e0;
 }
 
+[data-theme="retro"] {
+  --bg: #0a0a16; --card: #12122a; --border: #2a2a50;
+  --text: #a0a0d0; --text-muted: #6868a0; --text-bright: #e0e0ff;
+  --accent: #ff4444; --accent2: #44ff44; --tag-bg: #0e0e20;
+  --tag-border: #2a2a50;
+}
+
+[data-theme="coffee"] {
+  --bg: #1a1008; --card: #241a0e; --border: #3a2a18;
+  --text: #c0a080; --text-muted: #8a7050; --text-bright: #e8d0b0;
+  --accent: #d4944a; --accent2: #c48040; --tag-bg: #1e1408;
+  --tag-border: #3a2a18;
+}
+
 /* ── Deluxe Theme Treatments ── */
 
 /* Dark — The Terminal: flat black with subtle blue vignette, crisp 1px borders */
@@ -545,6 +559,71 @@
 [data-theme="junkfood"] .card:hover {
   box-shadow: 0 4px 28px rgba(224,64,32,0.15), inset 0 1px 0 rgba(255,255,255,0.7);
   transform: translateY(-1px);
+}
+
+/* Retro — The Arcade: CRT scanlines, pixel-perfect nostalgia */
+[data-theme="retro"] body {
+  background:
+    /* Subtle CRT scanlines */
+    repeating-linear-gradient(0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.15) 2px,
+      rgba(0,0,0,0.15) 4px
+    ),
+    /* Pixel grid hint */
+    repeating-linear-gradient(90deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.04) 2px,
+      rgba(0,0,0,0.04) 4px
+    ),
+    radial-gradient(ellipse at 50% 50%, #14142e 0%, #0a0a16 70%);
+  font-family: 'Courier New', 'Consolas', monospace;
+}
+[data-theme="retro"] .card {
+  background: rgba(18,18,42,0.30);
+  backdrop-filter: blur(4px);
+  border-color: rgba(255,68,68,0.15);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 30px rgba(255,68,68,0.04), 0 0 60px rgba(68,255,68,0.02);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+[data-theme="retro"] .card:hover {
+  border-color: rgba(255,68,68,0.3);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 40px rgba(255,68,68,0.08), 0 0 60px rgba(68,255,68,0.04);
+  transform: translateY(-1px);
+}
+[data-theme="retro"] .profile-name {
+  text-shadow: 0 0 8px rgba(255,68,68,0.4), 2px 2px 0 rgba(68,68,255,0.3);
+  letter-spacing: 0.05em;
+}
+[data-theme="retro"] .section-title {
+  color: #44ff44;
+  text-shadow: 0 0 6px rgba(68,255,68,0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+[data-theme="retro"] .skill-tag {
+  text-shadow: 0 0 4px rgba(68,255,68,0.2);
+  border-color: rgba(68,255,68,0.2);
+}
+
+/* Coffee — The Late Night: warm roasted browns, rising steam */
+[data-theme="coffee"] body {
+  background:
+    radial-gradient(ellipse at 50% 90%, #2a1a0c 0%, #1a1008 60%),
+    radial-gradient(ellipse at 30% 20%, rgba(212,148,74,0.06) 0%, transparent 50%);
+}
+[data-theme="coffee"] .card {
+  box-shadow: inset 0 1px 0 rgba(212,148,74,0.05), 0 4px 24px rgba(0,0,0,0.5);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+[data-theme="coffee"] .card:hover {
+  box-shadow: inset 0 1px 0 rgba(212,148,74,0.1), 0 4px 28px rgba(212,148,74,0.08);
+  transform: translateY(-1px);
+}
+[data-theme="coffee"] .profile-name {
+  text-shadow: 0 0 15px rgba(212,148,74,0.15);
 }
 
 /* Space — The Cosmos: deep void with nebula color patches */

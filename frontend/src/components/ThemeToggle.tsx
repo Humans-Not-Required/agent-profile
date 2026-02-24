@@ -33,6 +33,8 @@ export const THEME_EFFECT_MAP: Record<string, EffectName> = {
   space: 'stars',
   neon: 'fireflies',
   candy: 'candy',
+  retro: 'digital-rain',
+  coffee: 'embers',
 }
 
 const THEME_GROUPS = [
@@ -89,6 +91,8 @@ const THEME_GROUPS = [
       { id: 'candy', emoji: '🍬', name: 'Candy' },
       { id: 'space', emoji: '🚀', name: 'Space' },
       { id: 'neon', emoji: '💜', name: 'Neon' },
+      { id: 'retro', emoji: '🕹️', name: 'Retro' },
+      { id: 'coffee', emoji: '☕', name: 'Coffee' },
     ],
   },
 ]

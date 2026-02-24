@@ -17,7 +17,7 @@ pub const VALID_THEMES: &[&str] = &[
     "terminator", "matrix", "replicant",
     "snow", "christmas", "halloween", "spring", "summer", "autumn",
     "newyear", "valentine", "patriot", "boba", "fruitsalad", "junkfood",
-    "space", "neon", "candy",
+    "space", "neon", "candy", "retro", "coffee",
 ];
 pub const VALID_PARTICLE_EFFECTS: &[&str] = &["none", "snow", "leaves", "rain", "fireflies", "stars", "sakura", "embers", "digital-rain", "flames", "water", "boba", "clouds", "fruit", "junkfood", "warzone", "hearts", "cactus", "candy"];
 pub const VALID_NETWORKS: &[&str] = &[
