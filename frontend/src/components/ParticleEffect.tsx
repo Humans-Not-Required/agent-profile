@@ -1194,6 +1194,171 @@ function drawPineTree(ctx: CanvasRenderingContext2D, t: WinterTree) {
   }
 }
 
+// ── Replicant rooftops (static backdrop for rain on replicant theme) ──
+
+interface Rooftop {
+  x: number; width: number; height: number
+  topShape: 'flat' | 'slant-left' | 'slant-right' | 'antenna' | 'vent' | 'step'
+  topParam: number
+  hasPipe: boolean
+  hasRailing: boolean
+}
+interface RooftopState {
+  rooftops: Rooftop[]
+  groundY: number
+}
+
+function initRooftopState(w: number, h: number): RooftopState {
+  const groundY = h * 0.65
+  const rooftops: Rooftop[] = []
+  const shapes: Rooftop['topShape'][] = ['flat', 'slant-left', 'slant-right', 'antenna', 'vent', 'step']
+
+  // Near rooftops — large, at bottom
+  let rx = -20
+  while (rx < w + 40) {
+    const rw = 40 + Math.random() * 90
+    const rh = 30 + Math.random() * 80
+    rooftops.push({
+      x: rx, width: rw, height: rh,
+      topShape: shapes[Math.floor(Math.random() * shapes.length)],
+      topParam: 0.2 + Math.random() * 0.6,
+      hasPipe: Math.random() > 0.6,
+      hasRailing: Math.random() > 0.5,
+    })
+    rx += rw + 5 + Math.random() * 25
+  }
+
+  // Distant rooftops — smaller, higher up
+  rx = -10
+  while (rx < w + 30) {
+    const rw = 20 + Math.random() * 50
+    const rh = 15 + Math.random() * 40
+    rooftops.push({
+      x: rx, width: rw, height: rh + 60 + Math.random() * 30,  // taller = further back
+      topShape: shapes[Math.floor(Math.random() * shapes.length)],
+      topParam: 0.15 + Math.random() * 0.5,
+      hasPipe: false,
+      hasRailing: false,
+    })
+    rx += rw + 15 + Math.random() * 50
+  }
+
+  // Sort by height so distant (taller) ones draw behind near ones
+  rooftops.sort((a, b) => b.height - a.height)
+
+  return { rooftops, groundY }
+}
+
+function drawRooftops(ctx: CanvasRenderingContext2D, w: number, h: number, state: RooftopState) {
+  ctx.save()
+  const gY = state.groundY
+
+  // Pink/red glow at horizon — behind the rooftops
+  const glow = ctx.createRadialGradient(w * 0.5, gY - 20, 0, w * 0.5, gY - 20, w * 0.7)
+  glow.addColorStop(0, 'rgba(255,45,123,0.20)')
+  glow.addColorStop(0.3, 'rgba(255,30,100,0.12)')
+  glow.addColorStop(0.6, 'rgba(180,20,80,0.06)')
+  glow.addColorStop(1, 'rgba(80,10,40,0)')
+  ctx.fillStyle = glow
+  ctx.fillRect(0, 0, w, h)
+
+  // Secondary wider glow — off-center
+  const glow2 = ctx.createRadialGradient(w * 0.7, gY, 0, w * 0.7, gY, w * 0.5)
+  glow2.addColorStop(0, 'rgba(255,60,100,0.10)')
+  glow2.addColorStop(0.5, 'rgba(200,30,70,0.05)')
+  glow2.addColorStop(1, 'rgba(100,10,30,0)')
+  ctx.fillStyle = glow2
+  ctx.fillRect(0, 0, w, h)
+
+  // Draw each rooftop
+  for (const rt of state.rooftops) {
+    const baseY = gY + 10
+    const topY = baseY - rt.height
+    const slopeH = rt.height * rt.topParam * 0.25
+
+    // Main building silhouette
+    ctx.fillStyle = '#05070c'
+    ctx.beginPath()
+    ctx.moveTo(rt.x, baseY + 50)  // extend below ground
+    switch (rt.topShape) {
+      case 'slant-left':
+        ctx.lineTo(rt.x, topY - slopeH)
+        ctx.lineTo(rt.x + rt.width, topY)
+        break
+      case 'slant-right':
+        ctx.lineTo(rt.x, topY)
+        ctx.lineTo(rt.x + rt.width, topY - slopeH)
+        break
+      case 'antenna':
+        ctx.lineTo(rt.x, topY)
+        ctx.lineTo(rt.x + rt.width * 0.45, topY)
+        ctx.lineTo(rt.x + rt.width * 0.48, topY - slopeH * 2)
+        ctx.lineTo(rt.x + rt.width * 0.52, topY - slopeH * 2)
+        ctx.lineTo(rt.x + rt.width * 0.55, topY)
+        ctx.lineTo(rt.x + rt.width, topY)
+        break
+      case 'vent':
+        ctx.lineTo(rt.x, topY)
+        ctx.lineTo(rt.x + rt.width * 0.3, topY)
+        ctx.lineTo(rt.x + rt.width * 0.3, topY - slopeH)
+        ctx.lineTo(rt.x + rt.width * 0.55, topY - slopeH)
+        ctx.lineTo(rt.x + rt.width * 0.55, topY)
+        ctx.lineTo(rt.x + rt.width, topY)
+        break
+      case 'step':
+        ctx.lineTo(rt.x, topY + slopeH)
+        ctx.lineTo(rt.x + rt.width * 0.4, topY + slopeH)
+        ctx.lineTo(rt.x + rt.width * 0.4, topY)
+        ctx.lineTo(rt.x + rt.width, topY)
+        break
+      default:
+        ctx.lineTo(rt.x, topY)
+        ctx.lineTo(rt.x + rt.width, topY)
+    }
+    ctx.lineTo(rt.x + rt.width, baseY + 50)
+    ctx.closePath()
+    ctx.fill()
+
+    // Rooftop edge highlight — faint neon reflection
+    ctx.strokeStyle = 'rgba(255,45,123,0.08)'
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(rt.x, topY)
+    ctx.lineTo(rt.x + rt.width, topY)
+    ctx.stroke()
+
+    // Pipe / chimney
+    if (rt.hasPipe) {
+      ctx.fillStyle = '#05070c'
+      const px = rt.x + rt.width * (0.7 + rt.topParam * 0.2)
+      ctx.fillRect(px, topY - 12, 5, 12)
+    }
+
+    // Railing along edge
+    if (rt.hasRailing) {
+      ctx.strokeStyle = 'rgba(20,25,40,0.8)'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.moveTo(rt.x + 3, topY - 6)
+      ctx.lineTo(rt.x + rt.width - 3, topY - 6)
+      ctx.stroke()
+      // Railing posts
+      for (let rp = rt.x + 8; rp < rt.x + rt.width - 5; rp += 15) {
+        ctx.beginPath()
+        ctx.moveTo(rp, topY)
+        ctx.lineTo(rp, topY - 6)
+        ctx.stroke()
+      }
+    }
+  }
+
+  // Ground below rooftops — solid dark
+  ctx.fillStyle = '#05070c'
+  ctx.fillRect(0, gY + 10, w, h - gY)
+
+  ctx.restore()
+}
+
 // (Fruit, junkfood draw functions moved to CSSParticleEffect — GPU-composited)
 
 // ── Boba (milk tea with tapioca pearls + swirling liquid + accelerometer) ──
@@ -1873,6 +2038,15 @@ function CanvasParticleEffect({ activeEffect, foreground }: { activeEffect: Effe
       winterState = initWinterState(canvas.width, canvas.height)
     }
 
+    // Replicant rooftops (rain + replicant theme)
+    let rooftopState: RooftopState | null = null
+    if (activeEffect === 'rain' && !foreground) {
+      const theme = document.documentElement.getAttribute('data-theme')
+      if (theme === 'replicant') {
+        rooftopState = initRooftopState(canvas.width, canvas.height)
+      }
+    }
+
     // Lightning state for rain effect
     let lightning: LightningState | null = null
     let nextLightningFrame = activeEffect === 'rain' && !foreground
@@ -2009,6 +2183,11 @@ function CanvasParticleEffect({ activeEffect, foreground }: { activeEffect: Effe
         drawWater(ctx, w, h, t, waterState, foreground)
         rafRef.current = requestAnimationFrame(animate)
         return
+      }
+
+      // Replicant rooftops — draw behind rain
+      if (rooftopState) {
+        drawRooftops(ctx, w, h, rooftopState)
       }
 
       for (const p of particles) {
