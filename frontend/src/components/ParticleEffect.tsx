@@ -1074,7 +1074,7 @@ function drawWinterLandscape(
   // Sky is handled by CSS body gradient — just draw landscape
 
   // ── Rolling hills — 3 layers, back to front ──
-  const hillColor = ['#c8d8e8', '#d8e4f0', '#e8f0f8']  // far = darker, near = brighter
+  const hillColor = ['#dce6f0', '#e8eff6', '#f4f7fb']  // far = slightly muted, near = bright white
   const hillBase = [h * 0.55, h * 0.65, h * 0.78]
   const hillAmp = [h * 0.08, h * 0.1, h * 0.07]
   const hillFreq = [0.003, 0.005, 0.004]

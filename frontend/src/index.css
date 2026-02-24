@@ -412,7 +412,7 @@
 
 /* Snow — The Blizzard: bright white with icy blue tint, frosted glass */
 [data-theme="snow"] body {
-  background: radial-gradient(ellipse at 50% 20%, #f0f4fa 0%, #dce6f2 40%, #c8d8ec 100%);
+  background: linear-gradient(180deg, #8aacc8 0%, #a0c0d8 30%, #b8d0e4 60%, #c0d4e6 100%);
 }
 [data-theme="snow"] .card {
   background: rgba(255,255,255,0.20);
