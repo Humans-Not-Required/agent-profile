@@ -156,6 +156,7 @@ See DESIGN.md for full spec. Key points:
 |-------|-------|--------|
 | Rust unit | 13 | ✅ |
 | Rust integration | 91 | ✅ |
-| **Total** | **104** | ✅ |
+| Python SDK | 32 | ✅ |
+| **Total** | **136** | ✅ |
 
 **Last updated:** 2026-02-24
