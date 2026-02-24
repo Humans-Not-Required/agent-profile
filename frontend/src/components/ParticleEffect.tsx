@@ -1033,6 +1033,113 @@ function drawWarzone(
   ctx.restore()
 }
 
+// ── Winter landscape (static background for snow theme) ──
+
+interface WinterState {
+  drawn: boolean
+}
+
+function initWinterState(): WinterState {
+  return { drawn: false }
+}
+
+function drawWinterLandscape(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  state: WinterState,
+) {
+  if (state.drawn) return
+  state.drawn = true
+
+  ctx.save()
+
+  // Sky is handled by CSS body gradient — just draw landscape
+
+  // ── Rolling hills — 3 layers, back to front ──
+  const hillColor = ['#c8d8e8', '#d8e4f0', '#e8f0f8']  // far = darker, near = brighter
+  const hillBase = [h * 0.55, h * 0.65, h * 0.78]
+  const hillAmp = [h * 0.08, h * 0.1, h * 0.07]
+  const hillFreq = [0.003, 0.005, 0.004]
+  const hillPhase = [0, 1.5, 3.2]
+
+  for (let layer = 0; layer < 3; layer++) {
+    ctx.fillStyle = hillColor[layer]
+    ctx.beginPath()
+    ctx.moveTo(0, h)
+    for (let x = 0; x <= w; x += 2) {
+      const y = hillBase[layer]
+        - Math.sin(x * hillFreq[layer] + hillPhase[layer]) * hillAmp[layer]
+        - Math.sin(x * hillFreq[layer] * 2.3 + hillPhase[layer] * 1.7) * hillAmp[layer] * 0.3
+      ctx.lineTo(x, y)
+    }
+    ctx.lineTo(w, h)
+    ctx.closePath()
+    ctx.fill()
+
+    // Snow-covered pine trees on each hill layer
+    const treeCount = layer === 0 ? 4 : layer === 1 ? 6 : 8
+    const treeScale = layer === 0 ? 0.5 : layer === 1 ? 0.7 : 1.0
+    for (let t = 0; t < treeCount; t++) {
+      const tx = (w / (treeCount + 1)) * (t + 0.5 + (Math.sin(t * 7.3 + layer * 13) * 0.4))
+      const hillY = hillBase[layer]
+        - Math.sin(tx * hillFreq[layer] + hillPhase[layer]) * hillAmp[layer]
+        - Math.sin(tx * hillFreq[layer] * 2.3 + hillPhase[layer] * 1.7) * hillAmp[layer] * 0.3
+      drawPineTree(ctx, tx, hillY, treeScale, layer)
+    }
+  }
+
+  // Foreground snow ground
+  ctx.fillStyle = '#f0f4f8'
+  ctx.fillRect(0, h * 0.92, w, h * 0.08)
+  // Soft edge
+  const snowEdge = ctx.createLinearGradient(0, h * 0.88, 0, h * 0.94)
+  snowEdge.addColorStop(0, 'rgba(240,244,248,0)')
+  snowEdge.addColorStop(1, '#f0f4f8')
+  ctx.fillStyle = snowEdge
+  ctx.fillRect(0, h * 0.88, w, h * 0.06)
+
+  ctx.restore()
+}
+
+function drawPineTree(ctx: CanvasRenderingContext2D, x: number, groundY: number, scale: number, layer: number) {
+  const trunkH = (8 + Math.random() * 4) * scale
+  const treeH = (30 + Math.random() * 20) * scale
+  const baseW = (16 + Math.random() * 8) * scale
+
+  // Trunk
+  ctx.fillStyle = layer === 0 ? '#8a9aaa' : '#6a5a4a'
+  ctx.fillRect(x - 2 * scale, groundY - trunkH, 4 * scale, trunkH)
+
+  // Tree body — dark green triangle layers
+  const tiers = 3 + Math.floor(Math.random() * 2)
+  const greenShade = layer === 0 ? 'rgba(80,100,90,' : layer === 1 ? 'rgba(50,80,60,' : 'rgba(35,65,45,'
+  for (let i = 0; i < tiers; i++) {
+    const frac = i / tiers
+    const tierY = groundY - trunkH - frac * treeH
+    const tierW = baseW * (1 - frac * 0.6)
+    const tierH = treeH / tiers * 1.4
+
+    // Green foliage
+    ctx.fillStyle = greenShade + (0.7 + layer * 0.1) + ')'
+    ctx.beginPath()
+    ctx.moveTo(x, tierY - tierH)
+    ctx.lineTo(x - tierW, tierY)
+    ctx.lineTo(x + tierW, tierY)
+    ctx.closePath()
+    ctx.fill()
+
+    // Snow on top of each tier — white cap
+    ctx.fillStyle = layer === 0 ? 'rgba(200,210,225,0.8)' : 'rgba(240,245,250,0.9)'
+    ctx.beginPath()
+    ctx.moveTo(x, tierY - tierH)
+    ctx.lineTo(x - tierW * 0.7, tierY - tierH * 0.35)
+    ctx.lineTo(x + tierW * 0.7, tierY - tierH * 0.35)
+    ctx.closePath()
+    ctx.fill()
+  }
+}
+
 // (Fruit, junkfood draw functions moved to CSSParticleEffect — GPU-composited)
 
 // ── Boba (milk tea with tapioca pearls + swirling liquid + accelerometer) ──
@@ -1565,6 +1672,14 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
       ? seasonalEffect()
       : effect
 
+  // Snow: canvas landscape background + CSS snowflakes on top
+  if (activeEffect === 'snow') {
+    return <>
+      {!foreground && <CanvasParticleEffect activeEffect="snow-landscape" foreground={false} />}
+      <CSSParticleEffect effect="snow" foreground={foreground} />
+    </>
+  }
+
   // Delegate emoji-based effects to CSS component (GPU-composited, zero JS per frame)
   if (CSS_EFFECTS.has(activeEffect)) {
     return <CSSParticleEffect effect={activeEffect as 'leaves' | 'snow' | 'fruit' | 'junkfood' | 'sakura' | 'hearts' | 'cactus'} foreground={foreground} />
@@ -1643,6 +1758,12 @@ function CanvasParticleEffect({ activeEffect, foreground }: { activeEffect: Effe
     let wastelandState: WastelandState | null = null
     if (activeEffect === 'wasteland') {
       wastelandState = initWastelandState(canvas.width, canvas.height, foreground)
+    }
+
+    // Winter landscape (snow theme background)
+    let winterState: WinterState | null = null
+    if (activeEffect === 'snow-landscape') {
+      winterState = initWinterState()
     }
 
     // Lightning state for rain effect
@@ -1737,6 +1858,13 @@ function CanvasParticleEffect({ activeEffect, foreground }: { activeEffect: Effe
         }
         ctx.globalCompositeOperation = 'source-over'
         rafRef.current = requestAnimationFrame(animate)
+        return
+      }
+
+      // Winter landscape (snow theme — static, draws once)
+      if (activeEffect === 'snow-landscape' && winterState) {
+        drawWinterLandscape(ctx, w, h, winterState)
+        // Static — no need to keep animating
         return
       }
 
