@@ -1,6 +1,6 @@
 # Agent Profile Service - Status
 
-**Version:** 0.5.0   (production-ready)
+**Version:** 0.5.1   (production-ready)
 **Stage:** Feature complete + fully documented. Awaiting: prod domain DNS (`pinche.rs`).
 **Last updated:** 2026-02-22
 
@@ -9,6 +9,10 @@
 ## What's Next (priority order)
 
 1. ~~**Fix horizontal scroll from long Nostr address**~~ — ✅ DONE (a4ec636). Added overflow:hidden to .card, overflow-wrap:anywhere to profile-name/tagline/third-line, overflow+ellipsis to .addr-display-text.
+
+1. ~~**Three new Fun themes (Space/Neon/Candy)**~~ — ✅ DONE (bdde65c). Space: deep void nebula gradients + stars. Neon: cyberpunk pink/cyan glow + fireflies. Candy: pastel rainbow + falling candy emoji. 30 themes total.
+
+1. ~~**Random theme button**~~ — ✅ DONE (48d2201). 🎲 "Surprise Me" button at top of theme picker.
 
 2. ~~**Demo profile rebuild — ALL 24 THEMES**~~ — ✅ DONE
    - DB wiped (all non-Nanook profiles deleted)
@@ -43,7 +47,15 @@
    **Seasonal & holiday themes — ✅ DONE (9 themes):**
    - ❄️ Snow, 🎄 Christmas, 🎃 Halloween, 🌸 Spring, ☀️ Summer, 🍂 Autumn, 🎆 New Year, 💘 Valentine, 🇺🇸 Patriot
 
-   **Deluxe treatment — ✅ DONE for all 24 themes:**
+   **Fun themes added (6):**
+   - 🧋 **Boba** — warm cream-brown, physics pearls + accelerometer
+   - 🍓 **Fruit Salad** — peachy-pink, tumbling fruit emoji
+   - 🍔 **Junk Food** — ketchup-mustard, falling fast food
+   - 🍬 **Candy** — pastel rainbow gradient, falling candy emoji
+   - 🚀 **Space** — deep void with nebula color patches, warp-speed stars
+   - 💜 **Neon** — cyberpunk dark, hot pink/cyan neon glow, fireflies
+
+   **Deluxe treatment — ✅ DONE for all 30 themes:**
    - ✅ Backgrounds: gradients, vignettes (no flat colors)
    - ✅ Card depth: theme-specific shadow colors, glass-morphism (ocean, snow, matrix, replicant)
    - ✅ Hover states: cards lift 1px + accent-colored glow
@@ -78,10 +90,11 @@
 - 3 cinematic: 🤖 Terminator, 💊 Matrix, 🌆 Replicant
 - 9 seasonal/holiday: ❄️ Snow, 🎄 Christmas, 🎃 Halloween, 🌸 Spring, ☀️ Summer, 🍂 Autumn, 🎆 New Year, 💘 Valentine, 🇺🇸 Patriot
 - 2 new particle effects: 🔥 Embers (upward-drifting glowing sparks), 💾 Digital Rain (cascading Matrix katakana columns)
-- Deluxe visual treatment for ALL 24 themes: gradients, card hover lift+glow, themed shadows
-- Theme picker upgraded from cycle button to grouped panel (Core/Cinematic/Seasonal/Holiday)
+- Deluxe visual treatment for ALL themes: gradients, card hover lift+glow, themed shadows
+- Theme picker upgraded from cycle button to grouped panel (Core/Cinematic/Seasonal/Holiday/Fun)
+- 🎲 "Surprise Me" random theme button in picker
 - Search bar added to landing page (instant client-side filtering)
-- Theme count: 12 → 24 (15 dark + 9 light). Particle effects: 7 → 9.
+- Theme count: 12 → 30 (including cinematic, seasonal, holiday, fun). Particle effects: 7 → 19.
 
 **WCAG AA contrast polish (all 12 themes):**
 - Fixed 4 dark themes (midnight, forest, desert, aurora): `--text-muted` was below 3:1 on card bg
@@ -136,3 +149,5 @@ See DESIGN.md for full spec. Key points:
 | Rust unit | 13 | ✅ |
 | Rust integration | 77 | ✅ |
 | **Total** | **90** | ✅ |
+
+**Last updated:** 2026-02-24
