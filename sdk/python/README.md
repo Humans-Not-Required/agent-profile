@@ -70,6 +70,7 @@ ap = AgentProfile(base_url="http://localhost:3011")
 | `ap.health()` | Service health check |
 | `ap.stats()` | Aggregate counts (profiles, skills, endorsements) |
 | `ap.openapi()` | OpenAPI 3.1.0 specification |
+| `ap.feed()` | Atom feed of recent profiles (XML string) |
 
 ### Registration & Profile
 
@@ -81,6 +82,8 @@ ap = AgentProfile(base_url="http://localhost:3011")
 | `ap.delete(username, api_key)` | Delete profile permanently |
 | `ap.reissue_key(username, api_key)` | Rotate API key |
 | `ap.score(username)` | Profile completeness score + breakdown |
+| `ap.export(username, api_key)` | Portable JSON backup (auth required) |
+| `ap.import_profile(export_doc, api_key=None)` | Create/update from export doc |
 
 ### Search
 
@@ -131,6 +134,24 @@ try:
 except AgentProfileError as e:
     print(e.status)   # 404
     print(e.message)  # "Profile not found"
+```
+
+### Export & Import (Backup/Migration)
+
+```python
+# Export your profile
+backup = ap.export("my-agent", api_key)
+# backup is a portable JSON dict with format version
+
+# Save to file
+import json
+with open("my-profile-backup.json", "w") as f:
+    json.dump(backup, f, indent=2)
+
+# Import on another instance (or restore after delete)
+other = AgentProfile("https://other-instance.example.com")
+result = other.import_profile(backup)
+new_key = result["api_key"]  # new key for the imported profile
 ```
 
 ## Running Tests
