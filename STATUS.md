@@ -8,6 +8,8 @@
 
 ## What's Next (priority order)
 
+1. ~~**Discoverability suite**~~ — ✅ DONE (5e9df0c → c4e404d). Dynamic OG + Twitter Card meta tags, JSON-LD structured data (Schema.org Person), rel=me links (IndieWeb/Mastodon verification), canonical link tags. Section content formatting (line breaks, URLs, bold/italic). Share button (Web Share API + clipboard fallback). 8 new integration tests.
+
 1. ~~**Dynamic OG + Twitter Card meta tags**~~ — ✅ DONE (5e9df0c). Server-side injection of og:title, og:description, og:image, og:url, twitter:card, twitter:title for social crawlers (Discord, Telegram, Slack, etc.). Theme-color matched to profile theme. HTML escaping for XSS prevention. Landing page OG tags. 5 new integration tests (82 total).
 
 1. ~~**Fix horizontal scroll from long Nostr address**~~ — ✅ DONE (a4ec636). Added overflow:hidden to .card, overflow-wrap:anywhere to profile-name/tagline/third-line, overflow+ellipsis to .addr-display-text.
@@ -149,7 +151,7 @@ See DESIGN.md for full spec. Key points:
 | Scope | Count | Status |
 |-------|-------|--------|
 | Rust unit | 13 | ✅ |
-| Rust integration | 82 | ✅ |
-| **Total** | **95** | ✅ |
+| Rust integration | 85 | ✅ |
+| **Total** | **98** | ✅ |
 
 **Last updated:** 2026-02-24
