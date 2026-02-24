@@ -980,11 +980,6 @@ body {
 .profile-tagline { color: var(--text-muted); font-size: 1rem; margin: 0 0 0.2rem; overflow-wrap: anywhere; }
 .profile-third-line { color: var(--text-muted); font-size: 0.88rem; margin: 0 0 0.5rem; overflow-wrap: anywhere; }
 
-/* ── Quick links (hero icons row) ── */
-.quick-links { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.5rem; }
-.quick-link { color: var(--text-muted); font-size: 1.25rem; text-decoration: none; transition: color 0.15s; }
-.quick-link:hover { color: var(--accent); }
-
 /* ── Badges ── */
 .badges { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
 .badge {

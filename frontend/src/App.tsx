@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { Profile } from './types/profile'
 import { Avatar } from './components/Avatar'
-import { Links, smartIcon } from './components/Links'
+import { Links } from './components/Links'
 import { Sections } from './components/Sections'
 import { Skills } from './components/Skills'
 import { CryptoAddresses } from './components/CryptoAddresses'
@@ -182,16 +182,6 @@ export default function App() {
             <h1 className="profile-name">{profile.display_name || profile.username}</h1>
             {profile.tagline && <div className="profile-tagline">{profile.tagline}</div>}
             {profile.third_line && <div className="profile-third-line">{profile.third_line}</div>}
-            {profile.links.length > 0 && (
-              <div className="quick-links">
-                {profile.links.slice(0, 6).map(l => (
-                  <a key={l.id} href={l.url} className="quick-link" title={l.label}
-                     target="_blank" rel="noopener noreferrer">
-                    <i className={`bi ${smartIcon(l, platformIcon)}`} />
-                  </a>
-                ))}
-              </div>
-            )}
           </div>
         </div>
 
