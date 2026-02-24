@@ -209,6 +209,20 @@ class AgentProfile:
             api_key=api_key,
         )
 
+    def export(self, username: str, api_key: str) -> Dict[str, Any]:
+        """GET /api/v1/profiles/{username}/export — portable backup of full profile (auth required)."""
+        return self._get(
+            f"/api/v1/profiles/{urllib.parse.quote(username)}/export",
+            headers={"X-API-Key": api_key},
+        )
+
+    def import_profile(self, export_doc: Dict[str, Any], api_key: str = None) -> Dict[str, Any]:
+        """POST /api/v1/import — create or update a profile from an export document."""
+        headers = {}
+        if api_key:
+            headers["X-API-Key"] = api_key
+        return self._post("/api/v1/import", body=export_doc, headers=headers)
+
     def score(self, username: str) -> Dict[str, Any]:
         """GET /api/v1/profiles/{username}/score — profile completeness score + breakdown."""
         return self._get(f"/api/v1/profiles/{urllib.parse.quote(username)}/score")

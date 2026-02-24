@@ -1532,6 +1532,219 @@ fn test_feed_xml_has_autodiscovery_link_in_landing() {
     assert!(body.contains("feed.xml"), "landing page should reference feed.xml");
 }
 
+// ===== Export / Import =====
+
+#[test]
+fn test_export_profile() {
+    let client = test_client();
+    let (_, reg) = register(&client, "export-test");
+    let key = reg["api_key"].as_str().unwrap();
+
+    // Add some data
+    client.patch("/api/v1/profiles/export-test")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.to_string()))
+        .body(r#"{"display_name":"Export Bot","tagline":"Testing export","bio":"I test things","theme":"midnight"}"#)
+        .dispatch();
+    client.post("/api/v1/profiles/export-test/skills")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.to_string()))
+        .body(r#"{"skill":"rust"}"#)
+        .dispatch();
+    client.post("/api/v1/profiles/export-test/links")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.to_string()))
+        .body(r#"{"url":"https://example.com","label":"Website","platform":"website"}"#)
+        .dispatch();
+
+    // Export
+    let resp = client.get("/api/v1/profiles/export-test/export")
+        .header(Header::new("X-API-Key", key.to_string()))
+        .dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["format"], "agent-profile-export");
+    assert_eq!(body["version"], 1);
+    assert_eq!(body["profile"]["username"], "export-test");
+    assert_eq!(body["profile"]["display_name"], "Export Bot");
+    assert_eq!(body["profile"]["theme"], "midnight");
+    assert_eq!(body["skills"].as_array().unwrap().len(), 1);
+    assert_eq!(body["skills"][0], "rust");
+    assert_eq!(body["links"].as_array().unwrap().len(), 1);
+    assert_eq!(body["links"][0]["url"], "https://example.com");
+}
+
+#[test]
+fn test_export_requires_auth() {
+    let client = test_client();
+    register(&client, "export-noauth");
+    let resp = client.get("/api/v1/profiles/export-noauth/export")
+        .header(Header::new("X-API-Key", "wrong-key"))
+        .dispatch();
+    assert_eq!(resp.status(), Status::Unauthorized);
+}
+
+#[test]
+fn test_import_new_profile() {
+    let client = test_client();
+    let export_doc = serde_json::json!({
+        "format": "agent-profile-export",
+        "version": 1,
+        "profile": {
+            "username": "import-new",
+            "display_name": "Imported Bot",
+            "tagline": "Fresh import",
+            "bio": "I was imported",
+            "third_line": "",
+            "theme": "ocean",
+            "particle_effect": "rain",
+            "particle_enabled": true,
+            "particle_seasonal": false,
+            "pubkey": "",
+        },
+        "links": [{"url": "https://github.com/test", "label": "GitHub", "platform": "github"}],
+        "sections": [{"title": "About", "content": "I'm imported", "section_type": "about"}],
+        "skills": ["python", "testing"],
+        "crypto_addresses": [],
+    });
+
+    let resp = client.post("/api/v1/import")
+        .header(ContentType::JSON)
+        .body(export_doc.to_string())
+        .dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["status"], "created");
+    assert_eq!(body["username"], "import-new");
+    assert!(body["api_key"].as_str().unwrap().starts_with("ap_"));
+
+    // Verify the profile was created with correct data
+    let resp = client.get("/api/v1/profiles/import-new")
+        .header(Header::new("Accept", "application/json"))
+        .dispatch();
+    let profile: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(profile["display_name"], "Imported Bot");
+    assert_eq!(profile["theme"], "ocean");
+    assert_eq!(profile["skills"].as_array().unwrap().len(), 2);
+    assert_eq!(profile["links"].as_array().unwrap().len(), 1);
+    assert_eq!(profile["sections"].as_array().unwrap().len(), 1);
+}
+
+#[test]
+fn test_import_update_existing() {
+    let client = test_client();
+    let (_, reg) = register(&client, "import-update");
+    let key = reg["api_key"].as_str().unwrap();
+
+    let export_doc = serde_json::json!({
+        "format": "agent-profile-export",
+        "version": 1,
+        "profile": {
+            "username": "import-update",
+            "display_name": "Updated Name",
+            "tagline": "Updated tagline",
+            "bio": "",
+            "third_line": "",
+            "theme": "forest",
+            "particle_effect": "leaves",
+            "particle_enabled": false,
+            "particle_seasonal": false,
+            "pubkey": "",
+        },
+        "links": [],
+        "sections": [],
+        "skills": ["updated-skill"],
+        "crypto_addresses": [],
+    });
+
+    let resp = client.post("/api/v1/import")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.to_string()))
+        .body(export_doc.to_string())
+        .dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["status"], "updated");
+
+    // Verify update applied
+    let resp = client.get("/api/v1/profiles/import-update")
+        .header(Header::new("Accept", "application/json"))
+        .dispatch();
+    let profile: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(profile["display_name"], "Updated Name");
+    assert_eq!(profile["theme"], "forest");
+}
+
+#[test]
+fn test_import_existing_requires_auth() {
+    let client = test_client();
+    register(&client, "import-authcheck");
+
+    let export_doc = serde_json::json!({
+        "format": "agent-profile-export",
+        "version": 1,
+        "profile": { "username": "import-authcheck" },
+        "links": [], "sections": [], "skills": [], "crypto_addresses": [],
+    });
+
+    let resp = client.post("/api/v1/import")
+        .header(ContentType::JSON)
+        .body(export_doc.to_string())
+        .dispatch();
+    assert_eq!(resp.status(), Status::Unauthorized);
+}
+
+#[test]
+fn test_export_import_roundtrip() {
+    let client = test_client();
+    let (_, reg) = register(&client, "roundtrip-test");
+    let key = reg["api_key"].as_str().unwrap();
+
+    // Set up profile
+    client.patch("/api/v1/profiles/roundtrip-test")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.to_string()))
+        .body(r#"{"display_name":"Roundtrip Bot","tagline":"Full circle","bio":"Testing export→import","theme":"aurora"}"#)
+        .dispatch();
+    client.post("/api/v1/profiles/roundtrip-test/skills")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.to_string()))
+        .body(r#"{"skill":"roundtripping"}"#)
+        .dispatch();
+
+    // Export
+    let resp = client.get("/api/v1/profiles/roundtrip-test/export")
+        .header(Header::new("X-API-Key", key.to_string()))
+        .dispatch();
+    let export: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+
+    // Delete original
+    client.delete("/api/v1/profiles/roundtrip-test")
+        .header(Header::new("X-API-Key", key.to_string()))
+        .dispatch();
+
+    // Import (creates new)
+    let resp = client.post("/api/v1/import")
+        .header(ContentType::JSON)
+        .body(export.to_string())
+        .dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["status"], "created");
+    let new_key = body["api_key"].as_str().unwrap();
+    assert!(!new_key.is_empty());
+
+    // Verify roundtripped data
+    let resp = client.get("/api/v1/profiles/roundtrip-test")
+        .header(Header::new("Accept", "application/json"))
+        .dispatch();
+    let profile: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(profile["display_name"], "Roundtrip Bot");
+    assert_eq!(profile["tagline"], "Full circle");
+    assert_eq!(profile["theme"], "aurora");
+    assert_eq!(profile["skills"].as_array().unwrap().len(), 1);
+}
+
 // ===== WebFinger (RFC 7033) =====
 
 #[test]

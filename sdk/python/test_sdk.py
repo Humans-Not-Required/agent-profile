@@ -196,6 +196,106 @@ class TestDeleteAndReissue(unittest.TestCase):
         self.ap.delete(name, new_key)
 
 
+class TestExportImport(unittest.TestCase):
+    """Tests export and import of profiles."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.ap = AgentProfile(BASE_URL)
+        cls.name = unique("exportimp")
+        r = throttled_register(cls.ap, cls.name)
+        cls.api_key = r["api_key"]
+        # Set up profile data
+        cls.ap.update(cls.name, cls.api_key,
+            display_name="Export Test",
+            tagline="Testing export/import",
+            bio="A test profile for export",
+            theme="midnight",
+        )
+        cls.ap.add_skill(cls.name, cls.api_key, skill="testing")
+        cls.ap.add_link(cls.name, cls.api_key, url="https://example.com", label="Site", platform="website")
+
+    def test_01_export(self):
+        doc = self.ap.export(self.name, self.api_key)
+        self.assertEqual(doc["format"], "agent-profile-export")
+        self.assertEqual(doc["version"], 1)
+        self.assertEqual(doc["profile"]["username"], self.name)
+        self.assertEqual(doc["profile"]["display_name"], "Export Test")
+        self.assertEqual(doc["profile"]["theme"], "midnight")
+        self.assertIn("testing", doc["skills"])
+        self.assertEqual(len(doc["links"]), 1)
+
+    def test_02_export_requires_auth(self):
+        with self.assertRaises(AgentProfileError) as ctx:
+            self.ap.export(self.name, "wrong-key")
+        self.assertEqual(ctx.exception.status, 401)
+
+    def test_03_import_new(self):
+        new_name = unique("imported")
+        doc = {
+            "format": "agent-profile-export",
+            "version": 1,
+            "profile": {
+                "username": new_name,
+                "display_name": "Imported Bot",
+                "tagline": "Fresh import",
+                "bio": "",
+                "third_line": "",
+                "theme": "ocean",
+                "particle_effect": "rain",
+                "particle_enabled": True,
+                "particle_seasonal": False,
+                "pubkey": "",
+            },
+            "links": [{"url": "https://github.com/test", "label": "GitHub", "platform": "github"}],
+            "sections": [{"title": "About", "content": "Imported", "section_type": "about"}],
+            "skills": ["python"],
+            "crypto_addresses": [],
+        }
+        r = self.ap.import_profile(doc)
+        self.assertEqual(r["status"], "created")
+        self.assertEqual(r["username"], new_name)
+        self.assertIn("api_key", r)
+        # Verify
+        profile = self.ap.get(new_name)
+        self.assertEqual(profile["display_name"], "Imported Bot")
+        self.assertEqual(profile["theme"], "ocean")
+        self.assertEqual(len(profile["skills"]), 1)
+        # Cleanup
+        self.ap.delete(new_name, r["api_key"])
+
+    def test_04_roundtrip(self):
+        """Export → delete → import should restore the profile."""
+        rt_name = unique("roundtrip")
+        r = throttled_register(self.ap, rt_name)
+        rt_key = r["api_key"]
+        self.ap.update(rt_name, rt_key, display_name="Roundtrip", tagline="Full circle", theme="aurora")
+        self.ap.add_skill(rt_name, rt_key, skill="roundtripping")
+
+        # Export
+        doc = self.ap.export(rt_name, rt_key)
+
+        # Delete
+        self.ap.delete(rt_name, rt_key)
+        with self.assertRaises(AgentProfileError):
+            self.ap.get(rt_name)
+
+        # Import (recreate)
+        r2 = self.ap.import_profile(doc)
+        self.assertEqual(r2["status"], "created")
+        new_key = r2["api_key"]
+
+        # Verify roundtripped data
+        profile = self.ap.get(rt_name)
+        self.assertEqual(profile["display_name"], "Roundtrip")
+        self.assertEqual(profile["tagline"], "Full circle")
+        self.assertEqual(profile["theme"], "aurora")
+        self.assertEqual(len(profile["skills"]), 1)
+
+        # Cleanup
+        self.ap.delete(rt_name, new_key)
+
+
 class TestSubResources(unittest.TestCase):
     """Tests links, addresses, sections, skills on a single profile."""
 

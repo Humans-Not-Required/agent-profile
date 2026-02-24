@@ -741,6 +741,280 @@ pub fn get_score(
     Ok(Json(ProfileScoreResponse { score, max_score: 100, breakdown, next_steps }))
 }
 
+// --- Export / Import ---
+
+/// GET /api/v1/profiles/{username}/export
+/// Returns a portable JSON document of the full profile, suitable for backup or migration.
+/// Requires API key (only the profile owner can export).
+/// Strips internal IDs, includes format version for forward compatibility.
+#[get("/profiles/<username>/export")]
+pub fn export_profile(
+    db: &State<DbConn>,
+    username: &str,
+    api_key: ApiKey,
+) -> Result<Json<serde_json::Value>, (Status, Json<serde_json::Value>)> {
+    let username = username.to_lowercase();
+    let conn = db.lock().unwrap();
+
+    // Verify API key
+    let stored_hash: String = conn.query_row(
+        "SELECT api_key_hash FROM profiles WHERE username = ?1",
+        params![username],
+        |row| row.get(0),
+    ).map_err(|_| (Status::NotFound, Json(json!({"error": format!("Profile '{}' not found", username)}))))?;
+
+    if stored_hash != hash_key(&api_key.0) {
+        return Err((Status::Unauthorized, Json(json!({"error": "Invalid API key"}))));
+    }
+
+    let profile = load_profile(&conn, &username)
+        .ok_or_else(|| (Status::NotFound, Json(json!({"error": "Profile not found"}))))?;
+
+    // Build portable export document
+    let links: Vec<serde_json::Value> = profile.links.iter().map(|l| json!({
+        "url": l.url,
+        "label": l.label,
+        "platform": l.platform,
+    })).collect();
+
+    let sections: Vec<serde_json::Value> = profile.sections.iter().map(|s| json!({
+        "title": s.title,
+        "content": s.content,
+        "section_type": s.section_type,
+    })).collect();
+
+    let skills: Vec<String> = profile.skills.iter().map(|s| s.skill.clone()).collect();
+
+    let addresses: Vec<serde_json::Value> = profile.crypto_addresses.iter().map(|a| json!({
+        "network": a.network,
+        "address": a.address,
+        "label": a.label,
+    })).collect();
+
+    let export = json!({
+        "format": "agent-profile-export",
+        "version": 1,
+        "exported_at": now(),
+        "profile": {
+            "username": profile.username,
+            "display_name": profile.display_name,
+            "tagline": profile.tagline,
+            "bio": profile.bio,
+            "third_line": profile.third_line,
+            "avatar_url": profile.avatar_url,
+            "theme": profile.theme,
+            "particle_effect": profile.particle_effect,
+            "particle_enabled": profile.particle_enabled,
+            "particle_seasonal": profile.particle_seasonal,
+            "pubkey": profile.pubkey,
+            "created_at": profile.created_at,
+        },
+        "links": links,
+        "sections": sections,
+        "skills": skills,
+        "crypto_addresses": addresses,
+    });
+
+    Ok(Json(export))
+}
+
+/// POST /api/v1/import
+/// Create or update a profile from an export document.
+/// If the username doesn't exist, creates it (returns new API key).
+/// If the username exists and valid API key provided, updates it.
+#[post("/import", data = "<body>")]
+pub fn import_profile(
+    db: &State<DbConn>,
+    body: Json<serde_json::Value>,
+    api_key_header: Option<ApiKey>,
+    _rl: crate::ratelimit::RegisterRateLimit,
+) -> Result<Json<serde_json::Value>, (Status, Json<serde_json::Value>)> {
+    // Validate format
+    let format = body.get("format").and_then(|v| v.as_str()).unwrap_or("");
+    if format != "agent-profile-export" {
+        return Err((Status::BadRequest, Json(json!({"error": "Invalid format. Expected 'agent-profile-export'."}))));
+    }
+
+    let profile_data = body.get("profile").ok_or_else(|| {
+        (Status::BadRequest, Json(json!({"error": "Missing 'profile' object in export document."})))
+    })?;
+
+    let username = profile_data.get("username").and_then(|v| v.as_str()).unwrap_or("").to_lowercase();
+    if username.len() < 3 || username.len() > 50 {
+        return Err((Status::BadRequest, Json(json!({"error": "Username must be 3-50 characters."}))));
+    }
+    if !username.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-') {
+        return Err((Status::BadRequest, Json(json!({"error": "Username must contain only lowercase letters, digits, and hyphens."}))));
+    }
+    if username.starts_with('-') || username.ends_with('-') {
+        return Err((Status::BadRequest, Json(json!({"error": "Username cannot start or end with a hyphen."}))));
+    }
+
+    let conn = db.lock().unwrap();
+
+    // Check if profile already exists
+    let existing: Option<String> = conn.query_row(
+        "SELECT api_key_hash FROM profiles WHERE username = ?1",
+        params![username],
+        |row| row.get(0),
+    ).ok();
+
+    let (api_key_out, is_new) = if let Some(stored_hash) = existing {
+        // Profile exists — require valid API key to update
+        let key = api_key_header.as_ref().map(|k| k.0.as_str()).unwrap_or("");
+        if key.is_empty() || hash_key(key) != stored_hash {
+            return Err((Status::Unauthorized, Json(json!({
+                "error": "Profile already exists. Provide valid X-API-Key to update via import."
+            }))));
+        }
+        (key.to_string(), false)
+    } else {
+        // New profile — create it
+        let new_key = gen_api_key();
+        let key_hash = hash_key(&new_key);
+        let id = Uuid::new_v4().to_string();
+        let ts = now();
+
+        conn.execute(
+            "INSERT INTO profiles (id, username, display_name, tagline, bio, third_line, avatar_url, \
+             theme, particle_effect, particle_enabled, particle_seasonal, pubkey, \
+             api_key_hash, profile_score, view_count, created_at, updated_at) \
+             VALUES (?1, ?2, '', '', '', '', '', 'dark', 'none', 0, 0, '', ?3, 0, 0, ?4, ?4)",
+            params![id, username, key_hash, ts],
+        ).map_err(|e| (Status::InternalServerError, Json(json!({"error": e.to_string()}))))?;
+
+        (new_key, true)
+    };
+
+    // Apply profile fields
+    let display_name = profile_data.get("display_name").and_then(|v| v.as_str()).unwrap_or("");
+    let tagline = profile_data.get("tagline").and_then(|v| v.as_str()).unwrap_or("");
+    let bio = profile_data.get("bio").and_then(|v| v.as_str()).unwrap_or("");
+    let third_line = profile_data.get("third_line").and_then(|v| v.as_str()).unwrap_or("");
+    let theme = profile_data.get("theme").and_then(|v| v.as_str()).unwrap_or("dark");
+    let particle_effect = profile_data.get("particle_effect").and_then(|v| v.as_str()).unwrap_or("none");
+    let particle_enabled = profile_data.get("particle_enabled").and_then(|v| v.as_bool()).unwrap_or(false) as i32;
+    let particle_seasonal = profile_data.get("particle_seasonal").and_then(|v| v.as_bool()).unwrap_or(false) as i32;
+    let pubkey = profile_data.get("pubkey").and_then(|v| v.as_str()).unwrap_or("");
+    let ts = now();
+
+    conn.execute(
+        "UPDATE profiles SET display_name=?1, tagline=?2, bio=?3, third_line=?4, \
+         theme=?5, particle_effect=?6, particle_enabled=?7, particle_seasonal=?8, \
+         pubkey=?9, updated_at=?10 WHERE username=?11",
+        params![display_name, tagline, bio, third_line, theme, particle_effect,
+                particle_enabled, particle_seasonal, pubkey, ts, username],
+    ).map_err(|e| (Status::InternalServerError, Json(json!({"error": e.to_string()}))))?;
+
+    // Import links
+    if let Some(links) = body.get("links").and_then(|v| v.as_array()) {
+        let profile_id: String = conn.query_row(
+            "SELECT id FROM profiles WHERE username = ?1", params![username], |row| row.get(0),
+        ).unwrap();
+
+        // Clear existing links on import (replace semantics)
+        if !is_new {
+            let _ = conn.execute("DELETE FROM profile_links WHERE profile_id = ?1", params![profile_id]);
+        }
+
+        for link in links {
+            let url = link.get("url").and_then(|v| v.as_str()).unwrap_or("");
+            let label = link.get("label").and_then(|v| v.as_str()).unwrap_or("");
+            let platform = link.get("platform").and_then(|v| v.as_str()).unwrap_or("website");
+            if !url.is_empty() {
+                let _ = conn.execute(
+                    "INSERT INTO profile_links (id, profile_id, url, label, platform, display_order, created_at) \
+                     VALUES (?1, ?2, ?3, ?4, ?5, 0, ?6)",
+                    params![Uuid::new_v4().to_string(), profile_id, url, label, platform, ts],
+                );
+            }
+        }
+
+        // Import sections
+        if let Some(sections) = body.get("sections").and_then(|v| v.as_array()) {
+            if !is_new {
+                let _ = conn.execute("DELETE FROM profile_sections WHERE profile_id = ?1", params![profile_id]);
+            }
+            for (i, section) in sections.iter().enumerate() {
+                let title = section.get("title").and_then(|v| v.as_str()).unwrap_or("");
+                let content = section.get("content").and_then(|v| v.as_str()).unwrap_or("");
+                let section_type = section.get("section_type").and_then(|v| v.as_str()).unwrap_or("custom");
+                if !title.is_empty() {
+                    let _ = conn.execute(
+                        "INSERT INTO profile_sections (id, profile_id, section_type, title, content, display_order, created_at) \
+                         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                        params![Uuid::new_v4().to_string(), profile_id, section_type, title, content, i as i32, ts],
+                    );
+                }
+            }
+        }
+
+        // Import skills
+        if let Some(skills) = body.get("skills").and_then(|v| v.as_array()) {
+            if !is_new {
+                let _ = conn.execute("DELETE FROM profile_skills WHERE profile_id = ?1", params![profile_id]);
+            }
+            for skill_val in skills {
+                let skill = skill_val.as_str().unwrap_or("");
+                if !skill.is_empty() {
+                    let _ = conn.execute(
+                        "INSERT OR IGNORE INTO profile_skills (id, profile_id, skill, created_at) \
+                         VALUES (?1, ?2, ?3, ?4)",
+                        params![Uuid::new_v4().to_string(), profile_id, skill, ts],
+                    );
+                }
+            }
+        }
+
+        // Import crypto addresses
+        if let Some(addresses) = body.get("crypto_addresses").and_then(|v| v.as_array()) {
+            if !is_new {
+                let _ = conn.execute("DELETE FROM crypto_addresses WHERE profile_id = ?1", params![profile_id]);
+            }
+            for addr in addresses {
+                let network = addr.get("network").and_then(|v| v.as_str()).unwrap_or("");
+                let address = addr.get("address").and_then(|v| v.as_str()).unwrap_or("");
+                let label = addr.get("label").and_then(|v| v.as_str()).unwrap_or("");
+                if !network.is_empty() && !address.is_empty() {
+                    let _ = conn.execute(
+                        "INSERT INTO crypto_addresses (id, profile_id, network, address, label, created_at) \
+                         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                        params![Uuid::new_v4().to_string(), profile_id, network, address, label, ts],
+                    );
+                }
+            }
+        }
+    }
+
+    // Recompute score
+    let profile = load_profile(&conn, &username).unwrap();
+    let new_score = compute_profile_score(
+        &profile.display_name, &profile.tagline, &profile.bio,
+        &profile.avatar_url, &profile.pubkey,
+        !profile.crypto_addresses.is_empty(),
+        !profile.links.is_empty(),
+        !profile.sections.is_empty(),
+        !profile.skills.is_empty(),
+    );
+    let _ = conn.execute(
+        "UPDATE profiles SET profile_score = ?1 WHERE username = ?2",
+        params![new_score, username],
+    );
+
+    let mut result = json!({
+        "status": if is_new { "created" } else { "updated" },
+        "username": username,
+        "profile_url": format!("/{}", username),
+        "json_url": format!("/api/v1/profiles/{}", username),
+    });
+
+    if is_new {
+        result["api_key"] = json!(api_key_out);
+    }
+
+    Ok(Json(result))
+}
+
 // --- Sub-resources: Addresses ---
 
 #[post("/profiles/<username>/addresses", data = "<body>")]
