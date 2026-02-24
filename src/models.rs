@@ -14,12 +14,12 @@ const RESERVED_USERNAMES: &[&str] = &[
 pub const VALID_THEMES: &[&str] = &[
     "dark", "light", "midnight", "forest", "ocean", "desert", "aurora",
     "cream", "sky", "lavender", "sage", "peach",
-    "terminator", "matrix", "replicant",
+    "terminator", "matrix", "replicant", "br2049",
     "snow", "christmas", "halloween", "spring", "summer", "autumn",
     "newyear", "valentine", "patriot", "boba", "fruitsalad", "junkfood",
     "space", "neon", "candy", "retro", "coffee",
 ];
-pub const VALID_PARTICLE_EFFECTS: &[&str] = &["none", "snow", "leaves", "rain", "fireflies", "stars", "sakura", "embers", "digital-rain", "flames", "water", "boba", "clouds", "fruit", "junkfood", "warzone", "hearts", "cactus", "candy"];
+pub const VALID_PARTICLE_EFFECTS: &[&str] = &["none", "snow", "leaves", "rain", "fireflies", "stars", "sakura", "embers", "digital-rain", "flames", "water", "boba", "clouds", "fruit", "junkfood", "warzone", "hearts", "cactus", "candy", "wasteland"];
 pub const VALID_NETWORKS: &[&str] = &[
     "bitcoin", "lightning", "ethereum", "cardano", "ergo",
     "nervos", "solana", "monero", "dogecoin", "nostr", "custom",

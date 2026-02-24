@@ -19,6 +19,7 @@ export const THEME_EFFECT_MAP: Record<string, EffectName> = {
   terminator: 'warzone',
   matrix: 'digital-rain',
   replicant: 'rain',
+  br2049: 'wasteland',
   snow: 'snow',
   spring: 'sakura',
   summer: 'fireflies',
@@ -62,6 +63,7 @@ const THEME_GROUPS = [
       { id: 'terminator', emoji: '🤖', name: 'Terminator' },
       { id: 'matrix', emoji: '💊', name: 'Matrix' },
       { id: 'replicant', emoji: '🌆', name: 'Replicant' },
+      { id: 'br2049', emoji: '🏜️', name: '2049' },
     ],
   },
   {

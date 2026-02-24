@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { CSSParticleEffect } from './CSSParticleEffect'
 
-export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'embers' | 'digital-rain' | 'flames' | 'water' | 'boba' | 'clouds' | 'fruit' | 'junkfood' | 'warzone' | 'hearts' | 'cactus' | 'candy' | 'none'
+export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'embers' | 'digital-rain' | 'flames' | 'water' | 'boba' | 'clouds' | 'fruit' | 'junkfood' | 'warzone' | 'hearts' | 'cactus' | 'candy' | 'wasteland' | 'none'
 
 // Effects that use GPU-composited CSS animations instead of canvas
 const CSS_EFFECTS = new Set<EffectName>(['leaves', 'snow', 'fruit', 'junkfood', 'sakura', 'hearts', 'cactus', 'candy'])
@@ -1378,6 +1378,216 @@ function drawBoba(
   }
 }
 
+// ── Wasteland (BR 2049: orange haze, city silhouette, spinner cars) ──
+
+interface Spinner {
+  x: number; y: number
+  speed: number        // horizontal speed (positive = moving right/away)
+  size: number         // scale factor — smaller = further away
+  ledColor: string     // rear LED color
+  altitude: number     // slight vertical drift
+  altSpeed: number
+}
+
+interface WastelandBuilding {
+  x: number; width: number; height: number; hasAntenna: boolean
+}
+
+interface WastelandState {
+  buildings: WastelandBuilding[]
+  spinners: Spinner[]
+  dustParticles: Particle[]
+  hazeDrift: number
+}
+
+function initWastelandState(w: number, h: number, foreground: boolean): WastelandState {
+  // Skyline — jagged silhouette of ruined buildings
+  const buildingCount = Math.floor(w / 30) + 10
+  const buildings: WastelandBuilding[] = Array.from({ length: buildingCount }, (_, i) => {
+    const bw = 15 + Math.random() * 40
+    return {
+      x: (i / buildingCount) * (w + 100) - 50,
+      width: bw,
+      height: h * 0.08 + Math.random() * h * 0.35,
+      hasAntenna: Math.random() > 0.7,
+    }
+  })
+
+  // Flying spinner cars
+  const spinners: Spinner[] = foreground ? [] : Array.from({ length: 4 }, () => spawnSpinner(w, h))
+
+  // Dust / haze particles
+  const dustCount = foreground ? 20 : 60
+  const dustParticles: Particle[] = Array.from({ length: dustCount }, () => ({
+    x: Math.random() * w,
+    y: Math.random() * h,
+    vx: 0.2 + Math.random() * 0.5,
+    vy: (Math.random() - 0.5) * 0.15,
+    size: foreground ? 2 + Math.random() * 5 : 1 + Math.random() * 3,
+    opacity: foreground ? 0.06 + Math.random() * 0.1 : 0.03 + Math.random() * 0.06,
+    phase: Math.random() * Math.PI * 2,
+  }))
+
+  return { buildings, spinners, dustParticles, hazeDrift: 0 }
+}
+
+function spawnSpinner(w: number, h: number): Spinner {
+  const size = 0.3 + Math.random() * 0.7  // depth: 0.3 = far, 1.0 = close
+  const goingRight = Math.random() > 0.3   // mostly moving away (right)
+  return {
+    x: goingRight ? -60 : w + 60,
+    y: h * 0.1 + Math.random() * h * 0.4,  // upper half of sky
+    speed: (goingRight ? 1 : -1) * (0.5 + size * 1.5 + Math.random()),  // closer = faster
+    size,
+    ledColor: Math.random() > 0.5 ? 'rgba(255,60,30,A)' : 'rgba(255,160,40,A)',
+    altitude: 0,
+    altSpeed: (Math.random() - 0.5) * 0.02,
+  }
+}
+
+function drawWasteland(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  t: number,
+  state: WastelandState,
+  foreground: boolean,
+) {
+  // ── Background layer ──
+  if (!foreground) {
+    ctx.save()
+
+    // Animated haze drift
+    state.hazeDrift += 0.0002
+
+    // Draw city skyline silhouette
+    const skylineY = h * 0.45  // horizon line
+    ctx.fillStyle = 'rgba(40,20,5,0.6)'
+    for (const b of state.buildings) {
+      const baseY = skylineY + (h - skylineY) * 0.05  // slightly below horizon
+      const topY = baseY - b.height
+      ctx.fillRect(b.x, topY, b.width, b.height + 20)
+
+      // Antenna spire
+      if (b.hasAntenna) {
+        ctx.fillRect(b.x + b.width * 0.45, topY - b.height * 0.25, 2, b.height * 0.25)
+      }
+
+      // Occasional dim window glow
+      if (Math.random() > 0.997) {
+        const wx = b.x + 3 + Math.random() * (b.width - 6)
+        const wy = topY + 5 + Math.random() * (b.height * 0.6)
+        ctx.fillStyle = `rgba(255,160,40,${0.15 + Math.random() * 0.2})`
+        ctx.fillRect(wx, wy, 3, 2)
+        ctx.fillStyle = 'rgba(40,20,5,0.6)'
+      }
+    }
+
+    // Distant bridge/overpass silhouettes
+    ctx.fillStyle = 'rgba(50,25,8,0.35)'
+    ctx.fillRect(0, skylineY + h * 0.08, w, 4)
+    ctx.fillRect(w * 0.2, skylineY + h * 0.15, w * 0.6, 3)
+
+    // ── Flying spinner cars ──
+    for (const sp of state.spinners) {
+      sp.x += sp.speed
+      sp.altitude += sp.altSpeed
+      if (Math.abs(sp.altitude) > 3) sp.altSpeed *= -1
+      const sy = sp.y + sp.altitude + Math.sin(t * 0.002 + sp.x * 0.01) * 2
+
+      // Car body — dark silhouette, small
+      const carW = 12 * sp.size
+      const carH = 4 * sp.size
+      ctx.fillStyle = `rgba(30,15,5,${0.5 + sp.size * 0.4})`
+
+      // Simple wedge shape
+      ctx.beginPath()
+      ctx.moveTo(sp.x - carW, sy - carH * 0.3)       // rear top
+      ctx.lineTo(sp.x + carW * 0.5, sy - carH * 0.8)  // front top (tapered)
+      ctx.lineTo(sp.x + carW * 0.5, sy + carH * 0.3)  // front bottom
+      ctx.lineTo(sp.x - carW, sy + carH * 0.5)         // rear bottom
+      ctx.closePath()
+      ctx.fill()
+
+      // Rear LEDs — bright, the main visible part
+      const ledA = 0.7 + sp.size * 0.3 + Math.sin(t * 0.01) * 0.1
+      const ledSize = 2 + sp.size * 3
+
+      // Two tail lights
+      const ledGrad1 = ctx.createRadialGradient(
+        sp.x - carW, sy - carH * 0.1, 0,
+        sp.x - carW, sy - carH * 0.1, ledSize * 4
+      )
+      ledGrad1.addColorStop(0, sp.ledColor.replace('A', String(ledA)))
+      ledGrad1.addColorStop(0.3, sp.ledColor.replace('A', String(ledA * 0.4)))
+      ledGrad1.addColorStop(1, sp.ledColor.replace('A', '0'))
+      ctx.fillStyle = ledGrad1
+      ctx.beginPath()
+      ctx.arc(sp.x - carW, sy - carH * 0.1, ledSize * 4, 0, Math.PI * 2)
+      ctx.fill()
+
+      const ledGrad2 = ctx.createRadialGradient(
+        sp.x - carW, sy + carH * 0.2, 0,
+        sp.x - carW, sy + carH * 0.2, ledSize * 3
+      )
+      ledGrad2.addColorStop(0, sp.ledColor.replace('A', String(ledA * 0.8)))
+      ledGrad2.addColorStop(0.4, sp.ledColor.replace('A', String(ledA * 0.3)))
+      ledGrad2.addColorStop(1, sp.ledColor.replace('A', '0'))
+      ctx.fillStyle = ledGrad2
+      ctx.beginPath()
+      ctx.arc(sp.x - carW, sy + carH * 0.2, ledSize * 3, 0, Math.PI * 2)
+      ctx.fill()
+
+      // LED core — bright white-orange center
+      ctx.fillStyle = `rgba(255,220,180,${ledA * 0.9})`
+      ctx.beginPath()
+      ctx.arc(sp.x - carW, sy, ledSize * 0.8, 0, Math.PI * 2)
+      ctx.fill()
+
+      // Trail streak behind
+      const trailLen = 20 + sp.speed * 8
+      if (Math.abs(sp.speed) > 0.5) {
+        const trailGrad = ctx.createLinearGradient(
+          sp.x - carW - (sp.speed > 0 ? trailLen : 0), sy,
+          sp.x - carW + (sp.speed > 0 ? 0 : -trailLen), sy
+        )
+        trailGrad.addColorStop(0, sp.ledColor.replace('A', '0'))
+        trailGrad.addColorStop(1, sp.ledColor.replace('A', String(ledA * 0.15)))
+        ctx.strokeStyle = trailGrad
+        ctx.lineWidth = ledSize * 1.5
+        ctx.beginPath()
+        ctx.moveTo(sp.x - carW, sy)
+        ctx.lineTo(sp.x - carW - (sp.speed > 0 ? trailLen : -trailLen), sy)
+        ctx.stroke()
+      }
+
+      // Respawn when off screen
+      if ((sp.speed > 0 && sp.x > w + 80) || (sp.speed < 0 && sp.x < -80)) {
+        Object.assign(sp, spawnSpinner(w, h))
+      }
+    }
+
+    ctx.restore()
+  }
+
+  // ── Dust particles (both layers) ──
+  ctx.save()
+  for (const d of state.dustParticles) {
+    const flicker = 0.7 + Math.sin((d.phase ?? 0) + t * 0.003) * 0.3
+    ctx.fillStyle = `rgba(220,160,80,${d.opacity * flicker})`
+    ctx.beginPath()
+    ctx.arc(d.x, d.y, d.size, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Drift rightward (wind)
+    d.x += (d.vx ?? 0.3)
+    d.y += (d.vy ?? 0) + Math.sin((d.phase ?? 0) + t * 0.001) * 0.1
+    if (d.x > w + 10) { d.x = -10; d.y = Math.random() * h }
+    if (d.y < -10 || d.y > h + 10) { d.y = Math.random() * h }
+  }
+  ctx.restore()
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export function ParticleEffect({ effect, enabled, seasonal, foreground = false }: Props) {
@@ -1461,6 +1671,12 @@ function CanvasParticleEffect({ activeEffect, foreground }: { activeEffect: Effe
       warzoneState = initWarzoneState(canvas.width, canvas.height, foreground)
     }
 
+    // Wasteland state (BR 2049)
+    let wastelandState: WastelandState | null = null
+    if (activeEffect === 'wasteland') {
+      wastelandState = initWastelandState(canvas.width, canvas.height, foreground)
+    }
+
     // Lightning state for rain effect
     let lightning: LightningState | null = null
     let nextLightningFrame = activeEffect === 'rain' && !foreground
@@ -1470,11 +1686,11 @@ function CanvasParticleEffect({ activeEffect, foreground }: { activeEffect: Effe
     // Background counts (emoji effects handled by CSSParticleEffect)
     const bgCountMap: Record<string, number> = {
       rain: 250, fireflies: 90, stars: 800,
-      embers: 250, 'digital-rain': 0, flames: 200, water: 0, boba: 0, clouds: 0, warzone: 0, none: 0,
+      embers: 250, 'digital-rain': 0, flames: 200, water: 0, boba: 0, clouds: 0, warzone: 0, wasteland: 0, none: 0,
     }
     const fgCountMap: Record<string, number> = {
       rain: 20, fireflies: 6, stars: 0,
-      embers: 20, 'digital-rain': 0, flames: 15, water: 0, boba: 0, clouds: 0, warzone: 0, none: 0,
+      embers: 20, 'digital-rain': 0, flames: 15, water: 0, boba: 0, clouds: 0, warzone: 0, wasteland: 0, none: 0,
     }
     const countMap = foreground ? fgCountMap : bgCountMap
     const count = countMap[activeEffect] ?? 80
@@ -1559,6 +1775,13 @@ function CanvasParticleEffect({ activeEffect, foreground }: { activeEffect: Effe
       // Warzone (Terminator)
       if (activeEffect === 'warzone' && warzoneState) {
         drawWarzone(ctx, w, h, t, warzoneState, foreground)
+        rafRef.current = requestAnimationFrame(animate)
+        return
+      }
+
+      // Wasteland (BR 2049)
+      if (activeEffect === 'wasteland' && wastelandState) {
+        drawWasteland(ctx, w, h, t, wastelandState, foreground)
         rafRef.current = requestAnimationFrame(animate)
         return
       }
