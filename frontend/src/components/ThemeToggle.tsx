@@ -71,7 +71,7 @@ const THEME_GROUPS = [
   {
     label: 'Seasonal',
     themes: [
-      { id: 'snow', emoji: '❄️', name: 'Snow' },
+      { id: 'snow', emoji: '❄️', name: 'Winter' },
       { id: 'spring', emoji: '🌸', name: 'Spring' },
       { id: 'summer', emoji: '☀️', name: 'Summer' },
       { id: 'autumn', emoji: '🍁', name: 'Autumn' },
