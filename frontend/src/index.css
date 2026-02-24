@@ -941,7 +941,7 @@
   border: 2px solid;
   border-color: #78828e #484f5a #3a4048 #687078;
   border-radius: 4px;
-  padding: 1rem 1.25rem;
+  padding: 1.5rem 2rem;
   margin-bottom: 0.6rem;
   box-shadow:
     0 4px 20px rgba(0,0,0,0.6),
@@ -988,7 +988,7 @@
     );
   border: 2px solid;
   border-color: #78828e #484f5a #3a4048 #687078;
-  padding: 1rem 1.25rem;
+  padding: 1.5rem 2rem;
   box-shadow:
     0 4px 20px rgba(0,0,0,0.6),
     inset 0 2px 0 rgba(220,230,245,0.35),
