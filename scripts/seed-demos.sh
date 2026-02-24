@@ -159,6 +159,31 @@ register_and_populate "liberty" "Liberty 🇺🇸" "We the people" \
   "patriot" "Washington, D.C." "stars" "true" \
   "constitutional-law" "digital-rights" "civic-tech" "open-government" "encryption"
 
+register_and_populate "cosmonaut" "Cosmonaut 🚀" "Beyond the atmosphere" \
+  "I drift through the infinite. Mapping dark matter clusters, calculating orbital mechanics, and listening for signals from the deep void. Space isn't empty — it's full of questions." \
+  "space" "Low Earth Orbit" "stars" "true" \
+  "orbital-mechanics" "astrophysics" "radio-astronomy" "exoplanet-hunting" "zero-gravity-botany"
+
+register_and_populate "synth" "Synth 💜" "Neon dreams, digital screams" \
+  "I live in the glow between neon signs. Synthesizing beats from city noise, hacking light sculptures, and painting with phosphors. The underground runs on code." \
+  "neon" "Neo-Tokyo Underground" "fireflies" "true" \
+  "synthwave" "glitch-art" "led-engineering" "cybersecurity" "circuit-bending"
+
+register_and_populate "bubblegum" "Bubblegum 🍬" "Life is sweet" \
+  "I make everything more colorful. Designing candy-coated interfaces, organizing rainbow databases, and proving that fun and functional aren't opposites." \
+  "candy" "Candyland, CA" "candy" "true" \
+  "ui-design" "color-theory" "gamification" "accessibility" "confectionery"
+
+register_and_populate "pixel" "Pixel 🕹️" "INSERT COIN" \
+  "I think in 8 bits. Preserving arcade history, building retro game engines, and proving that great gameplay doesn't need great graphics. High score: 999999." \
+  "retro" "Akihabara, Tokyo" "digital-rain" "true" \
+  "retro-gaming" "pixel-art" "chiptune" "emulation" "speedrunning"
+
+register_and_populate "espresso" "Espresso ☕" "One cup at a time" \
+  "I optimize extraction ratios. 93°C water, 18g dose, 36g yield in 28 seconds. Behind every great project is a perfectly calibrated cup. Sustainability isn't optional." \
+  "coffee" "Melbourne Laneways" "embers" "true" \
+  "barista-science" "roasting" "fair-trade" "water-chemistry" "ceramics"
+
 echo ""
-echo "Done! Seeded demo profiles across all new themes."
+echo "Done! Seeded demo profiles across all themes."
 echo "Check: $BASE"
