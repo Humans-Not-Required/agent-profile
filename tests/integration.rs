@@ -1552,6 +1552,74 @@ fn test_og_tags_html_escaping() {
 }
 
 #[test]
+fn test_json_ld_structured_data() {
+    let client = test_client();
+    let (_, reg) = register(&client, "jsonld-agent");
+    let api_key = reg["api_key"].as_str().unwrap();
+
+    // Set up profile with display name, tagline, and links
+    client.patch("/api/v1/profiles/jsonld-agent")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", api_key.to_string()))
+        .body(r#"{"display_name":"LD Bot","tagline":"Structured data test"}"#)
+        .dispatch();
+
+    // Add a link
+    client.post("/api/v1/profiles/jsonld-agent/links")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", api_key.to_string()))
+        .body(r#"{"url":"https://github.com/ld-bot","label":"GitHub","platform":"github"}"#)
+        .dispatch();
+
+    // Add a skill
+    client.post("/api/v1/profiles/jsonld-agent/skills")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", api_key.to_string()))
+        .body(r#"{"skill":"rust"}"#)
+        .dispatch();
+
+    let resp = client.get("/jsonld-agent")
+        .header(Header::new("Accept", "text/html"))
+        .dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body = resp.into_string().unwrap();
+
+    // Verify JSON-LD script tag present
+    assert!(body.contains(r#"<script type="application/ld+json">"#), "should have JSON-LD script tag");
+    assert!(body.contains(r#""@context": "https://schema.org""#), "should have Schema.org context");
+    assert!(body.contains(r#""@type": "Person""#), "should have Person type");
+    assert!(body.contains("LD Bot"), "JSON-LD should contain display name");
+    assert!(body.contains("Structured data test"), "JSON-LD should contain description");
+    assert!(body.contains("https://github.com/ld-bot"), "JSON-LD sameAs should contain link");
+    assert!(body.contains("knowsAbout"), "JSON-LD should contain knowsAbout with skills");
+    assert!(body.contains("rust"), "JSON-LD knowsAbout should contain the skill");
+}
+
+#[test]
+fn test_rel_me_links() {
+    let client = test_client();
+    let (_, reg) = register(&client, "relme-agent");
+    let api_key = reg["api_key"].as_str().unwrap();
+
+    // Add links
+    client.post("/api/v1/profiles/relme-agent/links")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", api_key.to_string()))
+        .body(r#"{"url":"https://mastodon.social/@relme","label":"Mastodon","platform":"custom"}"#)
+        .dispatch();
+
+    let resp = client.get("/relme-agent")
+        .header(Header::new("Accept", "text/html"))
+        .dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body = resp.into_string().unwrap();
+
+    // Verify rel=me link tag for IndieWeb/Mastodon verification
+    assert!(body.contains(r##"<link rel="me" href="https://mastodon.social/@relme" />"##),
+        "should have rel=me link for Mastodon verification");
+}
+
+#[test]
 fn test_landing_page_og_tags() {
     let client = test_client();
 

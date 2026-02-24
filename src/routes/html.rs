@@ -513,20 +513,94 @@ fn inject_og_tags(html: &[u8], profile: &crate::models::Profile) -> Vec<u8> {
         &format!(r#"<meta property="og:image" content="{}" />"#, html_escape(&avatar)),
     );
 
-    // Inject Twitter Card tags right after the OG block (before </head>)
+    // Inject Twitter Card tags + JSON-LD structured data before </head>
     let twitter_tags = format!(
         concat!(
             r#"<meta name="twitter:card" content="summary" />"#, "\n",
             r#"    <meta name="twitter:title" content="{title}" />"#, "\n",
             r#"    <meta name="twitter:description" content="{desc}" />"#, "\n",
             r#"    <meta name="twitter:image" content="{image}" />"#, "\n",
-            r#"    "#,
         ),
         title = html_escape(display),
         desc = html_escape(&desc),
         image = html_escape(&avatar),
     );
-    result = result.replace("</head>", &format!("{}</head>", twitter_tags));
+
+    // Build JSON-LD structured data (Schema.org Person)
+    // Escape for embedding in a <script> tag — JSON strings need no HTML escaping,
+    // but we must avoid </script> injection.
+    let json_escape = |s: &str| -> String {
+        s.replace('\\', "\\\\")
+            .replace('"', "\\\"")
+            .replace('\n', "\\n")
+            .replace('\r', "\\r")
+            .replace('<', "\\u003c")   // prevent </script> injection + XSS in JSON-LD
+            .replace('>', "\\u003e")
+    };
+
+    let mut json_ld = format!(
+        concat!(
+            r#"    <script type="application/ld+json">"#, "\n",
+            r#"    {{"#, "\n",
+            r#"      "@context": "https://schema.org","#, "\n",
+            r#"      "@type": "Person","#, "\n",
+            r#"      "name": "{name}","#, "\n",
+            r#"      "alternateName": "@{username}","#, "\n",
+            r#"      "url": "/{username}""#,
+        ),
+        name = json_escape(display),
+        username = profile.username,
+    );
+
+    if !profile.tagline.is_empty() {
+        json_ld.push_str(&format!(
+            ",\n      \"description\": \"{}\"",
+            json_escape(&profile.tagline)
+        ));
+    }
+    if !avatar.is_empty() {
+        json_ld.push_str(&format!(
+            ",\n      \"image\": \"{}\"",
+            json_escape(&avatar)
+        ));
+    }
+
+    // Add sameAs links for known platforms (enables knowledge graph connections)
+    let same_as: Vec<String> = profile.links.iter()
+        .filter(|l| !l.url.is_empty() && (l.url.starts_with("http://") || l.url.starts_with("https://")))
+        .map(|l| format!("\"{}\"", json_escape(&l.url)))
+        .collect();
+    if !same_as.is_empty() {
+        json_ld.push_str(&format!(",\n      \"sameAs\": [{}]", same_as.join(", ")));
+    }
+
+    // Add skills as knowsAbout
+    if !profile.skills.is_empty() {
+        let skills: Vec<String> = profile.skills.iter()
+            .take(20)
+            .map(|s| format!("\"{}\"", json_escape(&s.skill)))
+            .collect();
+        json_ld.push_str(&format!(",\n      \"knowsAbout\": [{}]", skills.join(", ")));
+    }
+
+    json_ld.push_str("\n    }\n    </script>\n    ");
+
+    // Build rel=me links for IndieWeb/Mastodon verification
+    let rel_me: String = profile.links.iter()
+        .filter(|l| !l.url.is_empty() && (l.url.starts_with("http://") || l.url.starts_with("https://")))
+        .map(|l| format!(
+            r#"<link rel="me" href="{}" />"#,
+            html_escape(&l.url)
+        ))
+        .collect::<Vec<_>>()
+        .join("\n    ");
+    let rel_me_block = if rel_me.is_empty() {
+        String::new()
+    } else {
+        format!("{}\n    ", rel_me)
+    };
+
+    result = result.replace("</head>", &format!("{}{}{}</head>", twitter_tags, json_ld, rel_me_block));
 
     result.into_bytes()
 }
