@@ -1009,7 +1009,6 @@
 /* Replicant — Blade Runner 2049: deep dark with hot neon accents (pink, cyan, amber) */
 [data-theme="replicant"] body {
   background:
-    radial-gradient(ellipse at 15% 85%, rgba(255,45,123,0.08) 0%, transparent 50%),
     radial-gradient(ellipse at 85% 20%, rgba(0,229,255,0.06) 0%, transparent 45%),
     radial-gradient(ellipse at 50% 50%, rgba(247,139,4,0.04) 0%, transparent 60%),
     linear-gradient(180deg, #080a10 0%, #0a0c14 40%, #0c0a08 100%);
