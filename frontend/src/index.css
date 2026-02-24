@@ -94,11 +94,11 @@
 
 /* ── Cinematic Themes ── */
 
-[data-theme="terminator"], [data-theme="terminator2"] {
+[data-theme="terminator"] {
   --bg: #06080c; --card: #6a7380; --border: #78828e;
   --text: #1a1e24; --text-muted: #3a3f48; --text-bright: #0a0c10;
-  --accent: #cc0018; --accent2: #2266aa; --tag-bg: #585f6c;
-  --tag-border: #8a929e;
+  --accent: #cc0018; --accent2: #2266aa; --tag-bg: #8a929e;
+  --tag-border: #a0a8b4;
 }
 
 [data-theme="matrix"] {
@@ -744,7 +744,7 @@
 /* ── Cinematic Theme Special Effects ── */
 
 /* Terminator — Blue steel endoskeleton, red LED eye, future war lasers */
-[data-theme="terminator"] body, [data-theme="terminator2"] body {
+[data-theme="terminator"] body body {
   background:
     radial-gradient(ellipse at 20% 30%, rgba(255,16,32,0.06) 0%, transparent 40%),
     radial-gradient(ellipse at 80% 70%, rgba(68,136,204,0.05) 0%, transparent 45%),
@@ -840,7 +840,7 @@
     radial-gradient(circle 5px at calc(100% - 20px) calc(100% - 16px),
       rgba(210,215,225,0.7) 0%, rgba(160,168,180,0.5) 35%, rgba(80,88,100,0.6) 55%, rgba(40,44,52,0.3) 70%, transparent 75%);
 }
-[data-theme="terminator"] .card:hover, [data-theme="terminator2"] .card:hover {
+[data-theme="terminator"] .card:hover .card:hover {
   box-shadow:
     0 4px 30px rgba(0,0,0,0.8),
     0 0 50px rgba(255,16,32,0.06),
@@ -850,11 +850,11 @@
     inset -2px 0 0 rgba(0,0,0,0.22),
     inset 0 0 30px rgba(0,0,0,0.1);
 }
-[data-theme="terminator"] .profile-name, [data-theme="terminator2"] .profile-name {
+[data-theme="terminator"] .profile-name .profile-name {
   text-shadow: 0 1px 0 rgba(255,255,255,0.3);
   color: #0e1014;
 }
-[data-theme="terminator"] .section-title, [data-theme="terminator2"] .section-title {
+[data-theme="terminator"] .section-title .section-title {
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: #1a2030;
@@ -863,24 +863,52 @@
   border-top: 1px solid rgba(200,210,225,0.4);
   box-shadow: 0 -1px 0 rgba(0,0,0,0.3);
 }
-[data-theme="terminator"] .badge, [data-theme="terminator2"] .badge {
+[data-theme="terminator"] .badge {
   border-color: rgba(0,0,0,0.2);
   background: rgba(0,0,0,0.08);
   color: #1a1e24;
 }
-[data-theme="terminator"] .profile-tagline, [data-theme="terminator2"] .profile-tagline {
+[data-theme="terminator"] .profile-tagline {
   color: #cc0018;
   text-shadow: 0 1px 0 rgba(255,255,255,0.2);
+}
+/* Links & crypto: lighter pill backgrounds on steel */
+[data-theme="terminator"] .profile-link {
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.25);
+  color: #1a1e24;
+}
+[data-theme="terminator"] .profile-link:hover {
+  background: rgba(255,255,255,0.25);
+  border-color: #cc0018;
+  color: #cc0018;
+}
+[data-theme="terminator"] .link-detail {
+  color: #3a4048;
+}
+[data-theme="terminator"] .addr-row {
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.25);
+}
+[data-theme="terminator"] .addr-row:hover {
+  border-color: #cc0018;
+}
+[data-theme="terminator"] .addr-network {
+  color: #0a0c10;
+}
+[data-theme="terminator"] .addr-value-wrap a,
+[data-theme="terminator"] .addr-value-wrap code {
+  color: #1a1e24;
+}
+[data-theme="terminator"] .addr-label {
+  color: #3a4048;
 }
 
 /* ── Shared rivets for both Terminator themes ── */
 /* 3 rivets in each corner of every steel block */
 [data-theme="terminator"] .profile-header::after,
 [data-theme="terminator"] .section::after,
-[data-theme="terminator"] .profile-meta::after,
-[data-theme="terminator2"] .profile-header::after,
-[data-theme="terminator2"] .section::after,
-[data-theme="terminator2"] .profile-meta::after {
+[data-theme="terminator"] .profile-meta::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -899,10 +927,7 @@
 /* Blocks need position:relative for the ::after to anchor to */
 [data-theme="terminator"] .profile-header,
 [data-theme="terminator"] .section,
-[data-theme="terminator"] .profile-meta,
-[data-theme="terminator2"] .profile-header,
-[data-theme="terminator2"] .section,
-[data-theme="terminator2"] .profile-meta {
+[data-theme="terminator"] .profile-meta {
   position: relative;
 }
 
@@ -952,64 +977,6 @@
   margin-bottom: 0.6rem;
 }
 [data-theme="terminator"] .badges { padding: 0.6rem 1.25rem; }
-
-/* ── Terminator2: Option B — Observation Slits ── */
-/* Card is transparent; each content block gets its own steel bg; slits are real gaps */
-[data-theme="terminator2"] .card {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  padding: 1rem 0 !important;
-  overflow: visible !important;
-}
-[data-theme="terminator2"] .card::before { display: none; }
-
-/* Steel background mixin for each content block */
-[data-theme="terminator2"] .profile-header,
-[data-theme="terminator2"] .section,
-[data-theme="terminator2"] .profile-meta {
-  background:
-    repeating-linear-gradient(0deg,
-      rgba(255,255,255,0) 0px, rgba(255,255,255,0) 38px,
-      rgba(255,255,255,0.035) 39px, rgba(255,255,255,0) 40px
-    ),
-    repeating-linear-gradient(0deg,
-      transparent 0px, transparent 27px,
-      rgba(0,0,0,0.03) 28px, transparent 29px
-    ),
-    repeating-linear-gradient(0deg,
-      rgba(255,255,255,0) 0px, rgba(255,255,255,0) 5px,
-      rgba(255,255,255,0.02) 5.5px, rgba(255,255,255,0) 6px
-    ),
-    linear-gradient(90deg,
-      #62696e 0%, #7a8188 15%, #969ca3 30%, #a8aeb5 50%,
-      #969ca3 70%, #7a8188 85%, #62696e 100%
-    );
-  border: 2px solid;
-  border-color: #78828e #484f5a #3a4048 #687078;
-  padding: 1.5rem 2rem;
-  box-shadow:
-    0 4px 20px rgba(0,0,0,0.6),
-    inset 0 2px 0 rgba(220,230,245,0.35),
-    inset 0 -2px 0 rgba(0,0,0,0.4);
-  /* No border-radius — sharp steel edges */
-  border-radius: 0;
-  /* No margin — blocks touch, slits created by border gaps */
-  margin-bottom: 0;
-}
-/* Thin transparent slits between blocks — the warzone shows through */
-[data-theme="terminator2"] .section,
-[data-theme="terminator2"] .profile-meta {
-  margin-top: 6px;  /* the slit — actual transparent gap */
-}
-/* Top and bottom plates get rounded corners */
-[data-theme="terminator2"] .profile-header {
-  border-radius: 4px 4px 0 0;
-}
-[data-theme="terminator2"] .profile-meta {
-  border-radius: 0 0 4px 4px;
-}
 
 /* Matrix — CRT phosphor glow, monospace everything */
 [data-theme="matrix"] body {

@@ -843,6 +843,16 @@ interface LaserBurst {
   delayTimer: number  // current countdown
 }
 
+interface WarzoneRuin {
+  x: number; width: number; height: number
+  jagged: number[]    // top edge offsets for broken silhouette
+  hasRebar: boolean    // exposed rebar sticking up
+  windowSlits: { x: number; y: number }[]
+}
+interface WarzoneWreck {
+  x: number; y: number; width: number; height: number; type: 'car' | 'truck' | 'slab'
+  tilt: number
+}
 interface WarzoneState {
   searchlights: Searchlight[]
   crossfireLasers: CrossfireLaser[]
@@ -852,6 +862,9 @@ interface WarzoneState {
   redEyePhase: number
   flashTimer: number
   flashAlpha: number
+  ruins: WarzoneRuin[]
+  wrecks: WarzoneWreck[]
+  groundY: number
 }
 
 const LASER_COLORS = [
@@ -898,7 +911,53 @@ function initWarzoneState(w: number, h: number, foreground: boolean): WarzoneSta
     phase: Math.random() * Math.PI * 2,
   }))
 
-  return { searchlights, crossfireLasers: [], laserCooldown: 120, activeBurst: null, sparks, redEyePhase: 0, flashTimer: 0, flashAlpha: 0 }
+  // Dystopian landscape — ruined buildings along bottom
+  const groundY = h * 0.75
+  const ruins: WarzoneRuin[] = []
+  if (!foreground) {
+    let rx = -20
+    while (rx < w + 40) {
+      const rw = 30 + Math.random() * 60
+      const rh = 40 + Math.random() * 120
+      // Jagged top edge — broken concrete
+      const jaggedCount = 4 + Math.floor(Math.random() * 6)
+      const jagged: number[] = []
+      for (let j = 0; j <= jaggedCount; j++) {
+        jagged.push((Math.random() - 0.5) * rh * 0.4)
+      }
+      const windowSlits: { x: number; y: number }[] = []
+      const slitCount = Math.floor(rh / 25)
+      for (let s = 0; s < slitCount; s++) {
+        if (Math.random() > 0.5) {
+          windowSlits.push({
+            x: 4 + Math.random() * (rw - 8),
+            y: 10 + s * 22 + Math.random() * 8,
+          })
+        }
+      }
+      ruins.push({ x: rx, width: rw, height: rh, jagged, hasRebar: Math.random() > 0.6, windowSlits })
+      rx += rw + 10 + Math.random() * 50  // gaps between ruins
+    }
+  }
+
+  // Wrecked vehicles & concrete slabs scattered on ground
+  const wrecks: WarzoneWreck[] = []
+  if (!foreground) {
+    const wreckCount = 3 + Math.floor(Math.random() * 4)
+    for (let i = 0; i < wreckCount; i++) {
+      const type = Math.random() > 0.6 ? 'slab' : Math.random() > 0.5 ? 'truck' : 'car'
+      const ww = type === 'slab' ? 20 + Math.random() * 40 : type === 'truck' ? 35 + Math.random() * 20 : 20 + Math.random() * 15
+      const wh = type === 'slab' ? 8 + Math.random() * 15 : type === 'truck' ? 14 + Math.random() * 8 : 10 + Math.random() * 6
+      wrecks.push({
+        x: Math.random() * w,
+        y: groundY + Math.random() * (h - groundY) * 0.4,
+        width: ww, height: wh, type,
+        tilt: (Math.random() - 0.5) * 0.3,
+      })
+    }
+  }
+
+  return { searchlights, crossfireLasers: [], laserCooldown: 120, activeBurst: null, sparks, redEyePhase: 0, flashTimer: 0, flashAlpha: 0, ruins, wrecks, groundY }
 }
 
 function drawWarzone(
@@ -909,9 +968,93 @@ function drawWarzone(
   state: WarzoneState,
   foreground: boolean,
 ) {
-  // ── Background: searchlights from sky + crossfire lasers ──
+  // ── Background: dystopian landscape + searchlights + crossfire lasers ──
   if (!foreground) {
     ctx.save()
+
+    // ── Ruined cityscape silhouette ──
+    const gY = state.groundY
+    // Ground plane — dark rocky terrain
+    ctx.fillStyle = '#0a0c10'
+    ctx.fillRect(0, gY, w, h - gY)
+    // Ground texture — rubble
+    ctx.fillStyle = 'rgba(30,32,40,0.6)'
+    for (let gx = 0; gx < w; gx += 3 + Math.random() * 6) {
+      const gy = gY - 1 + Math.random() * 4
+      ctx.fillRect(gx, gy, 2 + Math.random() * 3, 1 + Math.random() * 2)
+    }
+
+    // Ruined buildings
+    for (const ruin of state.ruins) {
+      const baseY = gY + 4
+      const topY = baseY - ruin.height
+
+      // Main structure — dark silhouette
+      ctx.fillStyle = '#0a0c10'
+      ctx.beginPath()
+      ctx.moveTo(ruin.x, baseY)
+      // Draw jagged top edge
+      for (let j = 0; j < ruin.jagged.length; j++) {
+        const frac = j / (ruin.jagged.length - 1)
+        const jx = ruin.x + frac * ruin.width
+        const jy = topY + ruin.jagged[j]
+        if (j === 0) ctx.lineTo(ruin.x, jy)
+        else ctx.lineTo(jx, jy)
+      }
+      ctx.lineTo(ruin.x + ruin.width, baseY)
+      ctx.closePath()
+      ctx.fill()
+
+      // Exposed rebar — thin lines sticking up from broken top
+      if (ruin.hasRebar) {
+        ctx.strokeStyle = 'rgba(60,50,40,0.8)'
+        ctx.lineWidth = 1.5
+        for (let r = 0; r < 3; r++) {
+          const rx = ruin.x + ruin.width * (0.2 + r * 0.3) + Math.random() * 5
+          const ry = topY + ruin.jagged[Math.min(r + 1, ruin.jagged.length - 1)]
+          ctx.beginPath()
+          ctx.moveTo(rx, ry)
+          ctx.lineTo(rx + (Math.random() - 0.5) * 4, ry - 8 - Math.random() * 12)
+          ctx.stroke()
+        }
+      }
+
+      // Dark window slits — subtle depth
+      for (const ws of ruin.windowSlits) {
+        const wy = topY + ws.y
+        if (wy < baseY - 5) {
+          ctx.fillStyle = 'rgba(0,0,0,0.5)'
+          ctx.fillRect(ruin.x + ws.x, wy, 5, 3)
+        }
+      }
+    }
+
+    // Wrecked vehicles & concrete slabs
+    for (const wr of state.wrecks) {
+      ctx.save()
+      ctx.translate(wr.x + wr.width / 2, wr.y + wr.height / 2)
+      ctx.rotate(wr.tilt)
+      ctx.fillStyle = wr.type === 'slab' ? '#0e1018' : '#0c0e14'
+      ctx.fillRect(-wr.width / 2, -wr.height / 2, wr.width, wr.height)
+      if (wr.type === 'car' || wr.type === 'truck') {
+        // Axle/wheel circles
+        ctx.fillStyle = '#060810'
+        ctx.beginPath()
+        ctx.arc(-wr.width * 0.3, wr.height * 0.3, 3, 0, Math.PI * 2)
+        ctx.arc(wr.width * 0.3, wr.height * 0.3, 3, 0, Math.PI * 2)
+        ctx.fill()
+      }
+      if (wr.type === 'slab') {
+        // Crack line
+        ctx.strokeStyle = 'rgba(30,34,44,0.6)'
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        ctx.moveTo(-wr.width * 0.3, -wr.height * 0.2)
+        ctx.lineTo(wr.width * 0.2, wr.height * 0.3)
+        ctx.stroke()
+      }
+      ctx.restore()
+    }
 
     // Searchlights — from the sky, sweeping down to search the ground
     for (const sl of state.searchlights) {

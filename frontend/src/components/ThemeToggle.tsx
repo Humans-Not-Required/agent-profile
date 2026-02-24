@@ -17,7 +17,6 @@ export const THEME_EFFECT_MAP: Record<string, EffectName> = {
   sage: 'leaves',
   peach: 'fireflies',
   terminator: 'warzone',
-  terminator2: 'warzone',
   matrix: 'digital-rain',
   replicant: 'rain',
   br2049: 'wasteland',
@@ -61,8 +60,7 @@ const THEME_GROUPS = [
   {
     label: 'Cinematic',
     themes: [
-      { id: 'terminator', emoji: '🤖', name: 'T-Plates' },
-      { id: 'terminator2', emoji: '🔩', name: 'T-Slits' },
+      { id: 'terminator', emoji: '🤖', name: 'Terminator' },
       { id: 'matrix', emoji: '💊', name: 'Matrix' },
       { id: 'replicant', emoji: '🌆', name: 'Replicant' },
       { id: 'br2049', emoji: '🏜️', name: '2049' },
