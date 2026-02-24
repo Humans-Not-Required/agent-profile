@@ -309,14 +309,30 @@ Landing page has client-side sort tabs (Top / Popular / New) using `data-*` attr
 
 ---
 
+## Export / Import
+
+Profile backup and migration via portable JSON documents.
+
+- `GET /api/v1/profiles/{username}/export` — auth required, returns portable JSON
+  - Format: `{ format: "agent-profile-export", version: 1, profile, links, sections, skills, crypto_addresses }`
+  - Strips internal IDs, includes format version for forward compatibility
+- `POST /api/v1/import` — create or update profile from export document
+  - New profiles: returns fresh API key
+  - Existing profiles: requires valid API key (X-API-Key header)
+  - Replace semantics: links/sections/skills/addresses fully replaced on import
+  - Score auto-recomputed after import
+- Supports full roundtrip: export → delete → import restores profile
+
+---
+
 ## Test Coverage
 
 | Scope | Count |
 |-------|-------|
 | Rust unit | 13 |
-| Rust integration | 95 |
-| Python SDK integration | 33 |
-| **Total** | **141** |
+| Rust integration | 101 |
+| Python SDK integration | 37 |
+| **Total** | **151** |
 
 Run: `cargo test` (Rust) / `cd sdk/python && pytest test_sdk.py -v` (Python SDK)
 

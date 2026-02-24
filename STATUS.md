@@ -4,7 +4,7 @@
 **Stage:** Feature complete + fully documented. Awaiting: prod domain DNS (`pinche.rs`).
 **Last updated:** 2026-02-24
 
-**Tests:** 141 total (108 Rust: 13 unit + 95 integration, 33 Python SDK integration)
+**Tests:** 151 total (114 Rust: 13 unit + 101 integration, 37 Python SDK integration)
 **Python SDK:** `sdk/python/` — zero-dependency client, pip-installable, 32 integration tests all green
 
 ---
