@@ -1081,10 +1081,6 @@
 /* ── Global base ── */
 * { box-sizing: border-box; }
 
-html {
-  overflow-x: hidden;       /* prevent horizontal scroll on narrow viewports */
-}
-
 body {
   background: var(--bg);
   color: var(--text);
@@ -1092,7 +1088,6 @@ body {
   min-height: 100vh;
   margin: 0;
   padding: 2rem 1rem;
-  overflow-x: hidden;       /* belt + suspenders for mobile */
   transition: background 0.2s, color 0.2s;
 }
 
@@ -1101,7 +1096,6 @@ body {
   position: relative; z-index: 1;
   display: flex; flex-direction: column;
   min-height: calc(100vh - 4rem); /* account for body padding */
-  max-width: 100%; overflow-x: hidden;
 }
 
 /* ── Layout ── */
@@ -1148,9 +1142,6 @@ body {
 }
 .badge-score { color: var(--score-color, var(--text-muted)); border-color: var(--score-color, var(--border)); }
 .badge-verified { color: #3fb950; border-color: #3fb950; }
-
-/* ── Profile content wrapper ── */
-.profile-content { max-width: 100%; overflow: hidden; }
 
 /* ── Sections ── */
 .section { margin-bottom: 1.75rem; }
