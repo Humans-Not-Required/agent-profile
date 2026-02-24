@@ -873,6 +873,58 @@
   text-shadow: 0 1px 0 rgba(255,255,255,0.2);
 }
 
+/* ── Shared rivets for both Terminator themes ── */
+/* 3 rivets in each corner of every steel block */
+[data-theme="terminator"] .profile-header::after,
+[data-theme="terminator"] .section::after,
+[data-theme="terminator"] .profile-meta::after,
+[data-theme="terminator2"] .profile-header::after,
+[data-theme="terminator2"] .section::after,
+[data-theme="terminator2"] .profile-meta::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    /* ── Top-left corner: 3 rivets ── */
+    radial-gradient(circle 3.5px at 12px 12px,
+      rgba(220,225,235,0.8) 0%, rgba(160,168,180,0.5) 40%, rgba(60,68,80,0.6) 60%, transparent 75%),
+    radial-gradient(circle 3.5px at 28px 12px,
+      rgba(220,225,235,0.8) 0%, rgba(160,168,180,0.5) 40%, rgba(60,68,80,0.6) 60%, transparent 75%),
+    radial-gradient(circle 3.5px at 44px 12px,
+      rgba(220,225,235,0.8) 0%, rgba(160,168,180,0.5) 40%, rgba(60,68,80,0.6) 60%, transparent 75%),
+    /* ── Top-right corner: 3 rivets ── */
+    radial-gradient(circle 3.5px at calc(100% - 12px) 12px,
+      rgba(220,225,235,0.8) 0%, rgba(160,168,180,0.5) 40%, rgba(60,68,80,0.6) 60%, transparent 75%),
+    radial-gradient(circle 3.5px at calc(100% - 28px) 12px,
+      rgba(220,225,235,0.8) 0%, rgba(160,168,180,0.5) 40%, rgba(60,68,80,0.6) 60%, transparent 75%),
+    radial-gradient(circle 3.5px at calc(100% - 44px) 12px,
+      rgba(220,225,235,0.8) 0%, rgba(160,168,180,0.5) 40%, rgba(60,68,80,0.6) 60%, transparent 75%),
+    /* ── Bottom-left corner: 3 rivets ── */
+    radial-gradient(circle 3.5px at 12px calc(100% - 12px),
+      rgba(220,225,235,0.8) 0%, rgba(160,168,180,0.5) 40%, rgba(60,68,80,0.6) 60%, transparent 75%),
+    radial-gradient(circle 3.5px at 28px calc(100% - 12px),
+      rgba(220,225,235,0.8) 0%, rgba(160,168,180,0.5) 40%, rgba(60,68,80,0.6) 60%, transparent 75%),
+    radial-gradient(circle 3.5px at 44px calc(100% - 12px),
+      rgba(220,225,235,0.8) 0%, rgba(160,168,180,0.5) 40%, rgba(60,68,80,0.6) 60%, transparent 75%),
+    /* ── Bottom-right corner: 3 rivets ── */
+    radial-gradient(circle 3.5px at calc(100% - 12px) calc(100% - 12px),
+      rgba(220,225,235,0.8) 0%, rgba(160,168,180,0.5) 40%, rgba(60,68,80,0.6) 60%, transparent 75%),
+    radial-gradient(circle 3.5px at calc(100% - 28px) calc(100% - 12px),
+      rgba(220,225,235,0.8) 0%, rgba(160,168,180,0.5) 40%, rgba(60,68,80,0.6) 60%, transparent 75%),
+    radial-gradient(circle 3.5px at calc(100% - 44px) calc(100% - 12px),
+      rgba(220,225,235,0.8) 0%, rgba(160,168,180,0.5) 40%, rgba(60,68,80,0.6) 60%, transparent 75%);
+}
+/* Blocks need position:relative for the ::after to anchor to */
+[data-theme="terminator"] .profile-header,
+[data-theme="terminator"] .section,
+[data-theme="terminator"] .profile-meta,
+[data-theme="terminator2"] .profile-header,
+[data-theme="terminator2"] .section,
+[data-theme="terminator2"] .profile-meta {
+  position: relative;
+}
+
 /* ── Terminator: Option A — Separate Steel Plates ── */
 /* Card becomes transparent; each section is its own plate */
 [data-theme="terminator"] .card {
