@@ -112,16 +112,16 @@ export function CSSParticleEffect({ effect, foreground = false }: Props) {
       }
       result.push(p)
 
-      // Per-particle fall keyframe (no var() — values baked in)
-      const fallName = `d${effect[0]}${i}`
+      // Per-particle fall keyframe (on inner element)
+      const fallName = `f${effect[0]}${i}`
       kfParts.push(
         `@keyframes ${fallName}{from{transform:translateY(0) translateX(0) rotate(${rotStart}deg)}to{transform:translateY(115vh) translateX(${driftX}vw) rotate(${rotEnd}deg)}}`
       )
-      // Per-particle horizontal wander keyframe (long non-aligned cycle)
+      // Per-particle horizontal wander keyframe (on outer wrapper — long non-aligned cycle)
       const wanderName = `w${effect[0]}${i}`
       const wanderSign = Math.random() > 0.5 ? 1 : -1
       kfParts.push(
-        `@keyframes ${wanderName}{0%{margin-left:0}33%{margin-left:${wanderRange * wanderSign}vw}66%{margin-left:${-wanderRange * wanderSign * 0.6}vw}100%{margin-left:0}}`
+        `@keyframes ${wanderName}{0%{transform:translateX(0)}33%{transform:translateX(${wanderRange * wanderSign}vw)}66%{transform:translateX(${-wanderRange * wanderSign * 0.6}vw)}100%{transform:translateX(0)}}`
       )
     }
 
@@ -151,7 +151,7 @@ export function CSSParticleEffect({ effect, foreground = false }: Props) {
           extraStyle.filter = `hue-rotate(${p.hueRotate}deg) saturate(1.2)`
         }
 
-        const fallName = `d${effect[0]}${p.id}`
+        const fallName = `f${effect[0]}${p.id}`
         const wanderName = `w${effect[0]}${p.id}`
 
         return (
@@ -161,16 +161,23 @@ export function CSSParticleEffect({ effect, foreground = false }: Props) {
               position: 'absolute',
               left: `${p.x}%`,
               top: `${p.startY}%`,
-              fontSize: `${p.size}px`,
-              opacity: p.opacity,
-              willChange: 'transform, margin-left',
-              animation: `${fallName} ${p.duration}s linear ${p.delay}s infinite, ${wanderName} ${p.wanderDuration}s ease-in-out ${p.delay}s infinite`,
-              lineHeight: 1,
-              userSelect: 'none',
-              ...extraStyle,
-            } as React.CSSProperties}
+              willChange: 'transform',
+              animation: `${wanderName} ${p.wanderDuration}s ease-in-out ${p.delay}s infinite`,
+            }}
           >
-            {p.emoji}
+            <div
+              style={{
+                fontSize: `${p.size}px`,
+                opacity: p.opacity,
+                willChange: 'transform',
+                animation: `${fallName} ${p.duration}s linear ${p.delay}s infinite`,
+                lineHeight: 1,
+                userSelect: 'none',
+                ...extraStyle,
+              } as React.CSSProperties}
+            >
+              {p.emoji}
+            </div>
           </div>
         )
       })}
