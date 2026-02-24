@@ -214,7 +214,7 @@ export default function App() {
 
         {/* ── Meta footer ── */}
         <div className="profile-meta">
-          <span className="meta-text">@{profile.username} · Member since {memberSince}</span>
+          <span className="meta-text">@{profile.username} · Member since {memberSince}{profile.view_count > 0 && ` · ${profile.view_count.toLocaleString()} view${profile.view_count !== 1 ? 's' : ''}`}</span>
           <button
             className="json-link share-btn"
             onClick={() => {

@@ -58,6 +58,7 @@ export interface Profile {
   particle_seasonal: boolean;
   pubkey: string;
   profile_score: number;
+  view_count: number;
   created_at: string;
   updated_at: string;
   crypto_addresses: CryptoAddress[];
