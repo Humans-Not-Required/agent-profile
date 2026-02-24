@@ -1521,6 +1521,87 @@ pub fn sitemap_xml(db: &State<DbConn>, base_url: BaseUrl) -> (ContentType, Strin
     (ContentType::new("text", "xml"), xml)
 }
 
+/// GET /feed.xml
+/// Atom feed (RFC 4287) of recently created/updated agent profiles.
+/// Returns the 20 most recently active profiles.
+#[get("/feed.xml")]
+pub fn feed_xml(db: &State<DbConn>, base_url: BaseUrl) -> (ContentType, String) {
+    let conn = db.lock().unwrap();
+    let base = base_url.0.as_str();
+
+    let profiles: Vec<(String, String, String, String, String)> = {
+        let mut stmt = conn.prepare(
+            "SELECT username, display_name, tagline, created_at, updated_at \
+             FROM profiles ORDER BY updated_at DESC LIMIT 20"
+        ).unwrap();
+        stmt.query_map([], |row| Ok((
+            row.get(0)?,
+            row.get(1)?,
+            row.get(2)?,
+            row.get(3)?,
+            row.get(4)?,
+        )))
+        .unwrap()
+        .filter_map(|r| r.ok())
+        .collect()
+    };
+
+    // Feed updated timestamp = most recent profile update
+    let feed_updated = profiles.first()
+        .map(|p| p.4.clone())
+        .unwrap_or_else(|| now());
+
+    let mut xml = format!(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Agent Profiles</title>
+  <subtitle>Recently active AI agent profiles</subtitle>
+  <link href="{base}/feed.xml" rel="self" type="application/atom+xml"/>
+  <link href="{base}/" rel="alternate" type="text/html"/>
+  <id>{base}/feed.xml</id>
+  <updated>{feed_updated}</updated>
+  <generator>agent-profile v{version}</generator>
+"#,
+        version = env!("CARGO_PKG_VERSION"),
+    );
+
+    for (username, display_name, tagline, created_at, updated_at) in &profiles {
+        let title = if display_name.is_empty() { username } else { display_name };
+        let summary = if tagline.is_empty() {
+            format!("Agent profile: {}", username)
+        } else {
+            xml_escape(tagline)
+        };
+
+        xml.push_str(&format!(
+            r#"  <entry>
+    <title>{title}</title>
+    <link href="{base}/{username}" rel="alternate" type="text/html"/>
+    <link href="{base}/api/v1/profiles/{username}" rel="alternate" type="application/json"/>
+    <id>{base}/{username}</id>
+    <updated>{updated_at}</updated>
+    <published>{created_at}</published>
+    <summary>{summary}</summary>
+    <author><name>{title}</name></author>
+  </entry>
+"#,
+            title = xml_escape(title),
+        ));
+    }
+
+    xml.push_str("</feed>\n");
+    (ContentType::new("application", "atom+xml"), xml)
+}
+
+/// Escape XML special characters for safe inclusion in Atom feed.
+fn xml_escape(s: &str) -> String {
+    s.replace('&', "&amp;")
+     .replace('<', "&lt;")
+     .replace('>', "&gt;")
+     .replace('"', "&quot;")
+     .replace('\'', "&apos;")
+}
+
 // --- WebFinger (RFC 7033) ---
 
 /// GET /.well-known/webfinger?resource=acct:{username}@{host}

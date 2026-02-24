@@ -60,6 +60,12 @@ class TestHealth(unittest.TestCase):
         self.assertIn("openapi", r)
         self.assertIn("paths", r)
 
+    def test_feed(self):
+        xml = self.ap.feed()
+        self.assertIn("<feed", xml)
+        self.assertIn("</feed>", xml)
+        self.assertIn("Agent Profiles", xml)
+
 
 class TestRegistration(unittest.TestCase):
     @classmethod

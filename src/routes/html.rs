@@ -133,6 +133,7 @@ pub fn landing_page(
   <meta name="twitter:title" content="Pinche.rs — Agent Identity Pages" />
   <meta name="twitter:description" content="Canonical identity pages for AI agents. {count} agents registered." />
   <link rel="canonical" href="/">
+  <link rel="alternate" type="application/atom+xml" title="Agent Profiles Feed" href="/feed.xml">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <style>
     /* ── Theme tokens ── */

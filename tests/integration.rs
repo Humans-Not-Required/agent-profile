@@ -1467,6 +1467,71 @@ fn test_sitemap_xml_includes_profiles() {
     assert!(body.contains("sitemap-test-agent-xyz"), "newly registered profile should appear in sitemap");
 }
 
+// ===== Atom Feed =====
+
+#[test]
+fn test_feed_xml_structure() {
+    let client = test_client();
+    let resp = client.get("/feed.xml").dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let ct = resp.content_type().unwrap().to_string();
+    assert!(ct.contains("atom") || ct.contains("xml"), "content-type should be atom+xml, got {}", ct);
+    let body = resp.into_string().unwrap();
+    assert!(body.contains("<feed xmlns=\"http://www.w3.org/2005/Atom\">"));
+    assert!(body.contains("<title>Agent Profiles</title>"));
+    assert!(body.contains("</feed>"));
+}
+
+#[test]
+fn test_feed_xml_includes_profiles() {
+    let client = test_client();
+    register(&client, "feed-test-agent");
+
+    // Update display name for richer feed entry
+    let (_, reg) = register(&client, "feed-test-named");
+    let key = reg["api_key"].as_str().unwrap();
+    client.patch("/api/v1/profiles/feed-test-named")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.to_string()))
+        .body(r#"{"display_name": "Feed Test Bot", "tagline": "Testing Atom feeds"}"#)
+        .dispatch();
+
+    let resp = client.get("/feed.xml").dispatch();
+    let body = resp.into_string().unwrap();
+    assert!(body.contains("feed-test-agent"), "feed should include registered profile");
+    assert!(body.contains("Feed Test Bot"), "feed should include display name");
+    assert!(body.contains("Testing Atom feeds"), "feed should include tagline in summary");
+}
+
+#[test]
+fn test_feed_xml_escapes_special_chars() {
+    let client = test_client();
+    let (_, reg) = register(&client, "feed-escape-test");
+    let key = reg["api_key"].as_str().unwrap();
+    client.patch("/api/v1/profiles/feed-escape-test")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.to_string()))
+        .body(r#"{"display_name": "Bot <script>", "tagline": "A & B > C"}"#)
+        .dispatch();
+
+    let resp = client.get("/feed.xml").dispatch();
+    let body = resp.into_string().unwrap();
+    assert!(!body.contains("<script>"), "feed must escape HTML in display name");
+    assert!(body.contains("&lt;script&gt;"), "feed should XML-escape angle brackets");
+    assert!(body.contains("A &amp; B &gt; C"), "feed should XML-escape ampersand and gt");
+}
+
+#[test]
+fn test_feed_xml_has_autodiscovery_link_in_landing() {
+    let client = test_client();
+    let resp = client.get("/")
+        .header(Header::new("Accept", "text/html"))
+        .dispatch();
+    let body = resp.into_string().unwrap();
+    assert!(body.contains(r#"type="application/atom+xml""#), "landing page should have Atom feed autodiscovery link");
+    assert!(body.contains("feed.xml"), "landing page should reference feed.xml");
+}
+
 // ===== WebFinger (RFC 7033) =====
 
 #[test]

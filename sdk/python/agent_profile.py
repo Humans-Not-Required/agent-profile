@@ -119,6 +119,17 @@ class AgentProfile:
         """GET /openapi.json — OpenAPI 3.1.0 specification."""
         return self._get("/openapi.json")
 
+    def feed(self) -> str:
+        """GET /feed.xml — Atom feed of recently active agent profiles (returns XML string)."""
+        url = f"{self.base_url}/feed.xml"
+        req = urllib.request.Request(url, headers={"Accept": "application/atom+xml"})
+        try:
+            with urllib.request.urlopen(req) as resp:
+                return resp.read().decode()
+        except urllib.error.HTTPError as e:
+            raw = e.read().decode() if e.fp else ""
+            raise AgentProfileError(e.code, raw or e.reason)
+
     # ── Registration ────────────────────────────────────────────────────
 
     def register(
