@@ -14,7 +14,7 @@ const RESERVED_USERNAMES: &[&str] = &[
 pub const VALID_THEMES: &[&str] = &[
     "dark", "light", "midnight", "forest", "ocean", "desert", "aurora",
     "cream", "sky", "lavender", "sage", "peach",
-    "terminator", "matrix", "replicant", "br2049",
+    "terminator", "terminator2", "matrix", "replicant", "br2049",
     "snow", "christmas", "halloween", "spring", "summer", "autumn",
     "newyear", "valentine", "patriot", "boba", "fruitsalad", "junkfood",
     "space", "neon", "candy", "retro", "coffee",
