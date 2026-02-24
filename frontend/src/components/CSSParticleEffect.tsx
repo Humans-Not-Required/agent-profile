@@ -26,6 +26,8 @@ interface EmojiParticle {
   rotStart: number    // deg
   rotEnd: number      // deg (total, not delta)
   hueRotate?: number
+  wanderDuration: number  // slow horizontal wander cycle (seconds)
+  wanderRange: number     // vw range for horizontal wander
 }
 
 const SNOW_EMOJI = ['❄', '❅', '❆']
@@ -44,7 +46,7 @@ const LEAF_HUES = [0, 0, -25, -40, -55, 25, 25, 45, 45, 60, 60, 80, 120]
 function getConfig(effect: Props['effect'], foreground: boolean) {
   if (foreground) {
     if (effect === 'snow') {
-      return { count: 3, sizeMin: 80, sizeMax: 160, durationMin: 8, durationMax: 16, opacityMin: 0.4, opacityMax: 0.6, invisibleChance: 0.5, driftMin: 3, driftMax: 10 }
+      return { count: 2, sizeMin: 70, sizeMax: 130, durationMin: 10, durationMax: 18, opacityMin: 0.3, opacityMax: 0.5, invisibleChance: 0.4, driftMin: 3, driftMax: 10 }
     }
     return { count: 2, sizeMin: 40, sizeMax: 80, durationMin: 12, durationMax: 25, opacityMin: 0, opacityMax: 0.9, invisibleChance: 0.85, driftMin: 2, driftMax: 8 }
   }
@@ -88,6 +90,10 @@ export function CSSParticleEffect({ effect, foreground = false }: Props) {
       const rotStart = rand(0, 360)
       const rotEnd = rotStart + rand(0, 360) * (Math.random() > 0.5 ? 1 : -1)
 
+      // Slow horizontal wander — prime-ish duration so it never syncs with the fall
+      const wanderDuration = rand(37, 73)  // 37-73s, long and varied
+      const wanderRange = rand(10, 35)     // wanders ±10-35vw over time
+
       const p: EmojiParticle = {
         id: i,
         emoji: pick(emojis),
@@ -101,13 +107,21 @@ export function CSSParticleEffect({ effect, foreground = false }: Props) {
         rotStart,
         rotEnd,
         hueRotate: effect === 'leaves' ? pick(LEAF_HUES) : undefined,
+        wanderDuration,
+        wanderRange,
       }
       result.push(p)
 
-      // Generate per-particle keyframe with values baked in (no var() in @keyframes)
-      const name = `d${effect[0]}${i}`
+      // Per-particle fall keyframe (no var() — values baked in)
+      const fallName = `d${effect[0]}${i}`
       kfParts.push(
-        `@keyframes ${name}{from{transform:translateY(0) translateX(0) rotate(${rotStart}deg)}to{transform:translateY(115vh) translateX(${driftX}vw) rotate(${rotEnd}deg)}}`
+        `@keyframes ${fallName}{from{transform:translateY(0) translateX(0) rotate(${rotStart}deg)}to{transform:translateY(115vh) translateX(${driftX}vw) rotate(${rotEnd}deg)}}`
+      )
+      // Per-particle horizontal wander keyframe (long non-aligned cycle)
+      const wanderName = `w${effect[0]}${i}`
+      const wanderSign = Math.random() > 0.5 ? 1 : -1
+      kfParts.push(
+        `@keyframes ${wanderName}{0%{margin-left:0}33%{margin-left:${wanderRange * wanderSign}vw}66%{margin-left:${-wanderRange * wanderSign * 0.6}vw}100%{margin-left:0}}`
       )
     }
 
@@ -137,7 +151,8 @@ export function CSSParticleEffect({ effect, foreground = false }: Props) {
           extraStyle.filter = `hue-rotate(${p.hueRotate}deg) saturate(1.2)`
         }
 
-        const kfName = `d${effect[0]}${p.id}`
+        const fallName = `d${effect[0]}${p.id}`
+        const wanderName = `w${effect[0]}${p.id}`
 
         return (
           <div
@@ -148,8 +163,8 @@ export function CSSParticleEffect({ effect, foreground = false }: Props) {
               top: `${p.startY}%`,
               fontSize: `${p.size}px`,
               opacity: p.opacity,
-              willChange: 'transform',
-              animation: `${kfName} ${p.duration}s linear ${p.delay}s infinite`,
+              willChange: 'transform, margin-left',
+              animation: `${fallName} ${p.duration}s linear ${p.delay}s infinite, ${wanderName} ${p.wanderDuration}s ease-in-out ${p.delay}s infinite`,
               lineHeight: 1,
               userSelect: 'none',
               ...extraStyle,
