@@ -30,6 +30,9 @@ export const THEME_EFFECT_MAP: Record<string, EffectName> = {
   boba: 'boba',
   fruitsalad: 'fruit',
   junkfood: 'junkfood',
+  space: 'stars',
+  neon: 'fireflies',
+  candy: 'candy',
 }
 
 const THEME_GROUPS = [
@@ -83,6 +86,9 @@ const THEME_GROUPS = [
       { id: 'boba', emoji: '🧋', name: 'Boba' },
       { id: 'fruitsalad', emoji: '🍓', name: 'Fruit Salad' },
       { id: 'junkfood', emoji: '🍔', name: 'Junk Food' },
+      { id: 'candy', emoji: '🍬', name: 'Candy' },
+      { id: 'space', emoji: '🚀', name: 'Space' },
+      { id: 'neon', emoji: '💜', name: 'Neon' },
     ],
   },
 ]

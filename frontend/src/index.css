@@ -201,6 +201,27 @@
   --tag-border: #f0d8c0;
 }
 
+[data-theme="space"] {
+  --bg: #030108; --card: #0a0618; --border: #1a1040;
+  --text: #a0a8c8; --text-muted: #606888; --text-bright: #d0d8f0;
+  --accent: #7c4dff; --accent2: #00e5ff; --tag-bg: #080414;
+  --tag-border: #1a1040;
+}
+
+[data-theme="neon"] {
+  --bg: #08050e; --card: #0e0a18; --border: #1e1435;
+  --text: #c0b8d8; --text-muted: #7a70a0; --text-bright: #e8e0ff;
+  --accent: #ff2d95; --accent2: #00ffcc; --tag-bg: #0c0816;
+  --tag-border: #1e1435;
+}
+
+[data-theme="candy"] {
+  --bg: #fff0f8; --card: #ffffff; --border: #f0c8e0;
+  --text: #5a2848; --text-muted: #a06888; --text-bright: #3e1030;
+  --accent: #e040a0; --accent2: #8060f0; --tag-bg: #fce8f4;
+  --tag-border: #f0c8e0;
+}
+
 /* ── Deluxe Theme Treatments ── */
 
 /* Dark — The Terminal: flat black with subtle blue vignette, crisp 1px borders */
@@ -523,6 +544,79 @@
 }
 [data-theme="junkfood"] .card:hover {
   box-shadow: 0 4px 28px rgba(224,64,32,0.15), inset 0 1px 0 rgba(255,255,255,0.7);
+  transform: translateY(-1px);
+}
+
+/* Space — The Cosmos: deep void with nebula color patches */
+[data-theme="space"] body {
+  background:
+    radial-gradient(ellipse at 25% 20%, rgba(124,77,255,0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 75% 70%, rgba(0,229,255,0.08) 0%, transparent 45%),
+    radial-gradient(ellipse at 60% 30%, rgba(255,50,130,0.06) 0%, transparent 40%),
+    radial-gradient(ellipse at 40% 80%, rgba(100,60,200,0.05) 0%, transparent 50%),
+    linear-gradient(180deg, #030108 0%, #050210 50%, #020008 100%);
+}
+[data-theme="space"] .card {
+  background: rgba(10,6,24,0.25);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 30px rgba(0,0,0,0.6), 0 0 60px rgba(124,77,255,0.04);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+[data-theme="space"] .card:hover {
+  box-shadow: 0 4px 30px rgba(0,0,0,0.6), 0 0 70px rgba(124,77,255,0.08), 0 0 40px rgba(0,229,255,0.04);
+  transform: translateY(-1px);
+}
+[data-theme="space"] .profile-name {
+  text-shadow: 0 0 20px rgba(124,77,255,0.25), 0 0 40px rgba(0,229,255,0.1);
+}
+
+/* Neon — The Underground: cyberpunk dark with hot neon glow lines */
+[data-theme="neon"] body {
+  background:
+    radial-gradient(ellipse at 10% 90%, rgba(255,45,149,0.1) 0%, transparent 40%),
+    radial-gradient(ellipse at 90% 10%, rgba(0,255,204,0.08) 0%, transparent 40%),
+    radial-gradient(ellipse at 50% 50%, rgba(130,80,255,0.04) 0%, transparent 60%),
+    linear-gradient(180deg, #0c0816 0%, #08050e 50%, #050310 100%);
+}
+[data-theme="neon"] .card {
+  background: rgba(14,10,24,0.25);
+  backdrop-filter: blur(8px);
+  border-color: rgba(255,45,149,0.15);
+  box-shadow: 0 4px 30px rgba(0,0,0,0.6), 0 0 30px rgba(255,45,149,0.06), 0 0 60px rgba(0,255,204,0.03);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+[data-theme="neon"] .card:hover {
+  border-color: rgba(255,45,149,0.3);
+  box-shadow: 0 4px 30px rgba(0,0,0,0.6), 0 0 40px rgba(255,45,149,0.1), 0 0 70px rgba(0,255,204,0.06);
+  transform: translateY(-1px);
+}
+[data-theme="neon"] .profile-name {
+  text-shadow: 0 0 12px rgba(255,45,149,0.4), 0 0 30px rgba(0,255,204,0.15);
+}
+[data-theme="neon"] .section-title {
+  color: #00ffcc;
+  text-shadow: 0 0 8px rgba(0,255,204,0.3);
+}
+[data-theme="neon"] .skill-tag {
+  border-color: rgba(255,45,149,0.2);
+  text-shadow: 0 0 6px rgba(128,96,240,0.3);
+}
+[data-theme="neon"] a {
+  text-shadow: 0 0 6px rgba(0,255,204,0.2);
+}
+
+/* Candy — Sugar Rush: pastel rainbow gradient, playful sweets vibe */
+[data-theme="candy"] body {
+  background: linear-gradient(135deg, #fff0f8 0%, #f0e8ff 25%, #e8f8ff 50%, #f0fff0 75%, #fff8e0 100%);
+}
+[data-theme="candy"] .card {
+  background: rgba(255,255,255,0.25);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 20px rgba(224,64,160,0.08), inset 0 1px 0 rgba(255,255,255,0.7);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+[data-theme="candy"] .card:hover {
+  box-shadow: 0 4px 28px rgba(224,64,160,0.12), inset 0 1px 0 rgba(255,255,255,0.8);
   transform: translateY(-1px);
 }
 

@@ -212,7 +212,7 @@ fn test_update_profile_invalid_theme() {
     let resp = client.patch("/api/v1/profiles/badtheme")
         .header(ContentType::JSON)
         .header(Header::new("X-API-Key", api_key.to_string()))
-        .body(r#"{"theme":"neon"}"#)
+        .body(r#"{"theme":"doesnotexist"}"#)
         .dispatch();
     assert_eq!(resp.status(), Status::UnprocessableEntity);
 }

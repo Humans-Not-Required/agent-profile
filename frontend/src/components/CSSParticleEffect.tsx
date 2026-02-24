@@ -9,7 +9,7 @@ import { useMemo } from 'react'
 // Instead, we generate per-particle keyframes with values baked in.
 
 interface Props {
-  effect: 'leaves' | 'snow' | 'fruit' | 'junkfood' | 'sakura' | 'hearts' | 'cactus'
+  effect: 'leaves' | 'snow' | 'fruit' | 'junkfood' | 'sakura' | 'hearts' | 'cactus' | 'candy'
   foreground?: boolean
 }
 
@@ -40,6 +40,7 @@ const JUNKFOOD_EMOJI = [
 const SAKURA_EMOJI = ['🌸']
 const HEART_EMOJI = ['❤️', '💕', '💖', '💗', '💘', '💝', '🩷', '♥️']
 const CACTUS_EMOJI = ['🌵', '🏜️', '☀️', '🦎', '🐪', '🌵', '🌵', '🌵']
+const CANDY_EMOJI = ['🍬', '🍭', '🍫', '🍩', '🧁', '🍪', '🎀', '🍬', '🍭', '🍬', '🍭', '🌈']
 
 const LEAF_HUES = [0, 0, -25, -40, -55, 25, 25, 45, 45, 60, 60, 80, 120]
 
@@ -58,6 +59,7 @@ function getConfig(effect: Props['effect'], foreground: boolean) {
     case 'sakura':   return { count: 50, sizeMin: 14, sizeMax: 28, durationMin: 8, durationMax: 20, opacityMin: 0.5, opacityMax: 0.9, invisibleChance: 0, driftMin: 6, driftMax: 18 }
     case 'hearts':   return { count: 35, sizeMin: 20, sizeMax: 48, durationMin: 8, durationMax: 18, opacityMin: 0.6, opacityMax: 1.0, invisibleChance: 0, driftMin: 4, driftMax: 12 }
     case 'cactus':   return { count: 25, sizeMin: 28, sizeMax: 56, durationMin: 12, durationMax: 28, opacityMin: 0.6, opacityMax: 1.0, invisibleChance: 0, driftMin: 3, driftMax: 8 }
+    case 'candy':    return { count: 45, sizeMin: 20, sizeMax: 44, durationMin: 7, durationMax: 16, opacityMin: 0.6, opacityMax: 1.0, invisibleChance: 0, driftMin: 4, driftMax: 14 }
   }
 }
 
@@ -70,6 +72,7 @@ function getEmojiSet(effect: Props['effect']): string[] {
     case 'sakura':   return SAKURA_EMOJI
     case 'hearts':   return HEART_EMOJI
     case 'cactus':   return CACTUS_EMOJI
+    case 'candy':    return CANDY_EMOJI
   }
 }
 
