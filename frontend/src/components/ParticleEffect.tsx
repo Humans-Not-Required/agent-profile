@@ -1278,7 +1278,7 @@ function drawBoba(
   const wallBounce = 0.2
   const mouseRadius = 100       // repulsion radius around cursor
   const mouseForce = 3.0        // repulsion strength
-  const restThreshold = 0.15    // velocity below this = at rest
+  const restThreshold = 0.4     // velocity below this = at rest (raised to prevent jitter)
 
   // ── Tapioca pearls with physics ──
   for (const p of state.pearls) {
@@ -1303,34 +1303,38 @@ function drawBoba(
     p.vx *= friction
     p.vy *= friction
 
-    // Settle to rest — stop micro-jittering
-    if (Math.abs(p.vx) < restThreshold && Math.abs(p.vy) < restThreshold) {
-      // Only fully rest if supported (on floor or on another pearl)
-      const supported = p.y + p.r >= h - 1 ||
-        state.pearls.some(q => q !== p && q.y > p.y &&
-          Math.abs(q.x - p.x) < p.r + q.r &&
-          q.y - p.y < p.r + q.r + 2)
-      if (supported) { p.vx = 0; p.vy = 0 }
+    // Check if at rest (supported and slow)
+    const speed = Math.abs(p.vx) + Math.abs(p.vy)
+    const supported = p.y + p.r >= h - 2 ||
+      state.pearls.some(q => q !== p && q.y > p.y &&
+        Math.abs(q.x - p.x) < p.r + q.r * 1.1 &&
+        q.y - p.y < p.r + q.r + 3)
+    const atRest = speed < restThreshold && supported
+
+    if (atRest) {
+      // Completely frozen — no movement, no velocity, no jitter
+      p.vx = 0
+      p.vy = 0
+    } else {
+      // Move
+      p.x += p.vx
+      p.y += p.vy
+
+      // Bounce off walls
+      if (p.x - p.r < 0) { p.x = p.r; p.vx = Math.abs(p.vx) * wallBounce }
+      if (p.x + p.r > w) { p.x = w - p.r; p.vx = -Math.abs(p.vx) * wallBounce }
+
+      // Bounce off floor + settle
+      if (p.y + p.r > h) {
+        p.y = h - p.r
+        p.vy = -Math.abs(p.vy) * floorBounce
+        if (Math.abs(p.vy) < 0.5) p.vy = 0
+      }
+      // Ceiling
+      if (p.y - p.r < 0) { p.y = p.r; p.vy = Math.abs(p.vy) * floorBounce }
     }
 
-    // Move
-    p.x += p.vx
-    p.y += p.vy
-
-    // Bounce off walls
-    if (p.x - p.r < 0) { p.x = p.r; p.vx = Math.abs(p.vx) * wallBounce }
-    if (p.x + p.r > w) { p.x = w - p.r; p.vx = -Math.abs(p.vx) * wallBounce }
-
-    // Bounce off floor + settle
-    if (p.y + p.r > h) {
-      p.y = h - p.r
-      p.vy = -Math.abs(p.vy) * floorBounce
-      if (Math.abs(p.vy) < 0.5) p.vy = 0  // stop bouncing quickly
-    }
-    // Ceiling
-    if (p.y - p.r < 0) { p.y = p.r; p.vy = Math.abs(p.vy) * floorBounce }
-
-    // Pearl-pearl collision (push apart, minimal velocity transfer for stacking)
+    // Pearl-pearl collision — position separation only (no velocity when settled)
     for (const q of state.pearls) {
       if (q === p) continue
       const dx = q.x - p.x, dy = q.y - p.y
@@ -1339,17 +1343,22 @@ function drawBoba(
       if (dist < minDist && dist > 0) {
         const overlap = (minDist - dist) * 0.5
         const nx = dx / dist, ny = dy / dist
-        // Separate them
+        // Always separate overlapping pearls
         p.x -= nx * overlap
         p.y -= ny * overlap
         q.x += nx * overlap
         q.y += ny * overlap
-        // Very light velocity transfer — enough to settle, not enough to bounce forever
-        const transferAmount = 0.08
-        p.vx -= nx * transferAmount
-        p.vy -= ny * transferAmount
-        q.vx += nx * transferAmount
-        q.vy += ny * transferAmount
+
+        // Only transfer velocity if at least one pearl is moving
+        const pSpeed = Math.abs(p.vx) + Math.abs(p.vy)
+        const qSpeed = Math.abs(q.vx) + Math.abs(q.vy)
+        if (pSpeed > restThreshold * 2 || qSpeed > restThreshold * 2) {
+          const transferAmount = 0.05
+          p.vx -= nx * transferAmount
+          p.vy -= ny * transferAmount
+          q.vx += nx * transferAmount
+          q.vy += ny * transferAmount
+        }
       }
     }
 
