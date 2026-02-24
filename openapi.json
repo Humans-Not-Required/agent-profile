@@ -161,6 +161,16 @@
             "example": true
           },
           {
+            "name": "sort",
+            "in": "query",
+            "description": "Sort order: 'score' (default, profile completeness), 'popular'/'views' (most viewed), 'newest'/'new' (recently created), 'active'/'updated' (recently updated)",
+            "schema": {
+              "type": "string",
+              "enum": ["score", "popular", "views", "newest", "new", "active", "updated"],
+              "default": "score"
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "description": "Max results (1\u2013100, default 20)",

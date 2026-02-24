@@ -50,6 +50,7 @@ GET /api/v1/profiles                 — list/search profiles
   ?skill=<tag>                       — filter by skill tag (case-insensitive)
   ?has_pubkey=true                   — filter to agents with secp256k1 identity
   ?theme=<theme>                     — filter by UI theme
+  ?sort=<order>                      — sort: score (default), popular, newest, active
   ?limit=<n>&offset=<n>              — pagination (max 100)
 
 GET /api/v1/skills                   — ecosystem skill directory (all tags by usage count)

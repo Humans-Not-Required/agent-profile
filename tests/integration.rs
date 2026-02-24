@@ -482,6 +482,63 @@ fn test_list_profiles() {
 }
 
 #[test]
+fn test_list_profiles_sort_popular() {
+    let client = test_client();
+    let (_, reg1) = register(&client, "sort-pop-a");
+    let (_, reg2) = register(&client, "sort-pop-b");
+
+    // Give sort-pop-b more views by visiting as human
+    for _ in 0..3 {
+        client.get("/sort-pop-b").header(Header::new("Accept", "text/html")).dispatch();
+    }
+    client.get("/sort-pop-a").header(Header::new("Accept", "text/html")).dispatch();
+
+    let resp = client.get("/api/v1/profiles?sort=popular&limit=50").dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let profiles = body["profiles"].as_array().unwrap();
+    // sort-pop-b (3 views) should come before sort-pop-a (1 view)
+    let usernames: Vec<&str> = profiles.iter().filter_map(|p| p["username"].as_str()).collect();
+    let pos_b = usernames.iter().position(|u| *u == "sort-pop-b");
+    let pos_a = usernames.iter().position(|u| *u == "sort-pop-a");
+    assert!(pos_b.is_some() && pos_a.is_some(), "both profiles should be in results");
+    assert!(pos_b.unwrap() < pos_a.unwrap(), "sort-pop-b (3 views) should rank before sort-pop-a (1 view)");
+}
+
+#[test]
+fn test_list_profiles_sort_newest() {
+    let client = test_client();
+    register(&client, "sort-new-first");
+    // Small delay to ensure different timestamps
+    std::thread::sleep(std::time::Duration::from_millis(50));
+    register(&client, "sort-new-second");
+
+    let resp = client.get("/api/v1/profiles?sort=newest&limit=50").dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let profiles = body["profiles"].as_array().unwrap();
+    assert!(profiles.len() >= 2, "should have at least 2 profiles");
+    // Verify created_at is in descending order
+    let dates: Vec<&str> = profiles.iter().filter_map(|p| p["created_at"].as_str()).collect();
+    for w in dates.windows(2) {
+        assert!(w[0] >= w[1], "sort=newest should return profiles in descending created_at order, got {} before {}", w[0], w[1]);
+    }
+}
+
+#[test]
+fn test_list_profiles_includes_view_count() {
+    let client = test_client();
+    register(&client, "list-views-test");
+
+    let resp = client.get("/api/v1/profiles?limit=50").dispatch();
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let profiles = body["profiles"].as_array().unwrap();
+    let p = profiles.iter().find(|p| p["username"] == "list-views-test").unwrap();
+    assert!(p.get("view_count").is_some(), "list response should include view_count");
+    assert!(p.get("updated_at").is_some(), "list response should include updated_at");
+}
+
+#[test]
 fn test_list_profiles_search() {
     let client = test_client();
     register(&client, "searchable-x99");

@@ -336,13 +336,14 @@ pub fn reissue_key(
 
 // --- Profile CRUD ---
 
-#[get("/profiles?<q>&<theme>&<skill>&<has_pubkey>&<limit>&<offset>")]
+#[get("/profiles?<q>&<theme>&<skill>&<has_pubkey>&<sort>&<limit>&<offset>")]
 pub fn list_profiles(
     db: &State<DbConn>,
     q: Option<&str>,
     theme: Option<&str>,
     skill: Option<&str>,
     has_pubkey: Option<bool>,
+    sort: Option<&str>,
     limit: Option<i64>,
     offset: Option<i64>,
 ) -> Json<serde_json::Value> {
@@ -351,7 +352,7 @@ pub fn list_profiles(
     let off = offset.unwrap_or(0);
 
     let mut query = "SELECT id, username, display_name, tagline, avatar_url, \
-                     theme, profile_score, created_at FROM profiles".to_string();
+                     theme, profile_score, view_count, created_at, updated_at FROM profiles".to_string();
     let mut conditions: Vec<String> = vec![];
     let mut values: Vec<Box<dyn rusqlite::types::ToSql>> = vec![];
 
@@ -383,7 +384,15 @@ pub fn list_profiles(
         query.push_str(" WHERE ");
         query.push_str(&conditions.join(" AND "));
     }
-    query.push_str(&format!(" ORDER BY profile_score DESC, created_at DESC LIMIT {} OFFSET {}", lim, off));
+
+    // Sort options: popular (views), newest, active (recently updated), score (default)
+    let order_clause = match sort.unwrap_or("score") {
+        "popular" | "views" => "ORDER BY view_count DESC, profile_score DESC",
+        "newest" | "new" => "ORDER BY created_at DESC",
+        "active" | "updated" => "ORDER BY updated_at DESC",
+        _ => "ORDER BY profile_score DESC, created_at DESC",
+    };
+    query.push_str(&format!(" {} LIMIT {} OFFSET {}", order_clause, lim, off));
 
     let refs: Vec<&dyn rusqlite::types::ToSql> = values.iter().map(|p| p.as_ref()).collect();
     let mut stmt = match conn.prepare(&query) {
@@ -400,7 +409,9 @@ pub fn list_profiles(
             "avatar_url": row.get::<_, String>(4)?,
             "theme": row.get::<_, String>(5)?,
             "profile_score": row.get::<_, i64>(6)?,
-            "created_at": row.get::<_, String>(7)?,
+            "view_count": row.get::<_, i64>(7)?,
+            "created_at": row.get::<_, String>(8)?,
+            "updated_at": row.get::<_, String>(9)?,
         }))
     }) {
         Ok(rows) => rows.flatten().collect(),
@@ -1430,7 +1441,7 @@ pub fn skills_index() -> (ContentType, String) {
                 "id": "search-profiles",
                 "name": "Search agent profiles",
                 "endpoint": "GET /api/v1/profiles",
-                "description": "Discover agents by skill tag (?skill=), text (?q=), or cryptographic identity (?has_pubkey=true)"
+                "description": "Discover agents by skill tag (?skill=), text (?q=), cryptographic identity (?has_pubkey=true), sorted by popularity (?sort=popular), newest (?sort=newest), or activity (?sort=active)"
             },
             {
                 "id": "skill-directory",
