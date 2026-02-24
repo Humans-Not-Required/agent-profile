@@ -42,7 +42,7 @@ const HEART_EMOJI = ['❤️', '💕', '💖', '💗', '💘', '💝', '🩷', '
 const CACTUS_EMOJI = ['🌵', '🏜️', '☀️', '🦎', '🐪', '🌵', '🌵', '🌵']
 const CANDY_EMOJI = ['🍬', '🍭', '🍫', '🍩', '🧁', '🍪', '🎀', '🍬', '🍭', '🍬', '🍭', '🌈']
 
-const LEAF_HUES = [0, 0, -25, -40, -55, 25, 25, 45, 45, 60, 60, 80, 120]
+const LEAF_HUES = [0, 0, 15, 25, 25, 35, 40, 45, 45, 55, 60, 80, 120]
 
 function getConfig(effect: Props['effect'], foreground: boolean) {
   if (foreground) {

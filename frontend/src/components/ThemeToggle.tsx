@@ -74,7 +74,7 @@ const THEME_GROUPS = [
       { id: 'snow', emoji: '❄️', name: 'Snow' },
       { id: 'spring', emoji: '🌸', name: 'Spring' },
       { id: 'summer', emoji: '☀️', name: 'Summer' },
-      { id: 'autumn', emoji: '🍂', name: 'Autumn' },
+      { id: 'autumn', emoji: '🍁', name: 'Autumn' },
     ],
   },
   {
