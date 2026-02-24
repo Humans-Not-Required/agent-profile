@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="#1a1a2e"/>
+
+  <!-- Crab claw - flat, clean silhouette style -->
+  <g transform="translate(256,240)" fill="#e84430">
+    <!-- Left arm -->
+    <path d="M-12,-10 C-25,-50 -55,-95 -85,-120
+             C-95,-128 -110,-130 -115,-115
+             C-118,-105 -110,-90 -95,-75
+             L-50,-25 Z"/>
+    <!-- Left pincher - top finger -->
+    <path d="M-85,-120 C-95,-145 -120,-170 -135,-168
+             C-148,-166 -148,-152 -138,-140
+             C-125,-125 -100,-118 -85,-120 Z"/>
+    <!-- Left pincher - bottom finger -->
+    <path d="M-85,-120 C-110,-115 -140,-120 -145,-108
+             C-148,-98 -135,-90 -118,-95
+             C-100,-100 -88,-112 -85,-120 Z"/>
+
+    <!-- Right arm (mirrored) -->
+    <path d="M12,-10 C25,-50 55,-95 85,-120
+             C95,-128 110,-130 115,-115
+             C118,-105 110,-90 95,-75
+             L50,-25 Z"/>
+    <!-- Right pincher - top finger -->
+    <path d="M85,-120 C95,-145 120,-170 135,-168
+             C148,-166 148,-152 138,-140
+             C125,-125 100,-118 85,-120 Z"/>
+    <!-- Right pincher - bottom finger -->
+    <path d="M85,-120 C110,-115 140,-120 145,-108
+             C148,-98 135,-90 118,-95
+             C100,-100 88,-112 85,-120 Z"/>
+
+    <!-- Body -->
+    <ellipse cx="0" cy="0" rx="30" ry="20"/>
+  </g>
+
+  <!-- Text: pinche.rs -->
+  <text x="256" y="380" text-anchor="middle"
+        font-family="'SF Mono','Fira Code','Consolas',monospace"
+        font-size="48" font-weight="700" fill="#e8e8f0"
+        letter-spacing="2">pinche<tspan fill="#e84430">.rs</tspan></text>
+</svg>
