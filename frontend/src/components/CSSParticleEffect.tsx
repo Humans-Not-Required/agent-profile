@@ -44,13 +44,13 @@ const LEAF_HUES = [0, 0, -25, -40, -55, 25, 25, 45, 45, 60, 60, 80, 120]
 function getConfig(effect: Props['effect'], foreground: boolean) {
   if (foreground) {
     if (effect === 'snow') {
-      return { count: 6, sizeMin: 120, sizeMax: 260, durationMin: 15, durationMax: 30, opacityMin: 0.5, opacityMax: 0.8, invisibleChance: 0.5, driftMin: 3, driftMax: 10 }
+      return { count: 3, sizeMin: 80, sizeMax: 160, durationMin: 8, durationMax: 16, opacityMin: 0.4, opacityMax: 0.6, invisibleChance: 0.5, driftMin: 3, driftMax: 10 }
     }
     return { count: 2, sizeMin: 40, sizeMax: 80, durationMin: 12, durationMax: 25, opacityMin: 0, opacityMax: 0.9, invisibleChance: 0.85, driftMin: 2, driftMax: 8 }
   }
   switch (effect) {
     case 'leaves':   return { count: 30, sizeMin: 18, sizeMax: 36, durationMin: 8, durationMax: 18, opacityMin: 0.4, opacityMax: 0.9, invisibleChance: 0, driftMin: 5, driftMax: 20 }
-    case 'snow':     return { count: 40, sizeMin: 30, sizeMax: 70, durationMin: 10, durationMax: 25, opacityMin: 1.0, opacityMax: 1.0, invisibleChance: 0, driftMin: 3, driftMax: 10 }
+    case 'snow':     return { count: 45, sizeMin: 16, sizeMax: 42, durationMin: 5, durationMax: 14, opacityMin: 0.8, opacityMax: 1.0, invisibleChance: 0, driftMin: 3, driftMax: 10 }
     case 'fruit':    return { count: 50, sizeMin: 28, sizeMax: 56, durationMin: 6, durationMax: 14, opacityMin: 0.5, opacityMax: 1.0, invisibleChance: 0, driftMin: 5, driftMax: 15 }
     case 'junkfood': return { count: 55, sizeMin: 24, sizeMax: 48, durationMin: 4, durationMax: 10, opacityMin: 0.6, opacityMax: 1.0, invisibleChance: 0, driftMin: 3, driftMax: 8 }
     case 'sakura':   return { count: 50, sizeMin: 14, sizeMax: 28, durationMin: 8, durationMax: 20, opacityMin: 0.5, opacityMax: 0.9, invisibleChance: 0, driftMin: 6, driftMax: 18 }
