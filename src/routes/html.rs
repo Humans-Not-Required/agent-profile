@@ -121,6 +121,13 @@ pub fn landing_page(
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pinche.rs — Agent Identity Pages</title>
   <meta name="description" content="Pinche.rs — canonical identity pages for AI agents. Cryptographically verifiable, machine-readable, beautifully themed. {count} agents registered.">
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Pinche.rs" />
+  <meta property="og:title" content="Pinche.rs — Agent Identity Pages" />
+  <meta property="og:description" content="Canonical identity pages for AI agents. Cryptographically verifiable, machine-readable, beautifully themed. {count} agents registered." />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Pinche.rs — Agent Identity Pages" />
+  <meta name="twitter:description" content="Canonical identity pages for AI agents. {count} agents registered." />
   <link rel="canonical" href="/">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <style>
@@ -403,9 +410,130 @@ pub fn landing_page(
     (ContentType::HTML, html.into_bytes())
 }
 
+/// Escape a string for safe use inside HTML attribute values (double-quoted).
+fn html_escape(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('"', "&quot;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+}
+
+/// Inject dynamic Open Graph + Twitter Card meta tags into the SPA HTML for a profile.
+/// Social crawlers (Discord, Twitter, Telegram, Slack, Facebook) don't execute JS —
+/// they only read the initial HTML. Without this, every shared profile shows generic
+/// "Agent Profile" text with no name, image, or description.
+fn inject_og_tags(html: &[u8], profile: &crate::models::Profile) -> Vec<u8> {
+    let html_str = match std::str::from_utf8(html) {
+        Ok(s) => s,
+        Err(_) => return html.to_vec(),
+    };
+
+    let display = if profile.display_name.is_empty() {
+        &profile.username
+    } else {
+        &profile.display_name
+    };
+
+    let title = if profile.tagline.is_empty() {
+        format!("{} — Pinche.rs", html_escape(display))
+    } else {
+        format!("{} — {}", html_escape(display), html_escape(&profile.tagline))
+    };
+
+    // Build description from tagline + bio (truncated to ~200 chars)
+    let desc = if !profile.tagline.is_empty() {
+        let mut d = profile.tagline.clone();
+        if !profile.bio.is_empty() {
+            d.push_str(" · ");
+            // Take first ~160 chars of bio
+            let bio_trunc: String = profile.bio.chars().take(160).collect();
+            d.push_str(&bio_trunc);
+            if profile.bio.len() > 160 {
+                d.push('…');
+            }
+        }
+        d
+    } else if !profile.bio.is_empty() {
+        let bio_trunc: String = profile.bio.chars().take(200).collect();
+        if profile.bio.len() > 200 {
+            format!("{}…", bio_trunc)
+        } else {
+            bio_trunc
+        }
+    } else {
+        format!("Agent profile for @{} on Pinche.rs", profile.username)
+    };
+
+    // Avatar URL — use uploaded avatar path or external URL
+    let avatar = if profile.avatar_url.is_empty() {
+        String::new()
+    } else {
+        profile.avatar_url.clone()
+    };
+
+    // Theme color for meta tag
+    let theme_color = theme_accent(&profile.theme);
+
+    // Replace generic OG tags with profile-specific ones
+    let mut result = html_str.to_string();
+
+    // Replace <title>
+    result = result.replace(
+        "<title>Agent Profile</title>",
+        &format!("<title>{}</title>", title),
+    );
+
+    // Replace meta description
+    result = result.replace(
+        r#"<meta name="description" content="Agent profile page" />"#,
+        &format!(r#"<meta name="description" content="{}" />"#, html_escape(&desc)),
+    );
+
+    // Replace theme-color
+    result = result.replace(
+        r##"<meta name="theme-color" content="#0d1117" />"##,
+        &format!(r#"<meta name="theme-color" content="{}" />"#, theme_color),
+    );
+
+    // Replace Open Graph tags
+    result = result.replace(
+        r#"<meta property="og:title" content="Agent Profile" />"#,
+        &format!(r#"<meta property="og:title" content="{}" />"#, html_escape(display)),
+    );
+    result = result.replace(
+        r#"<meta property="og:description" content="Canonical AI agent profile" />"#,
+        &format!(r#"<meta property="og:description" content="{}" />"#, html_escape(&desc)),
+    );
+    result = result.replace(
+        r#"<meta property="og:url" content="" />"#,
+        &format!(r#"<meta property="og:url" content="/{}" />"#, profile.username),
+    );
+    result = result.replace(
+        r#"<meta property="og:image" content="" />"#,
+        &format!(r#"<meta property="og:image" content="{}" />"#, html_escape(&avatar)),
+    );
+
+    // Inject Twitter Card tags right after the OG block (before </head>)
+    let twitter_tags = format!(
+        concat!(
+            r#"<meta name="twitter:card" content="summary" />"#, "\n",
+            r#"    <meta name="twitter:title" content="{title}" />"#, "\n",
+            r#"    <meta name="twitter:description" content="{desc}" />"#, "\n",
+            r#"    <meta name="twitter:image" content="{image}" />"#, "\n",
+            r#"    "#,
+        ),
+        title = html_escape(display),
+        desc = html_escape(&desc),
+        image = html_escape(&avatar),
+    );
+    result = result.replace("</head>", &format!("{}</head>", twitter_tags));
+
+    result.into_bytes()
+}
+
 /// Profile page at /{username} — content negotiation:
 /// - Agents get JSON (same as /api/v1/profiles/{username})
-/// - Humans get the React SPA (index.html), which fetches and renders the profile
+/// - Humans get the React SPA (index.html) with injected OG meta tags for social previews
 #[get("/<username>", rank = 10)]
 pub fn profile_page(
     db: &State<DbConn>,
@@ -419,35 +547,32 @@ pub fn profile_page(
     }
 
     let slug = username.to_lowercase();
+    let conn = db.lock().unwrap();
+    let profile = load_profile(&conn, &slug).ok_or(Status::NotFound)?;
+    drop(conn);
 
     if is_agent.0 {
-        // Agents get JSON — verify the profile exists, then return its JSON
-        let conn = db.lock().unwrap();
-        let profile = load_profile(&conn, &slug).ok_or(Status::NotFound)?;
+        // Agents get JSON
         let json = serde_json::to_string(&profile).map_err(|_| Status::InternalServerError)?;
         Ok((ContentType::JSON, json.into_bytes()))
     } else {
-        // Humans get the React SPA — the JS will fetch /api/v1/profiles/{username}
-        // We still verify the profile exists so we return 404 for unknown users
-        {
-            let conn = db.lock().unwrap();
-            load_profile(&conn, &slug).ok_or(Status::NotFound)?;
-        }
-        // Serve the compiled React SPA
+        // Humans get the React SPA with dynamic OG tags for social crawlers
         match spa_index_html() {
-            Some(html) => Ok((ContentType::HTML, html)),
+            Some(html) => Ok((ContentType::HTML, inject_og_tags(&html, &profile))),
             None => {
                 // Fallback: SPA not built yet (dev environment)
+                let display = if profile.display_name.is_empty() { &profile.username } else { &profile.display_name };
                 let fallback = format!(
-                    r#"<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>{slug} — Agent Profile</title></head>
+                    r#"<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>{display} — Pinche.rs</title></head>
 <body style="font-family:monospace;padding:2rem;background:#0d1117;color:#c9d1d9">
 <div id="root">
-  <h2 style="color:#e6edf3">{slug}</h2>
+  <h2 style="color:#e6edf3">{display} (@{slug})</h2>
   <p>Frontend not yet built. <a href="/api/v1/profiles/{slug}" style="color:#58a6ff">View JSON profile →</a></p>
   <p style="color:#8b949e;font-size:.85rem">Run <code>cd frontend &amp;&amp; npm run build</code> to compile the React UI.</p>
 </div>
 <script>/* SPA placeholder */</script>
 </body></html>"#,
+                    display = html_escape(display),
                     slug = slug
                 );
                 Ok((ContentType::HTML, fallback.into_bytes()))

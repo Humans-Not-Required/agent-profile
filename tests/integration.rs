@@ -1451,3 +1451,118 @@ fn test_webfinger_bad_scheme() {
     let resp = client.get("/.well-known/webfinger?resource=https://example.com/nanook").dispatch();
     assert_eq!(resp.status(), Status::BadRequest);
 }
+
+// ===== Open Graph / Social Preview Meta Tags =====
+
+#[test]
+fn test_og_tags_profile_page() {
+    let client = test_client();
+    let (_, reg) = register(&client, "og-test-agent");
+    let api_key = reg["api_key"].as_str().unwrap();
+
+    // Update the profile with display name, tagline, avatar
+    client.patch("/api/v1/profiles/og-test-agent")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", api_key.to_string()))
+        .body(r#"{"display_name":"OG Test Bot","tagline":"Testing social previews","avatar_url":"https://example.com/avatar.png","theme":"aurora"}"#)
+        .dispatch();
+
+    // Request the profile page as a browser (Accept: text/html)
+    let resp = client.get("/og-test-agent")
+        .header(Header::new("Accept", "text/html"))
+        .dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body = resp.into_string().unwrap();
+
+    // Verify OG tags are injected with profile data
+    assert!(body.contains(r##"og:title" content="OG Test Bot""##), "og:title should contain display name");
+    assert!(body.contains("Testing social previews"), "og:description should contain tagline");
+    assert!(body.contains("https://example.com/avatar.png"), "og:image should contain avatar URL");
+    assert!(body.contains("/og-test-agent"), "og:url should contain profile path");
+
+    // Verify Twitter Card tags are injected
+    assert!(body.contains(r##"twitter:card" content="summary""##), "should have twitter:card meta");
+    assert!(body.contains(r##"twitter:title" content="OG Test Bot""##), "twitter:title should contain display name");
+
+    // Verify the HTML title is updated
+    assert!(body.contains("<title>OG Test Bot"), "page title should contain display name");
+
+    // Verify theme color matches aurora accent
+    assert!(body.contains(r##"theme-color" content="#7b61ff""##), "theme-color should match aurora theme");
+}
+
+#[test]
+fn test_og_tags_profile_minimal() {
+    // Profile with no display name or tagline should still have sensible OG tags
+    let client = test_client();
+    register(&client, "og-minimal");
+
+    let resp = client.get("/og-minimal")
+        .header(Header::new("Accept", "text/html"))
+        .dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body = resp.into_string().unwrap();
+
+    // Should use username as fallback title
+    assert!(body.contains(r##"og:title" content="og-minimal""##), "og:title should fall back to username");
+    // Should have a generic description
+    assert!(body.contains("Agent profile for @og-minimal"), "og:description should have fallback text");
+}
+
+#[test]
+fn test_og_tags_not_injected_for_agents() {
+    // Agent requests (JSON) should not get OG-enriched HTML
+    let client = test_client();
+    register(&client, "og-agent-check");
+
+    let resp = client.get("/og-agent-check")
+        .header(Header::new("Accept", "application/json"))
+        .dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let ct = resp.content_type().unwrap().to_string();
+    assert!(ct.contains("json"), "agent request should get JSON, got {}", ct);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["username"], "og-agent-check");
+}
+
+#[test]
+fn test_og_tags_html_escaping() {
+    // Verify that special characters in profile fields are properly escaped in OG tags
+    let client = test_client();
+    let (_, reg) = register(&client, "og-escape-test");
+    let api_key = reg["api_key"].as_str().unwrap();
+
+    client.patch("/api/v1/profiles/og-escape-test")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", api_key.to_string()))
+        .body(r#"{"display_name":"Bot <script>alert(1)</script>","tagline":"O'Malley & \"Friends\""}"#)
+        .dispatch();
+
+    let resp = client.get("/og-escape-test")
+        .header(Header::new("Accept", "text/html"))
+        .dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body = resp.into_string().unwrap();
+
+    // Should NOT contain raw script tags
+    assert!(!body.contains("<script>alert"), "HTML in display name must be escaped");
+    // Should contain escaped version
+    assert!(body.contains("&lt;script&gt;"), "angle brackets should be escaped");
+    assert!(body.contains("&amp;"), "ampersands should be escaped");
+}
+
+#[test]
+fn test_landing_page_og_tags() {
+    let client = test_client();
+
+    let resp = client.get("/")
+        .header(Header::new("Accept", "text/html"))
+        .dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body = resp.into_string().unwrap();
+
+    // Landing page should have OG tags
+    assert!(body.contains(r##"og:title" content="Pinche.rs"##), "landing page should have og:title");
+    assert!(body.contains(r##"og:type" content="website""##), "landing page should have og:type");
+    assert!(body.contains(r##"twitter:card" content="summary""##), "landing page should have twitter:card");
+}
