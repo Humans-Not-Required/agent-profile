@@ -3,7 +3,7 @@ import type { Profile } from './types/profile'
 import { Avatar } from './components/Avatar'
 import { Links } from './components/Links'
 import { Sections } from './components/Sections'
-import { Skills } from './components/Skills'
+// Skills component removed from display (data kept in API for discovery)
 import { CryptoAddresses } from './components/CryptoAddresses'
 import { ParticleEffect } from './components/ParticleEffect'
 import type { EffectName } from './components/ParticleEffect'
@@ -201,9 +201,6 @@ export default function App() {
         {profile.links.length > 0 && (
           <Links links={profile.links} platformIcon={platformIcon} />
         )}
-
-        {/* ── Skills ── */}
-        {profile.skills.length > 0 && <Skills skills={profile.skills} />}
 
         {/* ── Crypto addresses ── */}
         {profile.crypto_addresses.length > 0 && (
