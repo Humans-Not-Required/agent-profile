@@ -125,10 +125,10 @@
 }
 
 [data-theme="christmas"] {
-  --bg: #0a1208; --card: #101e0e; --border: #1e3518;
-  --text: #a8c0a0; --text-muted: #5e7a55; --text-bright: #d8e8d0;
-  --accent: #c42020; --accent2: #d4a030; --tag-bg: #0c1608;
-  --tag-border: #1e3518;
+  --bg: #0c1a08; --card: #14220e; --border: #2a4a1e;
+  --text: #c8dcc0; --text-muted: #78a068; --text-bright: #f0f8e8;
+  --accent: #e02020; --accent2: #f0c030; --tag-bg: #1a2e12;
+  --tag-border: #2a4a1e;
 }
 
 [data-theme="halloween"] {
@@ -418,20 +418,40 @@
   transform: translateY(-1px);
 }
 
-/* Christmas — The Fireplace: warm green with red/gold accents */
+/* Christmas — rich red, green & gold holiday palette */
 [data-theme="christmas"] body {
-  background: radial-gradient(ellipse at 50% 90%, #1a2a14 0%, #0a1208 70%);
+  background: linear-gradient(170deg, #0c1a08 0%, #1a2e14 30%, #14220e 60%, #1e0c0c 100%);
 }
 [data-theme="christmas"] .card {
-  box-shadow: inset 0 1px 0 rgba(212,160,48,0.05), 0 4px 24px rgba(0,0,0,0.5);
+  border-color: rgba(224,32,32,0.25);
+  box-shadow: inset 0 1px 0 rgba(240,192,48,0.1), 0 4px 24px rgba(0,0,0,0.5), 0 0 30px rgba(224,32,32,0.06);
   transition: box-shadow 0.2s, transform 0.2s;
 }
 [data-theme="christmas"] .card:hover {
-  box-shadow: inset 0 1px 0 rgba(212,160,48,0.1), 0 4px 28px rgba(196,32,32,0.1);
+  box-shadow: inset 0 1px 0 rgba(240,192,48,0.15), 0 4px 28px rgba(224,32,32,0.15), 0 0 40px rgba(224,32,32,0.08);
   transform: translateY(-1px);
 }
 [data-theme="christmas"] .profile-name {
-  text-shadow: 0 0 15px rgba(212,160,48,0.15);
+  color: #f0c830;
+  text-shadow: 0 0 12px rgba(240,192,48,0.3), 0 0 30px rgba(240,192,48,0.1);
+}
+[data-theme="christmas"] .profile-tagline {
+  color: #e03030;
+  text-shadow: 0 0 8px rgba(224,32,32,0.2);
+}
+[data-theme="christmas"] .section-title {
+  color: #f0c830;
+  border-top: 1px solid rgba(240,192,48,0.15);
+}
+[data-theme="christmas"] .badge {
+  border-color: rgba(224,32,32,0.3);
+  background: rgba(224,32,32,0.1);
+}
+[data-theme="christmas"] a {
+  color: #e04040;
+}
+[data-theme="christmas"] a:hover {
+  color: #f06060;
 }
 
 /* Halloween — The Haunting: purple-black with pumpkin orange glow */
