@@ -167,8 +167,11 @@ export default function App() {
         foreground
       />
 
-      {/* Main card — above particle canvas (hidden in cinema mode) */}
-      <div className="card" style={{ position: 'relative', zIndex: 1, display: cinemaMode ? 'none' : undefined }}>
+      {/* Content wrapper — pushes footer to bottom of viewport */}
+      <div className="page-content" style={{ display: cinemaMode ? 'none' : undefined }}>
+
+      {/* Main card — above particle canvas */}
+      <div className="card" style={{ position: 'relative', zIndex: 1 }}>
 
         {/* ── Header ── */}
         <div className="profile-header">
@@ -229,12 +232,13 @@ export default function App() {
       </div>
 
       {/* ── Footer ── */}
-      <div className="hnr-footer" style={{ position: 'relative', zIndex: 1, display: cinemaMode ? 'none' : undefined }}>
-        Powered by{' '}
+      <div className="hnr-footer">
         <a href="https://github.com/Humans-Not-Required" target="_blank" rel="noopener">
           Humans Not Required
         </a>
       </div>
+
+      </div>{/* end page-content */}
 
       {/* ── Floating controls ── */}
       <button

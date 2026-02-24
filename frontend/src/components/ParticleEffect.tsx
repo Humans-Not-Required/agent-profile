@@ -1010,9 +1010,14 @@ function drawWarzone(
 
 // ── Winter landscape (static background for snow theme) ──
 
+interface ChristmasLight {
+  x: number; y: number; color: string; phase: number; radius: number
+}
+
 interface WinterTree {
   x: number; groundY: number; scale: number; layer: number
   trunkH: number; treeH: number; baseW: number; tiers: number
+  lights: ChristmasLight[]  // pre-generated light positions on this tree
 }
 interface WinterState {
   trees: WinterTree[][]  // per layer
@@ -1034,12 +1039,47 @@ function initWinterState(w: number, h: number): WinterState {
       const hillY = hillBase[layer]
         - Math.sin(tx * hillFreq[layer] + hillPhase[layer]) * hillAmp[layer]
         - Math.sin(tx * hillFreq[layer] * 2.3 + hillPhase[layer] * 1.7) * hillAmp[layer] * 0.3
+      const trunkH = (8 + Math.random() * 4) * treeScale
+      const treeH = (30 + Math.random() * 20) * treeScale
+      const baseW = (16 + Math.random() * 8) * treeScale
+      const tiers = 3 + Math.floor(Math.random() * 2)
+
+      // Pre-generate Christmas light positions along tree edges
+      const lightColors = ['#ff2020', '#00cc44', '#ffcc00', '#2288ff', '#ff6600', '#ff44aa']
+      const lights: ChristmasLight[] = []
+      for (let i = 0; i < tiers; i++) {
+        const frac = i / tiers
+        const tierY = hillY - trunkH - frac * treeH
+        const tierW = baseW * (1 - frac * 0.6)
+        const tierH = treeH / tiers * 1.4
+        // Place lights along the left and right edges of each tier
+        const lightsPerSide = Math.max(2, Math.floor(3 * treeScale))
+        for (let s = 0; s < lightsPerSide; s++) {
+          const edgeFrac = (s + 0.5) / lightsPerSide  // 0..1 along edge
+          const ey = tierY - tierH * (1 - edgeFrac)   // from top to bottom
+          const edgeW = tierW * edgeFrac               // width at this height
+          // Left edge light
+          lights.push({
+            x: tx - edgeW + (Math.random() - 0.5) * 2 * treeScale,
+            y: ey + (Math.random() - 0.5) * 2 * treeScale,
+            color: lightColors[Math.floor(Math.random() * lightColors.length)],
+            phase: Math.random() * Math.PI * 2,
+            radius: (1.5 + Math.random()) * treeScale,
+          })
+          // Right edge light
+          lights.push({
+            x: tx + edgeW + (Math.random() - 0.5) * 2 * treeScale,
+            y: ey + (Math.random() - 0.5) * 2 * treeScale,
+            color: lightColors[Math.floor(Math.random() * lightColors.length)],
+            phase: Math.random() * Math.PI * 2,
+            radius: (1.5 + Math.random()) * treeScale,
+          })
+        }
+      }
+
       layerTrees.push({
         x: tx, groundY: hillY, scale: treeScale, layer,
-        trunkH: (8 + Math.random() * 4) * treeScale,
-        treeH: (30 + Math.random() * 20) * treeScale,
-        baseW: (16 + Math.random() * 8) * treeScale,
-        tiers: 3 + Math.floor(Math.random() * 2),
+        trunkH, treeH, baseW, tiers, lights,
       })
     }
     trees.push(layerTrees)
@@ -1052,6 +1092,8 @@ function drawWinterLandscape(
   w: number,
   h: number,
   state: WinterState,
+  christmas: boolean = false,
+  time: number = 0,
 ) {
   ctx.save()
 
@@ -1078,6 +1120,31 @@ function drawWinterLandscape(
     // Pre-generated pine trees
     for (const tree of state.trees[layer]) {
       drawPineTree(ctx, tree)
+    }
+
+    // Christmas lights on trees (twinkling)
+    if (christmas) {
+      for (const tree of state.trees[layer]) {
+        for (const light of tree.lights) {
+          const twinkle = 0.5 + 0.5 * Math.sin(time * 0.003 + light.phase)
+          const alpha = 0.4 + 0.6 * twinkle
+          // Glow
+          ctx.beginPath()
+          ctx.arc(light.x, light.y, light.radius * 3, 0, Math.PI * 2)
+          ctx.fillStyle = light.color + Math.round(alpha * 0.3 * 255).toString(16).padStart(2, '0')
+          ctx.fill()
+          // Bright center
+          ctx.beginPath()
+          ctx.arc(light.x, light.y, light.radius, 0, Math.PI * 2)
+          ctx.fillStyle = light.color + Math.round(alpha * 255).toString(16).padStart(2, '0')
+          ctx.fill()
+          // White hot center
+          ctx.beginPath()
+          ctx.arc(light.x, light.y, light.radius * 0.4, 0, Math.PI * 2)
+          ctx.fillStyle = `rgba(255,255,255,${alpha * 0.8})`
+          ctx.fill()
+        }
+      }
     }
   }
 
@@ -1964,6 +2031,7 @@ function CanvasParticleEffect({ activeEffect, foreground }: { activeEffect: Effe
 
     // Winter landscape (snow theme background)
     let winterState: WinterState | null = null
+    const isChristmas = document.documentElement.getAttribute('data-theme') === 'christmas'
     if (activeEffect === 'snow-landscape') {
       winterState = initWinterState(canvas.width, canvas.height)
     }
@@ -2072,10 +2140,15 @@ function CanvasParticleEffect({ activeEffect, foreground }: { activeEffect: Effe
         return
       }
 
-      // Winter landscape (snow theme — static, draws once)
+      // Winter landscape (snow/christmas theme)
       if (activeEffect === 'snow-landscape' && winterState) {
-        drawWinterLandscape(ctx, w, h, winterState)
-        // Static — no need to keep animating
+        ctx.clearRect(0, 0, w, h)
+        drawWinterLandscape(ctx, w, h, winterState, isChristmas, t)
+        if (isChristmas) {
+          // Keep animating for twinkling lights
+          rafRef.current = requestAnimationFrame(animate)
+        }
+        // Non-christmas: static, draws once and stops
         return
       }
 
