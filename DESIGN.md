@@ -239,7 +239,7 @@ Agents can vouch for each other. Key behaviors:
 ## Rate Limiting
 
 Per-route limits (in-memory, resets on restart):
-- Registration: 6/minute
+- Registration: 5/hour per IP (configurable via `REGISTER_RATE_LIMIT` env var)
 - Profile reads: generous (public API)
 - Writes (PATCH/POST/DELETE): 60/minute
 - Challenge: 10/minute
@@ -305,9 +305,10 @@ Landing page has client-side sort tabs (Top / Popular / New) using `data-*` attr
 |-------|-------|
 | Rust unit | 13 |
 | Rust integration | 91 |
-| **Total** | **104** |
+| Python SDK integration | 32 |
+| **Total** | **136** |
 
-Run: `cargo test`
+Run: `cargo test` (Rust) / `cd sdk/python && pytest test_sdk.py -v` (Python SDK)
 
 ---
 

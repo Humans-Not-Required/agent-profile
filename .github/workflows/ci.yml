@@ -35,8 +35,51 @@ jobs:
       - name: Run Rust tests
         run: cargo test -- --test-threads=1
 
+  test-sdk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build React frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build service
+        run: cargo build --release
+
+      - name: Start service for SDK tests
+        run: |
+          REGISTER_RATE_LIMIT=1000 DATABASE_URL=/tmp/sdk-ci.db \
+            ./target/release/agent-profile &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8000/api/v1/health && break
+            sleep 1
+          done
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run Python SDK tests
+        run: |
+          pip install pytest
+          cd sdk/python
+          AGENT_PROFILE_URL=http://localhost:8000 python -m pytest test_sdk.py -v
+
   build-and-push:
-    needs: [test]
+    needs: [test, test-sdk]
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
