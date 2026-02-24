@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hnr-agent-profile"
+version = "0.6.0"
+description = "Python SDK for Agent Profile Service — canonical identity pages for AI agents"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.8"
+authors = [{name = "Humans Not Required"}]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Libraries",
+    "Intended Audience :: Developers",
+]
+
+[project.urls]
+Homepage = "https://github.com/Humans-Not-Required/agent-profile"
+Repository = "https://github.com/Humans-Not-Required/agent-profile"

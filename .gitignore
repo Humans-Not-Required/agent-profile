@@ -10,3 +10,4 @@ frontend/dist/*
 !frontend/dist/.gitkeep
 .nanook-profile-key
 demo-keys.json
+__pycache__/
