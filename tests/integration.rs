@@ -1620,6 +1620,21 @@ fn test_rel_me_links() {
 }
 
 #[test]
+fn test_canonical_link_tag() {
+    let client = test_client();
+    register(&client, "canonical-test");
+
+    let resp = client.get("/canonical-test")
+        .header(Header::new("Accept", "text/html"))
+        .dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body = resp.into_string().unwrap();
+
+    assert!(body.contains(r##"<link rel="canonical" href="/canonical-test" />"##),
+        "profile page should have canonical link tag");
+}
+
+#[test]
 fn test_landing_page_og_tags() {
     let client = test_client();
 

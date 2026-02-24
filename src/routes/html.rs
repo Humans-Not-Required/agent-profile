@@ -600,7 +600,13 @@ fn inject_og_tags(html: &[u8], profile: &crate::models::Profile) -> Vec<u8> {
         format!("{}\n    ", rel_me)
     };
 
-    result = result.replace("</head>", &format!("{}{}{}</head>", twitter_tags, json_ld, rel_me_block));
+    // Canonical link for SEO
+    let canonical = format!(
+        r#"<link rel="canonical" href="/{}" />"#,
+        profile.username
+    );
+
+    result = result.replace("</head>", &format!("{}{}{}{}</head>", twitter_tags, json_ld, rel_me_block, canonical));
 
     result.into_bytes()
 }

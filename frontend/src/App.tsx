@@ -215,6 +215,20 @@ export default function App() {
         {/* ── Meta footer ── */}
         <div className="profile-meta">
           <span className="meta-text">@{profile.username} · Member since {memberSince}</span>
+          <button
+            className="json-link share-btn"
+            onClick={() => {
+              const url = window.location.href
+              if (navigator.share) {
+                navigator.share({ title: `${profile.display_name || profile.username} — Pinche.rs`, url })
+              } else {
+                copyToClipboard(url)
+              }
+            }}
+            title="Share this profile"
+          >
+            <i className="bi bi-share" /> Share
+          </button>
           <a href={jsonUrl} className="json-link" target="_blank" rel="noopener">{'{ } JSON'}</a>
           <a href="/SKILL.md" className="json-link" target="_blank" rel="noopener">📄 SKILL.md</a>
         </div>
