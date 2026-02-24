@@ -923,6 +923,23 @@ function drawWarzone(
   ctx.fillStyle = 'rgba(20,22,30,0.5)'
   ctx.fillRect(0, gY - 12, w, 3)
 
+  // Fiery horizon glow — reddish-orange behind the ruins
+  const fireGlow = ctx.createRadialGradient(w * 0.5, gY, 0, w * 0.5, gY, w * 0.6)
+  fireGlow.addColorStop(0, 'rgba(200,60,20,0.25)')
+  fireGlow.addColorStop(0.3, 'rgba(180,40,10,0.15)')
+  fireGlow.addColorStop(0.7, 'rgba(120,20,5,0.06)')
+  fireGlow.addColorStop(1, 'rgba(60,10,0,0)')
+  ctx.fillStyle = fireGlow
+  ctx.fillRect(0, gY - w * 0.5, w, w * 0.6)
+
+  // Secondary glow — wider, more orange, off-center for variation
+  const fireGlow2 = ctx.createRadialGradient(w * 0.3, gY + 10, 0, w * 0.3, gY + 10, w * 0.4)
+  fireGlow2.addColorStop(0, 'rgba(220,100,20,0.12)')
+  fireGlow2.addColorStop(0.5, 'rgba(160,50,10,0.06)')
+  fireGlow2.addColorStop(1, 'rgba(80,20,0,0)')
+  ctx.fillStyle = fireGlow2
+  ctx.fillRect(0, gY - w * 0.35, w, w * 0.5)
+
   // Draw all elements
   for (const el of state.elements) {
     ctx.save()
