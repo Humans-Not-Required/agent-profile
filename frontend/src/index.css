@@ -939,7 +939,6 @@
 [data-theme="terminator"] .profile-header,
 [data-theme="terminator"] .badges,
 [data-theme="terminator"] .section,
-[data-theme="terminator"] .links-row,
 [data-theme="terminator"] .profile-meta {
   background:
     repeating-linear-gradient(0deg,
@@ -988,7 +987,6 @@
 /* Steel background mixin for each content block */
 [data-theme="terminator2"] .profile-header,
 [data-theme="terminator2"] .section,
-[data-theme="terminator2"] .links-row,
 [data-theme="terminator2"] .profile-meta {
   background:
     repeating-linear-gradient(0deg,
