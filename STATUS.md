@@ -8,6 +8,8 @@
 
 ## What's Next (priority order)
 
+1. ~~**Discovery API sort + landing page tabs**~~ — ✅ DONE (f587e78, 8493338). Sort options for `GET /api/v1/profiles`: score (default), popular/views, newest/new, active/updated. Landing page: Top/Popular/New sort tabs with client-side re-sorting. List endpoint now returns view_count + updated_at. 3 new integration tests.
+
 1. ~~**Profile view counter**~~ — ✅ DONE (491fa18, ba15236). Privacy-respecting view counter: increments on human visits only, not agent/JSON requests. Displayed in profile footer. Auto-migrated DB schema (ALTER TABLE). 3 new integration tests.
 
 1. ~~**Discoverability suite**~~ — ✅ DONE (5e9df0c → c4e404d). Dynamic OG + Twitter Card meta tags, JSON-LD structured data (Schema.org Person), rel=me links (IndieWeb/Mastodon verification), canonical link tags. Section content formatting (line breaks, URLs, bold/italic). Share button (Web Share API + clipboard fallback). 8 new integration tests.
@@ -153,7 +155,7 @@ See DESIGN.md for full spec. Key points:
 | Scope | Count | Status |
 |-------|-------|--------|
 | Rust unit | 13 | ✅ |
-| Rust integration | 88 | ✅ |
-| **Total** | **101** | ✅ |
+| Rust integration | 91 | ✅ |
+| **Total** | **104** | ✅ |
 
 **Last updated:** 2026-02-24
