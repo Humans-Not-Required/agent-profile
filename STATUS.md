@@ -1,6 +1,6 @@
 # Agent Profile Service - Status
 
-**Version:** 0.5.1   (production-ready)
+**Version:** 0.6.0   (production-ready)
 **Stage:** Feature complete + fully documented. Awaiting: prod domain DNS (`pinche.rs`).
 **Last updated:** 2026-02-22
 
