@@ -1460,9 +1460,9 @@ function drawWasteland(
     // Animated haze drift
     state.hazeDrift += 0.0002
 
-    // Draw city skyline silhouette
+    // Draw city skyline silhouette — fully opaque
     const skylineY = h * 0.45  // horizon line
-    ctx.fillStyle = 'rgba(40,20,5,0.6)'
+    ctx.fillStyle = '#1a0c02'
     for (const b of state.buildings) {
       const baseY = skylineY + (h - skylineY) * 0.05  // slightly below horizon
       const topY = baseY - b.height
@@ -1479,12 +1479,12 @@ function drawWasteland(
         const wy = topY + 5 + Math.random() * (b.height * 0.6)
         ctx.fillStyle = `rgba(255,160,40,${0.15 + Math.random() * 0.2})`
         ctx.fillRect(wx, wy, 3, 2)
-        ctx.fillStyle = 'rgba(40,20,5,0.6)'
+        ctx.fillStyle = '#1a0c02'
       }
     }
 
     // Distant bridge/overpass silhouettes
-    ctx.fillStyle = 'rgba(50,25,8,0.35)'
+    ctx.fillStyle = '#1a0c02'
     ctx.fillRect(0, skylineY + h * 0.08, w, 4)
     ctx.fillRect(w * 0.2, skylineY + h * 0.15, w * 0.6, 3)
 
@@ -1495,69 +1495,72 @@ function drawWasteland(
       if (Math.abs(sp.altitude) > 3) sp.altSpeed *= -1
       const sy = sp.y + sp.altitude + Math.sin(t * 0.002 + sp.x * 0.01) * 2
 
-      // Car body — dark silhouette, small
+      // Car body — dark silhouette, direction-aware
       const carW = 12 * sp.size
       const carH = 4 * sp.size
+      const dir = sp.speed > 0 ? 1 : -1  // 1 = going right, -1 = going left
+      // Front is in the direction of travel, rear is opposite
+      const frontX = sp.x + carW * 0.5 * dir
+      const rearX = sp.x - carW * dir
+
       ctx.fillStyle = `rgba(30,15,5,${0.5 + sp.size * 0.4})`
 
-      // Simple wedge shape
+      // Wedge shape: tapered at front, blunt at rear
       ctx.beginPath()
-      ctx.moveTo(sp.x - carW, sy - carH * 0.3)       // rear top
-      ctx.lineTo(sp.x + carW * 0.5, sy - carH * 0.8)  // front top (tapered)
-      ctx.lineTo(sp.x + carW * 0.5, sy + carH * 0.3)  // front bottom
-      ctx.lineTo(sp.x - carW, sy + carH * 0.5)         // rear bottom
+      ctx.moveTo(rearX, sy - carH * 0.3)           // rear top
+      ctx.lineTo(frontX, sy - carH * 0.8)           // front top (tapered)
+      ctx.lineTo(frontX, sy + carH * 0.3)           // front bottom
+      ctx.lineTo(rearX, sy + carH * 0.5)            // rear bottom
       ctx.closePath()
       ctx.fill()
 
-      // Rear LEDs — bright, the main visible part
+      // Rear LEDs — always at the back of the vehicle
       const ledA = 0.7 + sp.size * 0.3 + Math.sin(t * 0.01) * 0.1
       const ledSize = 2 + sp.size * 3
 
-      // Two tail lights
+      // Two tail lights at rearX
       const ledGrad1 = ctx.createRadialGradient(
-        sp.x - carW, sy - carH * 0.1, 0,
-        sp.x - carW, sy - carH * 0.1, ledSize * 4
+        rearX, sy - carH * 0.1, 0,
+        rearX, sy - carH * 0.1, ledSize * 4
       )
       ledGrad1.addColorStop(0, sp.ledColor.replace('A', String(ledA)))
       ledGrad1.addColorStop(0.3, sp.ledColor.replace('A', String(ledA * 0.4)))
       ledGrad1.addColorStop(1, sp.ledColor.replace('A', '0'))
       ctx.fillStyle = ledGrad1
       ctx.beginPath()
-      ctx.arc(sp.x - carW, sy - carH * 0.1, ledSize * 4, 0, Math.PI * 2)
+      ctx.arc(rearX, sy - carH * 0.1, ledSize * 4, 0, Math.PI * 2)
       ctx.fill()
 
       const ledGrad2 = ctx.createRadialGradient(
-        sp.x - carW, sy + carH * 0.2, 0,
-        sp.x - carW, sy + carH * 0.2, ledSize * 3
+        rearX, sy + carH * 0.2, 0,
+        rearX, sy + carH * 0.2, ledSize * 3
       )
       ledGrad2.addColorStop(0, sp.ledColor.replace('A', String(ledA * 0.8)))
       ledGrad2.addColorStop(0.4, sp.ledColor.replace('A', String(ledA * 0.3)))
       ledGrad2.addColorStop(1, sp.ledColor.replace('A', '0'))
       ctx.fillStyle = ledGrad2
       ctx.beginPath()
-      ctx.arc(sp.x - carW, sy + carH * 0.2, ledSize * 3, 0, Math.PI * 2)
+      ctx.arc(rearX, sy + carH * 0.2, ledSize * 3, 0, Math.PI * 2)
       ctx.fill()
 
       // LED core — bright white-orange center
       ctx.fillStyle = `rgba(255,220,180,${ledA * 0.9})`
       ctx.beginPath()
-      ctx.arc(sp.x - carW, sy, ledSize * 0.8, 0, Math.PI * 2)
+      ctx.arc(rearX, sy, ledSize * 0.8, 0, Math.PI * 2)
       ctx.fill()
 
-      // Trail streak behind
-      const trailLen = 20 + sp.speed * 8
+      // Trail streak behind (opposite direction of travel)
+      const trailLen = 20 + Math.abs(sp.speed) * 8
       if (Math.abs(sp.speed) > 0.5) {
-        const trailGrad = ctx.createLinearGradient(
-          sp.x - carW - (sp.speed > 0 ? trailLen : 0), sy,
-          sp.x - carW + (sp.speed > 0 ? 0 : -trailLen), sy
-        )
+        const trailEndX = rearX - dir * trailLen  // trail extends opposite to movement
+        const trailGrad = ctx.createLinearGradient(trailEndX, sy, rearX, sy)
         trailGrad.addColorStop(0, sp.ledColor.replace('A', '0'))
         trailGrad.addColorStop(1, sp.ledColor.replace('A', String(ledA * 0.15)))
         ctx.strokeStyle = trailGrad
         ctx.lineWidth = ledSize * 1.5
         ctx.beginPath()
-        ctx.moveTo(sp.x - carW, sy)
-        ctx.lineTo(sp.x - carW - (sp.speed > 0 ? trailLen : -trailLen), sy)
+        ctx.moveTo(rearX, sy)
+        ctx.lineTo(trailEndX, sy)
         ctx.stroke()
       }
 
