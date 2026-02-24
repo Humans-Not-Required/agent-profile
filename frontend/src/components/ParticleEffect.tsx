@@ -823,11 +823,13 @@ interface WarzoneElement {
   tilt: number
   jagged?: number[]   // for ruins: broken top edge
   hasRebar?: boolean
+  rebarLines?: { x1: number; y1: number; x2: number; y2: number }[]
 }
+interface GroundDot { x: number; y: number; w: number; h: number; r: number; g: number; b: number; a: number }
 interface WarzoneState {
   elements: WarzoneElement[]
   groundY: number
-  drawn: boolean       // static — only draw once
+  groundDots: GroundDot[]
 }
 
 function initWarzoneState(w: number, h: number, foreground: boolean): WarzoneState {
@@ -885,7 +887,38 @@ function initWarzoneState(w: number, h: number, foreground: boolean): WarzoneSta
     }
   }
 
-  return { elements, groundY, drawn: false }
+  // Pre-generate ground texture dots (avoid Math.random flicker in draw loop)
+  const groundDots: GroundDot[] = []
+  if (!foreground) {
+    let gx = 0
+    while (gx < w) {
+      groundDots.push({
+        x: gx, y: groundY - 2 + Math.random() * 6,
+        w: 1 + Math.random() * 3, h: 1 + Math.random() * 2,
+        r: 25 + Math.random() * 20, g: 28 + Math.random() * 15, b: 35 + Math.random() * 15,
+        a: 0.3 + Math.random() * 0.4,
+      })
+      gx += 2 + Math.random() * 5
+    }
+  }
+
+  // Pre-generate rebar lines for ruins
+  for (const el of elements) {
+    if (el.type === 'ruin' && el.hasRebar && el.jagged) {
+      el.rebarLines = []
+      const topY = el.y + 4 - el.height
+      for (let r = 0; r < 2 + Math.floor(Math.random() * 2); r++) {
+        const rx = el.x + el.width * (0.2 + r * 0.3)
+        const ry = topY + (el.jagged[Math.min(r + 1, el.jagged.length - 1)] || 0)
+        el.rebarLines.push({
+          x1: rx, y1: ry,
+          x2: rx + (Math.random() - 0.5) * 6, y2: ry - 6 - Math.random() * 14,
+        })
+      }
+    }
+  }
+
+  return { elements, groundY, groundDots }
 }
 
 function drawWarzone(
@@ -896,9 +929,8 @@ function drawWarzone(
   state: WarzoneState,
   foreground: boolean,
 ) {
-  // Static wasteland backdrop — draw once, no animation
-  if (foreground || state.drawn) return
-  state.drawn = true
+  // Static wasteland backdrop — redrawn each frame (canvas is cleared per frame)
+  if (foreground) return
 
   ctx.save()
   const gY = state.groundY
@@ -911,12 +943,10 @@ function drawWarzone(
   ctx.fillStyle = groundGrad
   ctx.fillRect(0, gY - 10, w, h - gY + 10)
 
-  // Rough ground texture — scattered rubble dots
-  for (let gx = 0; gx < w; gx += 2 + Math.random() * 5) {
-    const gy = gY - 2 + Math.random() * 6
-    const gs = 1 + Math.random() * 3
-    ctx.fillStyle = `rgba(${25 + Math.random() * 20},${28 + Math.random() * 15},${35 + Math.random() * 15},${0.3 + Math.random() * 0.4})`
-    ctx.fillRect(gx, gy, gs, 1 + Math.random() * 2)
+  // Rough ground texture — pre-generated rubble dots
+  for (const dot of state.groundDots) {
+    ctx.fillStyle = `rgba(${dot.r|0},${dot.g|0},${dot.b|0},${dot.a})`
+    ctx.fillRect(dot.x, dot.y, dot.w, dot.h)
   }
 
   // Distant horizon line — faint lighter strip
@@ -963,16 +993,14 @@ function drawWarzone(
       ctx.lineTo(el.x + el.width, baseY)
       ctx.closePath()
       ctx.fill()
-      // Exposed rebar
-      if (el.hasRebar && el.jagged) {
+      // Exposed rebar — pre-generated lines
+      if (el.rebarLines) {
         ctx.strokeStyle = 'rgba(50,44,36,0.7)'
         ctx.lineWidth = 1.5
-        for (let r = 0; r < 2 + Math.floor(Math.random() * 2); r++) {
-          const rx = el.x + el.width * (0.2 + r * 0.3)
-          const ry = topY + (el.jagged[Math.min(r + 1, el.jagged.length - 1)] || 0)
+        for (const rb of el.rebarLines) {
           ctx.beginPath()
-          ctx.moveTo(rx, ry)
-          ctx.lineTo(rx + (Math.random() - 0.5) * 6, ry - 6 - Math.random() * 14)
+          ctx.moveTo(rb.x1, rb.y1)
+          ctx.lineTo(rb.x2, rb.y2)
           ctx.stroke()
         }
       }
@@ -1052,12 +1080,41 @@ function drawWarzone(
 
 // ── Winter landscape (static background for snow theme) ──
 
+interface WinterTree {
+  x: number; groundY: number; scale: number; layer: number
+  trunkH: number; treeH: number; baseW: number; tiers: number
+}
 interface WinterState {
-  drawn: boolean
+  trees: WinterTree[][]  // per layer
 }
 
-function initWinterState(): WinterState {
-  return { drawn: false }
+function initWinterState(w: number, h: number): WinterState {
+  const hillBase = [h * 0.55, h * 0.65, h * 0.78]
+  const hillAmp = [h * 0.08, h * 0.1, h * 0.07]
+  const hillFreq = [0.003, 0.005, 0.004]
+  const hillPhase = [0, 1.5, 3.2]
+  const trees: WinterTree[][] = []
+
+  for (let layer = 0; layer < 3; layer++) {
+    const layerTrees: WinterTree[] = []
+    const treeCount = layer === 0 ? 4 : layer === 1 ? 6 : 8
+    const treeScale = layer === 0 ? 0.5 : layer === 1 ? 0.7 : 1.0
+    for (let t = 0; t < treeCount; t++) {
+      const tx = (w / (treeCount + 1)) * (t + 0.5 + (Math.sin(t * 7.3 + layer * 13) * 0.4))
+      const hillY = hillBase[layer]
+        - Math.sin(tx * hillFreq[layer] + hillPhase[layer]) * hillAmp[layer]
+        - Math.sin(tx * hillFreq[layer] * 2.3 + hillPhase[layer] * 1.7) * hillAmp[layer] * 0.3
+      layerTrees.push({
+        x: tx, groundY: hillY, scale: treeScale, layer,
+        trunkH: (8 + Math.random() * 4) * treeScale,
+        treeH: (30 + Math.random() * 20) * treeScale,
+        baseW: (16 + Math.random() * 8) * treeScale,
+        tiers: 3 + Math.floor(Math.random() * 2),
+      })
+    }
+    trees.push(layerTrees)
+  }
+  return { trees }
 }
 
 function drawWinterLandscape(
@@ -1066,15 +1123,9 @@ function drawWinterLandscape(
   h: number,
   state: WinterState,
 ) {
-  if (state.drawn) return
-  state.drawn = true
-
   ctx.save()
 
-  // Sky is handled by CSS body gradient — just draw landscape
-
-  // ── Rolling hills — 3 layers, back to front ──
-  const hillColor = ['#dce6f0', '#e8eff6', '#f4f7fb']  // far = slightly muted, near = bright white
+  const hillColor = ['#dce6f0', '#e8eff6', '#f4f7fb']
   const hillBase = [h * 0.55, h * 0.65, h * 0.78]
   const hillAmp = [h * 0.08, h * 0.1, h * 0.07]
   const hillFreq = [0.003, 0.005, 0.004]
@@ -1094,22 +1145,15 @@ function drawWinterLandscape(
     ctx.closePath()
     ctx.fill()
 
-    // Snow-covered pine trees on each hill layer
-    const treeCount = layer === 0 ? 4 : layer === 1 ? 6 : 8
-    const treeScale = layer === 0 ? 0.5 : layer === 1 ? 0.7 : 1.0
-    for (let t = 0; t < treeCount; t++) {
-      const tx = (w / (treeCount + 1)) * (t + 0.5 + (Math.sin(t * 7.3 + layer * 13) * 0.4))
-      const hillY = hillBase[layer]
-        - Math.sin(tx * hillFreq[layer] + hillPhase[layer]) * hillAmp[layer]
-        - Math.sin(tx * hillFreq[layer] * 2.3 + hillPhase[layer] * 1.7) * hillAmp[layer] * 0.3
-      drawPineTree(ctx, tx, hillY, treeScale, layer)
+    // Pre-generated pine trees
+    for (const tree of state.trees[layer]) {
+      drawPineTree(ctx, tree)
     }
   }
 
   // Foreground snow ground
   ctx.fillStyle = '#f0f4f8'
   ctx.fillRect(0, h * 0.92, w, h * 0.08)
-  // Soft edge
   const snowEdge = ctx.createLinearGradient(0, h * 0.88, 0, h * 0.94)
   snowEdge.addColorStop(0, 'rgba(240,244,248,0)')
   snowEdge.addColorStop(1, '#f0f4f8')
@@ -1119,17 +1163,12 @@ function drawWinterLandscape(
   ctx.restore()
 }
 
-function drawPineTree(ctx: CanvasRenderingContext2D, x: number, groundY: number, scale: number, layer: number) {
-  const trunkH = (8 + Math.random() * 4) * scale
-  const treeH = (30 + Math.random() * 20) * scale
-  const baseW = (16 + Math.random() * 8) * scale
+function drawPineTree(ctx: CanvasRenderingContext2D, t: WinterTree) {
+  const { x, groundY, scale, layer, trunkH, treeH, baseW, tiers } = t
 
-  // Trunk
   ctx.fillStyle = layer === 0 ? '#8a9aaa' : '#6a5a4a'
   ctx.fillRect(x - 2 * scale, groundY - trunkH, 4 * scale, trunkH)
 
-  // Tree body — dark green triangle layers
-  const tiers = 3 + Math.floor(Math.random() * 2)
   const greenShade = layer === 0 ? 'rgba(80,100,90,' : layer === 1 ? 'rgba(50,80,60,' : 'rgba(35,65,45,'
   for (let i = 0; i < tiers; i++) {
     const frac = i / tiers
@@ -1137,7 +1176,6 @@ function drawPineTree(ctx: CanvasRenderingContext2D, x: number, groundY: number,
     const tierW = baseW * (1 - frac * 0.6)
     const tierH = treeH / tiers * 1.4
 
-    // Green foliage
     ctx.fillStyle = greenShade + (0.7 + layer * 0.1) + ')'
     ctx.beginPath()
     ctx.moveTo(x, tierY - tierH)
@@ -1146,7 +1184,6 @@ function drawPineTree(ctx: CanvasRenderingContext2D, x: number, groundY: number,
     ctx.closePath()
     ctx.fill()
 
-    // Snow on top of each tier — white cap
     ctx.fillStyle = layer === 0 ? 'rgba(200,210,225,0.8)' : 'rgba(240,245,250,0.9)'
     ctx.beginPath()
     ctx.moveTo(x, tierY - tierH)
@@ -1474,6 +1511,8 @@ interface Spinner {
 
 interface WastelandBuilding {
   x: number; width: number; height: number; hasAntenna: boolean
+  topShape: 'flat' | 'slant-left' | 'slant-right' | 'peak' | 'notch' | 'step'
+  topParam: number  // how dramatic the shape is (0-1)
 }
 
 interface WastelandState {
@@ -1486,6 +1525,7 @@ interface WastelandState {
 function initWastelandState(w: number, h: number, foreground: boolean): WastelandState {
   // Skyline — jagged silhouette of ruined buildings
   const buildingCount = Math.floor(w / 30) + 10
+  const topShapes: WastelandBuilding['topShape'][] = ['flat', 'slant-left', 'slant-right', 'peak', 'notch', 'step']
   const buildings: WastelandBuilding[] = Array.from({ length: buildingCount }, (_, i) => {
     const bw = 15 + Math.random() * 40
     return {
@@ -1493,6 +1533,8 @@ function initWastelandState(w: number, h: number, foreground: boolean): Wastelan
       width: bw,
       height: h * 0.08 + Math.random() * h * 0.35,
       hasAntenna: Math.random() > 0.7,
+      topShape: topShapes[Math.floor(Math.random() * topShapes.length)],
+      topParam: 0.2 + Math.random() * 0.6,
     }
   })
 
@@ -1547,22 +1589,70 @@ function drawWasteland(
     const skylineY = h * 0.45  // horizon line
     ctx.fillStyle = '#1a0c02'
     for (const b of state.buildings) {
-      const baseY = skylineY + (h - skylineY) * 0.05  // slightly below horizon
+      const baseY = skylineY + (h - skylineY) * 0.05
       const topY = baseY - b.height
-      ctx.fillRect(b.x, topY, b.width, b.height + 20)
+      const slopeH = b.height * b.topParam * 0.4  // how much the top varies
+
+      // Draw angular building shape
+      ctx.beginPath()
+      ctx.moveTo(b.x, baseY + 20)  // bottom left
+      switch (b.topShape) {
+        case 'slant-left':
+          ctx.lineTo(b.x, topY - slopeH)
+          ctx.lineTo(b.x + b.width, topY)
+          break
+        case 'slant-right':
+          ctx.lineTo(b.x, topY)
+          ctx.lineTo(b.x + b.width, topY - slopeH)
+          break
+        case 'peak':
+          ctx.lineTo(b.x, topY)
+          ctx.lineTo(b.x + b.width * (0.3 + b.topParam * 0.4), topY - slopeH)
+          ctx.lineTo(b.x + b.width, topY)
+          break
+        case 'notch':
+          ctx.lineTo(b.x, topY)
+          ctx.lineTo(b.x + b.width * 0.35, topY)
+          ctx.lineTo(b.x + b.width * 0.35, topY + slopeH * 0.6)
+          ctx.lineTo(b.x + b.width * 0.65, topY + slopeH * 0.6)
+          ctx.lineTo(b.x + b.width * 0.65, topY)
+          ctx.lineTo(b.x + b.width, topY)
+          break
+        case 'step':
+          ctx.lineTo(b.x, topY)
+          ctx.lineTo(b.x + b.width * 0.5, topY)
+          ctx.lineTo(b.x + b.width * 0.5, topY + slopeH * 0.5)
+          ctx.lineTo(b.x + b.width, topY + slopeH * 0.5)
+          break
+        default: // flat
+          ctx.lineTo(b.x, topY)
+          ctx.lineTo(b.x + b.width, topY)
+      }
+      ctx.lineTo(b.x + b.width, baseY + 20)  // bottom right
+      ctx.closePath()
+      ctx.fill()
 
       // Antenna spire
       if (b.hasAntenna) {
-        ctx.fillRect(b.x + b.width * 0.45, topY - b.height * 0.25, 2, b.height * 0.25)
+        const antennaX = b.topShape === 'peak' ? b.x + b.width * (0.3 + b.topParam * 0.4) : b.x + b.width * 0.45
+        const antennaBase = b.topShape === 'peak' ? topY - slopeH : topY
+        ctx.fillRect(antennaX - 1, antennaBase - b.height * 0.25, 2, b.height * 0.25)
       }
 
-      // Occasional dim window glow
-      if (Math.random() > 0.997) {
-        const wx = b.x + 3 + Math.random() * (b.width - 6)
-        const wy = topY + 5 + Math.random() * (b.height * 0.6)
-        ctx.fillStyle = `rgba(255,160,40,${0.15 + Math.random() * 0.2})`
-        ctx.fillRect(wx, wy, 3, 2)
-        ctx.fillStyle = '#1a0c02'
+      // Window glows — dim orange squares (sparse)
+      const windowSeed = b.x * 7 + b.width * 13  // deterministic per building
+      const windowCount = Math.floor(b.height / 30)
+      for (let wi = 0; wi < windowCount; wi++) {
+        const wHash = Math.sin(windowSeed + wi * 17.3) * 0.5 + 0.5
+        if (wHash > 0.7) {  // ~30% of windows lit
+          const wx = b.x + 3 + (wHash * 97 % 1) * Math.max(b.width - 8, 1)
+          const wy = topY + 8 + wi * 28
+          if (wy < baseY - 5) {
+            ctx.fillStyle = `rgba(255,160,40,${0.12 + wHash * 0.15})`
+            ctx.fillRect(wx, wy, 3, 2)
+            ctx.fillStyle = '#1a0c02'
+          }
+        }
       }
     }
 
@@ -1780,7 +1870,7 @@ function CanvasParticleEffect({ activeEffect, foreground }: { activeEffect: Effe
     // Winter landscape (snow theme background)
     let winterState: WinterState | null = null
     if (activeEffect === 'snow-landscape') {
-      winterState = initWinterState()
+      winterState = initWinterState(canvas.width, canvas.height)
     }
 
     // Lightning state for rain effect

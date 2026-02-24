@@ -1,9 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 512">
   <!-- Background circle -->
-  <circle cx="256" cy="256" r="240" fill="#1a1a2e"/>
+  <circle cx="280" cy="256" r="240" fill="#1a1a2e"/>
 
   <!-- Crab claw - flat, clean silhouette style -->
-  <g transform="translate(256,240)" fill="#e84430">
+  <g transform="translate(280,240)" fill="#e84430">
     <!-- Left arm -->
     <path d="M-12,-10 C-25,-50 -55,-95 -85,-120
              C-95,-128 -110,-130 -115,-115
@@ -36,9 +36,9 @@
     <ellipse cx="0" cy="0" rx="30" ry="20"/>
   </g>
 
-  <!-- Text: pinche.rs -->
-  <text x="256" y="380" text-anchor="middle"
+  <!-- Text: pinche.rs — smaller font, explicit red on .rs -->
+  <text x="280" y="378" text-anchor="middle"
         font-family="'SF Mono','Fira Code','Consolas',monospace"
-        font-size="48" font-weight="700" fill="#e8e8f0"
-        letter-spacing="2">pinche<tspan fill="#e84430">.rs</tspan></text>
+        font-size="44" font-weight="700" fill="#e8e8f0"
+        letter-spacing="1">pinche<tspan fill="#e84430">.rs</tspan></text>
 </svg>
