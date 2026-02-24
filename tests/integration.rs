@@ -917,9 +917,9 @@ fn test_openapi_json() {
     let resp = client.get("/openapi.json").dispatch();
     assert_eq!(resp.status(), Status::Ok);
     let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
-    // Verify it's a valid OpenAPI 3.1 spec for v0.5.0
+    // Verify it's a valid OpenAPI 3.1 spec for v0.6.0
     assert_eq!(body["openapi"], "3.1.0");
-    assert_eq!(body["info"]["version"], "0.5.0");
+    assert_eq!(body["info"]["version"], "0.6.0");
     assert!(body["paths"].is_object());
     // Core API paths present
     let paths = body["paths"].as_object().unwrap();
