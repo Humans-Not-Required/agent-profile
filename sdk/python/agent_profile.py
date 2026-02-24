@@ -376,9 +376,10 @@ class AgentProfile:
 
     def endorsements(self, username: str) -> List[Dict[str, Any]]:
         """GET /api/v1/profiles/{username}/endorsements — list endorsements received."""
-        return self._get(
+        r = self._get(
             f"/api/v1/profiles/{urllib.parse.quote(username)}/endorsements"
         )
+        return r.get("endorsements", []) if isinstance(r, dict) else r
 
     def endorse(
         self,

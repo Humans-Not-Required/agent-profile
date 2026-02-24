@@ -56,7 +56,8 @@ pub fn client_ip(request: &Request<'_>) -> String {
 
 // ── Request guards ────────────────────────────────────────────────────────────
 
-/// Request guard: allow max 5 registrations per IP per hour.
+/// Request guard: allow max N registrations per IP per hour.
+/// Default: 5. Override with REGISTER_RATE_LIMIT env var (useful for integration tests).
 pub struct RegisterRateLimit;
 
 #[rocket::async_trait]
@@ -68,9 +69,13 @@ impl<'r> FromRequest<'r> for RegisterRateLimit {
             Outcome::Success(s) => s,
             _ => return Outcome::Success(RegisterRateLimit), // fail open if not set up
         };
+        let limit = std::env::var("REGISTER_RATE_LIMIT")
+            .ok()
+            .and_then(|v| v.parse::<usize>().ok())
+            .unwrap_or(5);
         let ip = client_ip(request);
         let key = format!("register:{}", ip);
-        if rl.check(&key, 5, Duration::from_secs(3600)) {
+        if rl.check(&key, limit, Duration::from_secs(3600)) {
             Outcome::Success(RegisterRateLimit)
         } else {
             Outcome::Error((Status::TooManyRequests, ()))

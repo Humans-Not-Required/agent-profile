@@ -21,13 +21,15 @@ from agent_profile import AgentProfile, AgentProfileError
 
 BASE_URL = os.environ.get("AGENT_PROFILE_URL", "http://localhost:8003")
 
-# Throttle registrations to avoid rate limiting (6/min)
+# Throttle registrations to avoid rate limiting.
+# Set REGISTER_RATE_LIMIT=1000 on the server for fast test runs.
 _last_register = 0.0
+_THROTTLE_SECS = float(os.environ.get("SDK_TEST_THROTTLE", "0.1"))
 def throttled_register(ap, name, **kw):
     global _last_register
     elapsed = time.time() - _last_register
-    if elapsed < 11:
-        time.sleep(11 - elapsed)
+    if elapsed < _THROTTLE_SECS:
+        time.sleep(_THROTTLE_SECS - elapsed)
     _last_register = time.time()
     return ap.register(name, **kw)
 
