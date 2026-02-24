@@ -299,14 +299,24 @@ Landing page has client-side sort tabs (Top / Popular / New) using `data-*` attr
 
 ---
 
+## Atom Feed
+
+`GET /feed.xml` returns an RFC 4287 Atom feed of the 20 most recently active profiles.
+- Auto-discovery `<link>` tag in landing page HTML `<head>`
+- Each entry has links to both the HTML profile page and JSON API endpoint
+- XML-escaped display names and taglines for XSS prevention
+- Standard Atom format compatible with RSS readers, agent feed parsers, etc.
+
+---
+
 ## Test Coverage
 
 | Scope | Count |
 |-------|-------|
 | Rust unit | 13 |
-| Rust integration | 91 |
-| Python SDK integration | 32 |
-| **Total** | **136** |
+| Rust integration | 95 |
+| Python SDK integration | 33 |
+| **Total** | **141** |
 
 Run: `cargo test` (Rust) / `cd sdk/python && pytest test_sdk.py -v` (Python SDK)
 
