@@ -35,6 +35,9 @@ fn theme_accent(theme: &str) -> &'static str {
         "snow" => "#60a0e0", "christmas" => "#c42020", "halloween" => "#e87020",
         "spring" => "#d05088", "summer" => "#e0a020", "autumn" => "#c85020",
         "newyear" => "#d4a840", "valentine" => "#d03050", "patriot" => "#d02030",
+        "boba" => "#8b5e3c", "fruitsalad" => "#e85050", "junkfood" => "#e04020",
+        "space" => "#7c4dff", "neon" => "#ff2d95", "candy" => "#e040a0",
+        "retro" => "#ff4444", "coffee" => "#d4944a",
         _ => "#58a6ff",
     }
 }
@@ -61,7 +64,7 @@ pub fn landing_page(
     // Build featured agent avatars — verified (have pubkey) first, then pick interesting themes
     let featured: Vec<_> = {
         let mut f: Vec<_> = visible.iter().filter(|p| !p.pubkey.is_empty()).copied().collect();
-        let showcase_themes = ["matrix", "terminator", "replicant", "aurora", "ocean", "snow", "halloween", "spring"];
+        let showcase_themes = ["matrix", "terminator", "replicant", "aurora", "ocean", "space", "neon", "retro"];
         for theme in &showcase_themes {
             if f.len() >= 8 { break; }
             if let Some(p) = visible.iter().find(|p| p.theme == *theme && !f.iter().any(|e| e.username == p.username)) {
