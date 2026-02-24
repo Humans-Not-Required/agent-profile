@@ -817,403 +817,219 @@ function drawClouds(
 
 // ── Warzone (Terminator: laser sweeps, searchlights, sparks, red eye scan) ──
 
-interface Searchlight {
-  x: number; angle: number; sweepSpeed: number; width: number; alpha: number
-}
-
-interface CrossfireLaser {
-  fromLeft: boolean     // true = shoots from left edge, false = right edge
-  y: number             // vertical position
-  angle: number         // slight angle (mostly horizontal)
-  alpha: number         // current brightness (flashes then fades)
-  width: number
-  color: string
-  life: number          // frames remaining
-  maxLife: number
-}
-
-interface LaserBurst {
-  y: number           // base Y position for the burst
-  fromLeft: boolean
-  angle: number
-  color: string
-  width: number
-  remaining: number   // shots left in this burst
-  delay: number       // frames between shots
-  delayTimer: number  // current countdown
-}
-
-interface WarzoneRuin {
-  x: number; width: number; height: number
-  jagged: number[]    // top edge offsets for broken silhouette
-  hasRebar: boolean    // exposed rebar sticking up
-  windowSlits: { x: number; y: number }[]
-}
-interface WarzoneWreck {
-  x: number; y: number; width: number; height: number; type: 'car' | 'truck' | 'slab'
+interface WarzoneElement {
+  type: 'ruin' | 'wall' | 'rubble' | 'beam' | 'vehicle' | 'slab'
+  x: number; y: number; width: number; height: number
   tilt: number
+  jagged?: number[]   // for ruins: broken top edge
+  hasRebar?: boolean
 }
 interface WarzoneState {
-  searchlights: Searchlight[]
-  crossfireLasers: CrossfireLaser[]
-  laserCooldown: number
-  activeBurst: LaserBurst | null
-  sparks: Particle[]
-  redEyePhase: number
-  flashTimer: number
-  flashAlpha: number
-  ruins: WarzoneRuin[]
-  wrecks: WarzoneWreck[]
+  elements: WarzoneElement[]
   groundY: number
-}
-
-const LASER_COLORS = [
-  'rgba(255,20,40,A)',   // red
-  'rgba(60,140,255,A)',  // blue
-  'rgba(180,60,255,A)',  // purple
-  'rgba(255,100,20,A)',  // orange
-  'rgba(40,255,180,A)',  // green
-]
-
-function spawnCrossfireLaser(w: number, h: number): CrossfireLaser {
-  const fromLeft = Math.random() > 0.5
-  return {
-    fromLeft,
-    y: h * 0.15 + Math.random() * h * 0.7,  // middle 70% of screen
-    angle: (Math.random() - 0.5) * 0.15,      // slight angle, mostly horizontal
-    alpha: 0.7 + Math.random() * 0.3,          // bright flash
-    width: 1.5 + Math.random() * 2,
-    color: LASER_COLORS[Math.floor(Math.random() * LASER_COLORS.length)],
-    life: 8 + Math.floor(Math.random() * 15),  // short burst: 8-22 frames
-    maxLife: 0,  // set below
-  }
+  drawn: boolean       // static — only draw once
 }
 
 function initWarzoneState(w: number, h: number, foreground: boolean): WarzoneState {
-  // Searchlights — strong, fast-sweeping beams from the sky
-  const searchlights: Searchlight[] = foreground ? [] : Array.from({ length: 3 }, () => ({
-    x: w * 0.1 + Math.random() * w * 0.8,
-    angle: Math.PI / 2 + (Math.random() - 0.5) * 0.4,
-    sweepSpeed: 0.003 + Math.random() * 0.004,  // 2-3x faster sweep
-    width: 40 + Math.random() * 60,
-    alpha: 0.12 + Math.random() * 0.08,  // much brighter (was 0.05-0.09)
-  }))
+  const groundY = h * 0.72
+  const elements: WarzoneElement[] = []
+  if (foreground) return { elements, groundY, drawn: false }
 
-  // Sparks — small bright particles
-  const sparkCount = foreground ? 15 : 80
-  const sparks: Particle[] = Array.from({ length: sparkCount }, () => ({
-    x: Math.random() * w,
-    y: h * 0.5 + Math.random() * h * 0.5,
-    vx: (Math.random() - 0.5) * 2,
-    vy: -(Math.random() * 2 + 0.5),
-    size: foreground ? 2 + Math.random() * 3 : 1 + Math.random() * 2,
-    opacity: Math.random() * 0.8 + 0.2,
-    phase: Math.random() * Math.PI * 2,
-  }))
-
-  // Dystopian landscape — ruined buildings along bottom
-  const groundY = h * 0.75
-  const ruins: WarzoneRuin[] = []
-  if (!foreground) {
-    let rx = -20
-    while (rx < w + 40) {
-      const rw = 30 + Math.random() * 60
-      const rh = 40 + Math.random() * 120
-      // Jagged top edge — broken concrete
-      const jaggedCount = 4 + Math.floor(Math.random() * 6)
+  // Mix of vertical ruins, horizontal fallen structures, rubble mounds, vehicles
+  let cx = -30
+  while (cx < w + 60) {
+    const roll = Math.random()
+    if (roll < 0.25) {
+      // Vertical ruin — but varied height, some very short (broken walls)
+      const rw = 20 + Math.random() * 50
+      const rh = 15 + Math.random() * 130  // some short, some tall
+      const jaggedCount = 3 + Math.floor(Math.random() * 5)
       const jagged: number[] = []
-      for (let j = 0; j <= jaggedCount; j++) {
-        jagged.push((Math.random() - 0.5) * rh * 0.4)
-      }
-      const windowSlits: { x: number; y: number }[] = []
-      const slitCount = Math.floor(rh / 25)
-      for (let s = 0; s < slitCount; s++) {
-        if (Math.random() > 0.5) {
-          windowSlits.push({
-            x: 4 + Math.random() * (rw - 8),
-            y: 10 + s * 22 + Math.random() * 8,
-          })
-        }
-      }
-      ruins.push({ x: rx, width: rw, height: rh, jagged, hasRebar: Math.random() > 0.6, windowSlits })
-      rx += rw + 10 + Math.random() * 50  // gaps between ruins
+      for (let j = 0; j <= jaggedCount; j++) jagged.push((Math.random() - 0.5) * rh * 0.35)
+      elements.push({ type: 'ruin', x: cx, y: groundY, width: rw, height: rh, tilt: 0, jagged, hasRebar: Math.random() > 0.5 })
+      cx += rw + 15 + Math.random() * 40
+    } else if (roll < 0.45) {
+      // Fallen wall / collapsed structure — horizontal
+      const bw = 40 + Math.random() * 80
+      const bh = 6 + Math.random() * 12
+      const tilt = (Math.random() - 0.5) * 0.15
+      elements.push({ type: 'wall', x: cx, y: groundY + Math.random() * 8, width: bw, height: bh, tilt })
+      cx += bw + 10 + Math.random() * 30
+    } else if (roll < 0.6) {
+      // Rubble mound — triangular pile
+      const rw = 25 + Math.random() * 50
+      const rh = 10 + Math.random() * 25
+      elements.push({ type: 'rubble', x: cx, y: groundY, width: rw, height: rh, tilt: 0 })
+      cx += rw + 5 + Math.random() * 25
+    } else if (roll < 0.72) {
+      // Fallen beam / rebar — long horizontal line
+      const bw = 50 + Math.random() * 100
+      const bh = 2 + Math.random() * 4
+      const tilt = (Math.random() - 0.5) * 0.2
+      elements.push({ type: 'beam', x: cx, y: groundY - Math.random() * 20, width: bw, height: bh, tilt })
+      cx += bw * 0.6 + Math.random() * 30  // beams can overlap other things
+    } else if (roll < 0.85) {
+      // Wrecked vehicle
+      const vw = 20 + Math.random() * 30
+      const vh = 8 + Math.random() * 10
+      const tilt = (Math.random() - 0.5) * 0.35
+      elements.push({ type: 'vehicle', x: cx, y: groundY + Math.random() * 6, width: vw, height: vh, tilt })
+      cx += vw + 15 + Math.random() * 35
+    } else {
+      // Concrete slab — tilted at angle, leaning
+      const sw = 15 + Math.random() * 35
+      const sh = 25 + Math.random() * 40
+      const tilt = 0.3 + Math.random() * 0.5  // leaning significantly
+      elements.push({ type: 'slab', x: cx, y: groundY, width: sw, height: sh, tilt })
+      cx += sw + 20 + Math.random() * 30
     }
   }
 
-  // Wrecked vehicles & concrete slabs scattered on ground
-  const wrecks: WarzoneWreck[] = []
-  if (!foreground) {
-    const wreckCount = 3 + Math.floor(Math.random() * 4)
-    for (let i = 0; i < wreckCount; i++) {
-      const type = Math.random() > 0.6 ? 'slab' : Math.random() > 0.5 ? 'truck' : 'car'
-      const ww = type === 'slab' ? 20 + Math.random() * 40 : type === 'truck' ? 35 + Math.random() * 20 : 20 + Math.random() * 15
-      const wh = type === 'slab' ? 8 + Math.random() * 15 : type === 'truck' ? 14 + Math.random() * 8 : 10 + Math.random() * 6
-      wrecks.push({
-        x: Math.random() * w,
-        y: groundY + Math.random() * (h - groundY) * 0.4,
-        width: ww, height: wh, type,
-        tilt: (Math.random() - 0.5) * 0.3,
-      })
-    }
-  }
-
-  return { searchlights, crossfireLasers: [], laserCooldown: 120, activeBurst: null, sparks, redEyePhase: 0, flashTimer: 0, flashAlpha: 0, ruins, wrecks, groundY }
+  return { elements, groundY, drawn: false }
 }
 
 function drawWarzone(
   ctx: CanvasRenderingContext2D,
   w: number,
   h: number,
-  t: number,
+  _t: number,
   state: WarzoneState,
   foreground: boolean,
 ) {
-  // ── Background: dystopian landscape + searchlights + crossfire lasers ──
-  if (!foreground) {
+  // Static wasteland backdrop — draw once, no animation
+  if (foreground || state.drawn) return
+  state.drawn = true
+
+  ctx.save()
+  const gY = state.groundY
+
+  // Ground plane — broken terrain
+  const groundGrad = ctx.createLinearGradient(0, gY - 10, 0, h)
+  groundGrad.addColorStop(0, '#0c0e14')
+  groundGrad.addColorStop(0.3, '#0a0c10')
+  groundGrad.addColorStop(1, '#060810')
+  ctx.fillStyle = groundGrad
+  ctx.fillRect(0, gY - 10, w, h - gY + 10)
+
+  // Rough ground texture — scattered rubble dots
+  for (let gx = 0; gx < w; gx += 2 + Math.random() * 5) {
+    const gy = gY - 2 + Math.random() * 6
+    const gs = 1 + Math.random() * 3
+    ctx.fillStyle = `rgba(${25 + Math.random() * 20},${28 + Math.random() * 15},${35 + Math.random() * 15},${0.3 + Math.random() * 0.4})`
+    ctx.fillRect(gx, gy, gs, 1 + Math.random() * 2)
+  }
+
+  // Distant horizon line — faint lighter strip
+  ctx.fillStyle = 'rgba(20,22,30,0.5)'
+  ctx.fillRect(0, gY - 12, w, 3)
+
+  // Draw all elements
+  for (const el of state.elements) {
     ctx.save()
 
-    // ── Ruined cityscape silhouette ──
-    const gY = state.groundY
-    // Ground plane — dark rocky terrain
-    ctx.fillStyle = '#0a0c10'
-    ctx.fillRect(0, gY, w, h - gY)
-    // Ground texture — rubble
-    ctx.fillStyle = 'rgba(30,32,40,0.6)'
-    for (let gx = 0; gx < w; gx += 3 + Math.random() * 6) {
-      const gy = gY - 1 + Math.random() * 4
-      ctx.fillRect(gx, gy, 2 + Math.random() * 3, 1 + Math.random() * 2)
-    }
-
-    // Ruined buildings
-    for (const ruin of state.ruins) {
-      const baseY = gY + 4
-      const topY = baseY - ruin.height
-
-      // Main structure — dark silhouette
+    if (el.type === 'ruin') {
+      // Vertical broken structure with jagged top
+      const baseY = el.y + 4
+      const topY = baseY - el.height
       ctx.fillStyle = '#0a0c10'
       ctx.beginPath()
-      ctx.moveTo(ruin.x, baseY)
-      // Draw jagged top edge
-      for (let j = 0; j < ruin.jagged.length; j++) {
-        const frac = j / (ruin.jagged.length - 1)
-        const jx = ruin.x + frac * ruin.width
-        const jy = topY + ruin.jagged[j]
-        if (j === 0) ctx.lineTo(ruin.x, jy)
-        else ctx.lineTo(jx, jy)
+      ctx.moveTo(el.x, baseY)
+      if (el.jagged) {
+        for (let j = 0; j < el.jagged.length; j++) {
+          const frac = j / (el.jagged.length - 1)
+          ctx.lineTo(el.x + frac * el.width, topY + el.jagged[j])
+        }
+      } else {
+        ctx.lineTo(el.x, topY)
+        ctx.lineTo(el.x + el.width, topY)
       }
-      ctx.lineTo(ruin.x + ruin.width, baseY)
+      ctx.lineTo(el.x + el.width, baseY)
       ctx.closePath()
       ctx.fill()
-
-      // Exposed rebar — thin lines sticking up from broken top
-      if (ruin.hasRebar) {
-        ctx.strokeStyle = 'rgba(60,50,40,0.8)'
+      // Exposed rebar
+      if (el.hasRebar && el.jagged) {
+        ctx.strokeStyle = 'rgba(50,44,36,0.7)'
         ctx.lineWidth = 1.5
-        for (let r = 0; r < 3; r++) {
-          const rx = ruin.x + ruin.width * (0.2 + r * 0.3) + Math.random() * 5
-          const ry = topY + ruin.jagged[Math.min(r + 1, ruin.jagged.length - 1)]
+        for (let r = 0; r < 2 + Math.floor(Math.random() * 2); r++) {
+          const rx = el.x + el.width * (0.2 + r * 0.3)
+          const ry = topY + (el.jagged[Math.min(r + 1, el.jagged.length - 1)] || 0)
           ctx.beginPath()
           ctx.moveTo(rx, ry)
-          ctx.lineTo(rx + (Math.random() - 0.5) * 4, ry - 8 - Math.random() * 12)
+          ctx.lineTo(rx + (Math.random() - 0.5) * 6, ry - 6 - Math.random() * 14)
           ctx.stroke()
         }
       }
-
-      // Dark window slits — subtle depth
-      for (const ws of ruin.windowSlits) {
-        const wy = topY + ws.y
-        if (wy < baseY - 5) {
-          ctx.fillStyle = 'rgba(0,0,0,0.5)'
-          ctx.fillRect(ruin.x + ws.x, wy, 5, 3)
-        }
-      }
-    }
-
-    // Wrecked vehicles & concrete slabs
-    for (const wr of state.wrecks) {
-      ctx.save()
-      ctx.translate(wr.x + wr.width / 2, wr.y + wr.height / 2)
-      ctx.rotate(wr.tilt)
-      ctx.fillStyle = wr.type === 'slab' ? '#0e1018' : '#0c0e14'
-      ctx.fillRect(-wr.width / 2, -wr.height / 2, wr.width, wr.height)
-      if (wr.type === 'car' || wr.type === 'truck') {
-        // Axle/wheel circles
-        ctx.fillStyle = '#060810'
-        ctx.beginPath()
-        ctx.arc(-wr.width * 0.3, wr.height * 0.3, 3, 0, Math.PI * 2)
-        ctx.arc(wr.width * 0.3, wr.height * 0.3, 3, 0, Math.PI * 2)
-        ctx.fill()
-      }
-      if (wr.type === 'slab') {
-        // Crack line
-        ctx.strokeStyle = 'rgba(30,34,44,0.6)'
-        ctx.lineWidth = 1
-        ctx.beginPath()
-        ctx.moveTo(-wr.width * 0.3, -wr.height * 0.2)
-        ctx.lineTo(wr.width * 0.2, wr.height * 0.3)
-        ctx.stroke()
-      }
-      ctx.restore()
-    }
-
-    // Searchlights — from the sky, sweeping down to search the ground
-    for (const sl of state.searchlights) {
-      const sweep = Math.sin(t * sl.sweepSpeed) * 0.6
-      const angle = sl.angle + sweep
-      const beamLen = h * 1.5
-      const endX = sl.x + Math.cos(angle) * beamLen
-      const endY = Math.sin(angle) * beamLen
-
-      const grad = ctx.createLinearGradient(sl.x, 0, endX, endY)
-      grad.addColorStop(0, `rgba(180,200,230,${sl.alpha})`)
-      grad.addColorStop(0.3, `rgba(140,170,210,${sl.alpha * 0.5})`)
-      grad.addColorStop(1, 'rgba(140,170,210,0)')
-
+    } else if (el.type === 'wall') {
+      // Fallen horizontal wall / collapsed slab
+      ctx.translate(el.x + el.width / 2, el.y)
+      ctx.rotate(el.tilt)
+      ctx.fillStyle = '#0c0e16'
+      ctx.fillRect(-el.width / 2, -el.height / 2, el.width, el.height)
+      // Crack
+      ctx.strokeStyle = 'rgba(25,28,38,0.6)'
+      ctx.lineWidth = 1
       ctx.beginPath()
-      ctx.moveTo(sl.x - sl.width / 2, 0)    // originates from top
-      ctx.lineTo(endX - sl.width * 3, endY)
-      ctx.lineTo(endX + sl.width * 3, endY)
-      ctx.lineTo(sl.x + sl.width / 2, 0)
+      ctx.moveTo(-el.width * 0.4, 0)
+      ctx.lineTo(el.width * 0.3, el.height * 0.2)
+      ctx.stroke()
+    } else if (el.type === 'rubble') {
+      // Triangular rubble mound
+      ctx.fillStyle = '#0b0d12'
+      ctx.beginPath()
+      ctx.moveTo(el.x, el.y + 4)
+      ctx.lineTo(el.x + el.width * 0.3, el.y - el.height)
+      ctx.lineTo(el.x + el.width * 0.55, el.y - el.height * 0.6)
+      ctx.lineTo(el.x + el.width * 0.8, el.y - el.height * 0.85)
+      ctx.lineTo(el.x + el.width, el.y + 4)
       ctx.closePath()
-      ctx.fillStyle = grad
       ctx.fill()
-    }
-
-    // ── Laser bursts — rapid-fire succession, same color, same line ──
-    // Manage active burst: fire shots at intervals
-    if (state.activeBurst) {
-      const burst = state.activeBurst
-      burst.delayTimer--
-      if (burst.delayTimer <= 0 && burst.remaining > 0) {
-        // Fire one shot from the burst
-        const yJitter = (Math.random() - 0.5) * 8  // very tight grouping
-        const laser = spawnCrossfireLaser(w, h)
-        laser.fromLeft = burst.fromLeft
-        laser.y = burst.y + yJitter
-        laser.angle = burst.angle + (Math.random() - 0.5) * 0.02  // near-parallel
-        laser.color = burst.color
-        laser.width = burst.width
-        laser.maxLife = laser.life
-        state.crossfireLasers.push(laser)
-        burst.remaining--
-        burst.delayTimer = burst.delay
-      }
-      if (burst.remaining <= 0) state.activeBurst = null
-    }
-
-    // Spawn new burst after cooldown
-    state.laserCooldown--
-    if (state.laserCooldown <= 0 && !state.activeBurst) {
-      const burstCount = 3 + Math.floor(Math.random() * 8)  // 3-10 shots per burst
-      const fromLeft = Math.random() > 0.5
-      const color = LASER_COLORS[Math.floor(Math.random() * LASER_COLORS.length)]
-      state.activeBurst = {
-        y: h * 0.15 + Math.random() * h * 0.7,
-        fromLeft,
-        angle: (Math.random() - 0.5) * 0.12,
-        color,
-        width: 1.5 + Math.random() * 1.5,
-        remaining: burstCount,
-        delay: 2 + Math.floor(Math.random() * 3),  // 2-4 frames between shots (rapid)
-        delayTimer: 0,
-      }
-      state.laserCooldown = 120 + Math.floor(Math.random() * 240)  // 2-6s between bursts (less frequent)
-    }
-
-    // Draw + update crossfire lasers
-    ctx.globalCompositeOperation = 'lighter'
-    for (let i = state.crossfireLasers.length - 1; i >= 0; i--) {
-      const laser = state.crossfireLasers[i]
-      laser.life--
-      if (laser.life <= 0) { state.crossfireLasers.splice(i, 1); continue }
-
-      const lifeRatio = laser.life / laser.maxLife
-      const envelope = lifeRatio > 0.7 ? 1.0 : lifeRatio / 0.7
-      const a = laser.alpha * envelope
-
-      const startX = laser.fromLeft ? -10 : w + 10
-      const endX = laser.fromLeft ? w + 10 : -10
-      const startY = laser.y - Math.tan(laser.angle) * (laser.fromLeft ? 0 : w)
-      const endY = laser.y + Math.tan(laser.angle) * (laser.fromLeft ? w : 0)
-
-      // Bright core
+    } else if (el.type === 'beam') {
+      // Long fallen beam / rebar — horizontal line across rubble
+      ctx.translate(el.x + el.width / 2, el.y)
+      ctx.rotate(el.tilt)
+      ctx.fillStyle = 'rgba(45,40,35,0.8)'
+      ctx.fillRect(-el.width / 2, -el.height / 2, el.width, el.height)
+    } else if (el.type === 'vehicle') {
+      // Wrecked vehicle silhouette
+      ctx.translate(el.x + el.width / 2, el.y)
+      ctx.rotate(el.tilt)
+      ctx.fillStyle = '#0c0e14'
+      // Body
+      ctx.fillRect(-el.width / 2, -el.height / 2, el.width, el.height * 0.6)
+      // Cabin bump
+      ctx.fillRect(-el.width * 0.2, -el.height, el.width * 0.45, el.height * 0.55)
+      // Wheels
+      ctx.fillStyle = '#060810'
       ctx.beginPath()
-      ctx.moveTo(startX, startY)
-      ctx.lineTo(endX, endY)
-      ctx.strokeStyle = laser.color.replace('A', String(a))
-      ctx.lineWidth = laser.width
+      ctx.arc(-el.width * 0.3, el.height * 0.2, 3, 0, Math.PI * 2)
+      ctx.arc(el.width * 0.3, el.height * 0.2, 3, 0, Math.PI * 2)
+      ctx.fill()
+    } else if (el.type === 'slab') {
+      // Leaning concrete slab — propped up at angle
+      ctx.translate(el.x, el.y + 2)
+      ctx.rotate(-el.tilt)
+      ctx.fillStyle = '#0b0d14'
+      ctx.fillRect(0, -el.height, el.width, el.height)
+      // Crack across face
+      ctx.strokeStyle = 'rgba(20,24,34,0.5)'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.moveTo(el.width * 0.1, -el.height * 0.7)
+      ctx.lineTo(el.width * 0.8, -el.height * 0.3)
       ctx.stroke()
-
-      // Wide glow
-      ctx.strokeStyle = laser.color.replace('A', String(a * 0.25))
-      ctx.lineWidth = laser.width * 6
-      ctx.stroke()
-    }
-    ctx.globalCompositeOperation = 'source-over'
-
-    // Red eye scan line
-    state.redEyePhase += 0.008
-    const eyeY = h * 0.3 + Math.sin(state.redEyePhase) * h * 0.25
-    const eyeGrad = ctx.createLinearGradient(0, eyeY - 2, 0, eyeY + 2)
-    eyeGrad.addColorStop(0, 'rgba(255,16,32,0)')
-    eyeGrad.addColorStop(0.5, `rgba(255,16,32,${0.08 + Math.sin(t * 0.003) * 0.04})`)
-    eyeGrad.addColorStop(1, 'rgba(255,16,32,0)')
-    ctx.fillStyle = eyeGrad
-    ctx.fillRect(0, eyeY - 15, w, 30)
-
-    // Occasional explosion flash
-    state.flashTimer++
-    if (state.flashTimer > 300 + Math.random() * 400) {
-      state.flashAlpha = 0.15 + Math.random() * 0.1
-      state.flashTimer = 0
-    }
-    if (state.flashAlpha > 0) {
-      const flashColors = ['rgba(255,140,40,A)', 'rgba(255,60,30,A)', 'rgba(200,180,255,A)']
-      const fc = flashColors[Math.floor(Math.random() * flashColors.length)]
-      ctx.fillStyle = fc.replace('A', String(state.flashAlpha))
-      ctx.fillRect(0, 0, w, h)
-      state.flashAlpha *= 0.92  // rapid decay
-      if (state.flashAlpha < 0.005) state.flashAlpha = 0
     }
 
     ctx.restore()
   }
 
-  // ── Sparks — bright points flying upward from explosions ──
-  ctx.save()
-  ctx.globalCompositeOperation = 'lighter'
-  for (const s of state.sparks) {
-    const flicker = Math.sin((s.phase ?? 0) + t * 0.01) * 0.3 + 0.7
-    const r = s.size * flicker
+  // Faint smoke/haze gradient at top of ground
+  const hazeGrad = ctx.createLinearGradient(0, gY - 40, 0, gY + 20)
+  hazeGrad.addColorStop(0, 'rgba(6,8,12,0)')
+  hazeGrad.addColorStop(0.5, 'rgba(12,14,20,0.15)')
+  hazeGrad.addColorStop(1, 'rgba(6,8,12,0)')
+  ctx.fillStyle = hazeGrad
+  ctx.fillRect(0, gY - 40, w, 60)
 
-    // Bright core
-    ctx.fillStyle = `rgba(255, 200, 120, ${s.opacity * flicker})`
-    ctx.beginPath()
-    ctx.arc(s.x, s.y, r * 0.5, 0, Math.PI * 2)
-    ctx.fill()
-
-    // Glow
-    const grad = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, r * 3)
-    grad.addColorStop(0, `rgba(255, 160, 60, ${s.opacity * flicker * 0.5})`)
-    grad.addColorStop(1, 'rgba(255, 80, 20, 0)')
-    ctx.fillStyle = grad
-    ctx.beginPath()
-    ctx.arc(s.x, s.y, r * 3, 0, Math.PI * 2)
-    ctx.fill()
-
-    // Move
-    s.x += (s.vx ?? 0) + Math.sin((s.phase ?? 0) + t * 0.02) * 0.2
-    s.y += (s.vy ?? 0)
-    s.opacity -= 0.003
-    if (s.opacity < 0.05 || s.y < -20) {
-      s.opacity = Math.random() * 0.8 + 0.2
-      s.y = h * 0.6 + Math.random() * h * 0.4
-      s.x = Math.random() * w
-      s.vy = -(Math.random() * 2 + 0.5)
-      s.vx = (Math.random() - 0.5) * 2
-    }
-  }
-  ctx.globalCompositeOperation = 'source-over'
   ctx.restore()
 }
 
