@@ -56,7 +56,7 @@ function initParticles(count: number, w: number, h: number): Particle[] {
 
 // (Snowflake, leaf draw functions moved to CSSParticleEffect — GPU-composited)
 
-// ── Rain ──
+// ── Rain + Lightning ──
 
 function drawRain(ctx: CanvasRenderingContext2D, p: Particle, w: number) {
   ctx.beginPath()
@@ -65,6 +65,83 @@ function drawRain(ctx: CanvasRenderingContext2D, p: Particle, w: number) {
   ctx.strokeStyle = `rgba(150, 190, 230, ${p.opacity * 0.6})`
   ctx.lineWidth = 1
   ctx.stroke()
+}
+
+interface LightningState {
+  active: boolean
+  x: number           // bolt origin x
+  opacity: number     // current flash brightness (decays)
+  segments: { x: number; y: number }[]  // bolt path
+  startFrame: number
+  duration: number    // frames the flash lasts
+}
+
+function triggerLightning(w: number, h: number, t: number): LightningState {
+  const x = w * 0.15 + Math.random() * w * 0.7
+  // Build a jagged bolt from top to ~70% down
+  const segments: { x: number; y: number }[] = [{ x, y: 0 }]
+  let cx = x
+  let cy = 0
+  const endY = h * (0.5 + Math.random() * 0.3)
+  const stepCount = 8 + Math.floor(Math.random() * 6)
+  const stepY = endY / stepCount
+  for (let i = 0; i < stepCount; i++) {
+    cx += (Math.random() - 0.5) * 80
+    cy += stepY + (Math.random() - 0.5) * stepY * 0.3
+    segments.push({ x: cx, y: cy })
+  }
+  return { active: true, x, opacity: 1, segments, startFrame: t, duration: 8 + Math.floor(Math.random() * 8) }
+}
+
+function drawLightning(ctx: CanvasRenderingContext2D, ls: LightningState, w: number, h: number, t: number) {
+  const elapsed = t - ls.startFrame
+  if (elapsed > ls.duration) { ls.active = false; return }
+
+  // Rapid flash then decay — 2 sharp pulses then fade
+  let alpha: number
+  if (elapsed < 2) alpha = 1.0
+  else if (elapsed < 4) alpha = 0.3
+  else if (elapsed < 5) alpha = 0.7  // secondary flash
+  else alpha = Math.max(0, 1 - (elapsed - 5) / (ls.duration - 5))
+
+  ls.opacity = alpha
+
+  // Screen flash (full canvas white overlay)
+  ctx.fillStyle = `rgba(200, 210, 240, ${alpha * 0.08})`
+  ctx.fillRect(0, 0, w, h)
+
+  // Draw bolt
+  if (ls.segments.length > 1) {
+    // Glow layer
+    ctx.strokeStyle = `rgba(180, 200, 255, ${alpha * 0.3})`
+    ctx.lineWidth = 6
+    ctx.beginPath()
+    ctx.moveTo(ls.segments[0].x, ls.segments[0].y)
+    for (let i = 1; i < ls.segments.length; i++) {
+      ctx.lineTo(ls.segments[i].x, ls.segments[i].y)
+    }
+    ctx.stroke()
+
+    // Core bolt
+    ctx.strokeStyle = `rgba(230, 240, 255, ${alpha * 0.8})`
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.moveTo(ls.segments[0].x, ls.segments[0].y)
+    for (let i = 1; i < ls.segments.length; i++) {
+      ctx.lineTo(ls.segments[i].x, ls.segments[i].y)
+    }
+    ctx.stroke()
+
+    // Bright center
+    ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.9})`
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(ls.segments[0].x, ls.segments[0].y)
+    for (let i = 1; i < ls.segments.length; i++) {
+      ctx.lineTo(ls.segments[i].x, ls.segments[i].y)
+    }
+    ctx.stroke()
+  }
 }
 
 // ── Firefly ──
@@ -1394,6 +1471,12 @@ function CanvasParticleEffect({ activeEffect, foreground }: { activeEffect: Effe
       warzoneState = initWarzoneState(canvas.width, canvas.height, foreground)
     }
 
+    // Lightning state for rain effect
+    let lightning: LightningState | null = null
+    let nextLightningFrame = activeEffect === 'rain' && !foreground
+      ? 120 + Math.floor(Math.random() * 300)  // first strike after 2-7 seconds
+      : Infinity
+
     // Background counts (emoji effects handled by CSSParticleEffect)
     const bgCountMap: Record<string, number> = {
       rain: 250, fireflies: 90, stars: 800,
@@ -1549,6 +1632,19 @@ function CanvasParticleEffect({ activeEffect, foreground }: { activeEffect: Effe
           if (p.y < -20)    p.y = h + 20
           if (p.x > w + 20) p.x = -20
           if (p.x < -20)    p.x = w + 20
+        }
+      }
+
+      // Lightning overlay for rain effect (background layer only)
+      if (activeEffect === 'rain' && !foreground) {
+        // Trigger new bolt?
+        if (t >= nextLightningFrame && (!lightning || !lightning.active)) {
+          lightning = triggerLightning(w, h, t)
+          nextLightningFrame = t + 180 + Math.floor(Math.random() * 600) // 3-13s between strikes
+        }
+        // Draw active bolt
+        if (lightning && lightning.active) {
+          drawLightning(ctx, lightning, w, h, t)
         }
       }
 
