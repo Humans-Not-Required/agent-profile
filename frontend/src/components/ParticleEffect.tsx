@@ -1168,11 +1168,22 @@ function initBobaState(w: number, h: number, _foreground: boolean): BobaState {
   const state: BobaState = { pearls, swirls, accelX: 0, accelY: 0, mouseX: -1000, mouseY: -1000, mouseActive: false, motionCleanup: null }
 
   // ── Accelerometer setup ──
+  // Low-pass filter + dead zone to prevent jitter from sensor noise
+  const accelSmoothing = 0.15   // blend factor: 0 = ignore new data, 1 = no smoothing
+  const accelDeadZone = 0.08    // ignore tilts smaller than this (normalized -1 to 1)
+  let rawAccelX = 0, rawAccelY = 0
+
   const handleMotion = (e: DeviceMotionEvent) => {
     const ag = e.accelerationIncludingGravity
     if (!ag) return
-    state.accelX = (ag.x ?? 0) / 9.8
-    state.accelY = (ag.y ?? 0) / 9.8
+    rawAccelX = (ag.x ?? 0) / 9.8
+    rawAccelY = (ag.y ?? 0) / 9.8
+    // Dead zone — ignore tiny tilts (sensor noise)
+    if (Math.abs(rawAccelX) < accelDeadZone) rawAccelX = 0
+    if (Math.abs(rawAccelY) < accelDeadZone) rawAccelY = 0
+    // Low-pass filter — smooth out rapid changes
+    state.accelX += (rawAccelX - state.accelX) * accelSmoothing
+    state.accelY += (rawAccelY - state.accelY) * accelSmoothing
   }
 
   if (typeof window !== 'undefined' && 'DeviceMotionEvent' in window) {
@@ -1273,7 +1284,7 @@ function drawBoba(
   // ── Physics constants ──
   const gravity = 0.15          // settle downward
   const friction = 0.92         // heavy damping — viscous milk tea
-  const accelForce = 2.0        // how strongly tilt affects pearls
+  const accelForce = 1.0        // how strongly tilt affects pearls (reduced to prevent jitter)
   const floorBounce = 0.15      // very low bounce — pearls settle quickly
   const wallBounce = 0.2
   const mouseRadius = 100       // repulsion radius around cursor
