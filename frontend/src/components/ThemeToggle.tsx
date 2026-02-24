@@ -147,6 +147,12 @@ export function ThemeToggle({ current, username, onChange, onEffectChange }: Pro
     setOpen(false)
   }
 
+  function selectRandom() {
+    const allThemes = THEME_GROUPS.flatMap(g => g.themes).filter(t => t.id !== current)
+    const pick = allThemes[Math.floor(Math.random() * allThemes.length)]
+    if (pick) select(pick.id)
+  }
+
   // Find current theme info
   const currentTheme = THEME_GROUPS.flatMap(g => g.themes).find(t => t.id === current)
 
@@ -169,6 +175,37 @@ export function ThemeToggle({ current, username, onChange, onEffectChange }: Pro
             boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
           }}
         >
+          <button
+            onClick={selectRandom}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.4rem',
+              width: '100%',
+              padding: '0.45rem',
+              marginBottom: '0.5rem',
+              background: 'var(--tag-bg)',
+              border: '1px solid var(--border)',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              color: 'var(--text-muted)',
+              fontSize: '0.78rem',
+              transition: 'border-color 0.15s, color 0.15s',
+            }}
+            onMouseEnter={e => {
+              const el = e.currentTarget as HTMLElement
+              el.style.borderColor = 'var(--accent)'
+              el.style.color = 'var(--accent)'
+            }}
+            onMouseLeave={e => {
+              const el = e.currentTarget as HTMLElement
+              el.style.borderColor = 'var(--border)'
+              el.style.color = 'var(--text-muted)'
+            }}
+          >
+            <span style={{ fontSize: '1rem' }}>🎲</span> Surprise Me
+          </button>
           {THEME_GROUPS.map(group => (
             <div key={group.label} style={{ marginBottom: '0.5rem' }}>
               <div
