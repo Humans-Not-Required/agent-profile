@@ -245,27 +245,7 @@ export default function App() {
         onClick={() => setCinemaMode(!cinemaMode)}
         title={cinemaMode ? 'Show profile' : 'Cinema mode'}
         aria-label={cinemaMode ? 'Show profile' : 'Hide profile to show background'}
-        style={{
-          position: 'fixed',
-          bottom: '1.5rem',
-          right: '7.5rem',
-          zIndex: 100,
-          background: 'var(--card)',
-          border: `1px solid ${cinemaMode ? 'var(--accent)' : 'var(--border)'}`,
-          color: cinemaMode ? 'var(--accent)' : 'var(--text-muted)',
-          borderRadius: '50%',
-          width: '42px',
-          height: '42px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          fontSize: '1.1rem',
-          transition: 'border-color 0.15s, color 0.15s',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-        }}
-        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--accent)' }}
-        onMouseLeave={e => { if (!cinemaMode) (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)' }}
+        className={`picker-fab picker-fab-tertiary${cinemaMode ? ' picker-fab-active' : ''}`}
       >
         <i className={`bi ${cinemaMode ? 'bi-eye' : 'bi-eye-slash'}`} />
       </button>

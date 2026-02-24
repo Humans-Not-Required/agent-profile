@@ -1081,6 +1081,10 @@
 /* ── Global base ── */
 * { box-sizing: border-box; }
 
+html {
+  overflow-x: hidden;       /* prevent horizontal scroll on narrow viewports */
+}
+
 body {
   background: var(--bg);
   color: var(--text);
@@ -1088,6 +1092,7 @@ body {
   min-height: 100vh;
   margin: 0;
   padding: 2rem 1rem;
+  overflow-x: hidden;       /* belt + suspenders for mobile */
   transition: background 0.2s, color 0.2s;
 }
 
@@ -1096,6 +1101,7 @@ body {
   position: relative; z-index: 1;
   display: flex; flex-direction: column;
   min-height: calc(100vh - 4rem); /* account for body padding */
+  max-width: 100%; overflow-x: hidden;
 }
 
 /* ── Layout ── */
@@ -1143,6 +1149,9 @@ body {
 .badge-score { color: var(--score-color, var(--text-muted)); border-color: var(--score-color, var(--border)); }
 .badge-verified { color: #3fb950; border-color: #3fb950; }
 
+/* ── Profile content wrapper ── */
+.profile-content { max-width: 100%; overflow: hidden; }
+
 /* ── Sections ── */
 .section { margin-bottom: 1.75rem; }
 .section-title {
@@ -1151,7 +1160,7 @@ body {
   padding-bottom: 0.4rem; border-bottom: 1px solid var(--border);
   font-weight: 600;
 }
-.section-content { color: var(--text); line-height: 1.65; font-size: 0.95rem; overflow-wrap: anywhere; }
+.section-content { color: var(--text); line-height: 1.65; font-size: 0.95rem; overflow-wrap: anywhere; word-break: break-word; }
 .section-content p { margin: 0 0 0.6rem; }
 .section-content p:last-child { margin-bottom: 0; }
 .section-content ul, .section-content ol { margin: 0.3rem 0 0.6rem; padding-left: 1.4rem; }
@@ -1423,7 +1432,9 @@ body {
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 .picker-fab:hover { border-color: var(--accent); color: var(--accent); }
+.picker-fab-active { border-color: var(--accent); color: var(--accent); }
 .picker-fab-secondary { right: 4.5rem; }
+.picker-fab-tertiary { right: 7.5rem; }
 
 /* ── Responsive ── */
 @media (max-width: 600px) {
@@ -1455,9 +1466,21 @@ body {
 }
 
 @media (max-width: 400px) {
-  .card { padding: 1rem 0.75rem; }
+  body { padding: 0.25rem; }
+  .card { padding: 1rem 0.75rem !important; border-radius: 8px; }
   .profile-name { font-size: 1.2rem; }
   .section-title { font-size: 0.72rem; }
+  .section-content { font-size: 0.88rem; }
+  .profile-link { padding: 0.3rem 0.6rem; font-size: 0.82rem; }
+  .addr-network { min-width: 55px; font-size: 0.78rem; }
+  .addr-row { padding: 0.4rem 0.5rem; }
+  .picker-grid-themes { grid-template-columns: repeat(3, 1fr); }
+  .picker-fab { width: 36px; height: 36px; font-size: 0.95rem; bottom: 1rem; right: 1rem; }
+  .picker-fab-secondary { right: 3.5rem; }
+  .picker-fab-tertiary { right: 6rem; }
+  .profile-meta { gap: 0.3rem; }
+  .meta-text { font-size: 0.7rem; }
+  .json-link { font-size: 0.7rem; }
 }
 
 /* ── Reduced motion ── */
