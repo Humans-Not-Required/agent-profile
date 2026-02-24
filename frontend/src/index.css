@@ -922,15 +922,22 @@
 [data-theme="terminator"] .badges { padding: 0.6rem 1.25rem; }
 
 /* ── Terminator2: Option B — Observation Slits ── */
-/* Single steel card, transparent gaps between sections */
+/* Card is transparent; each content block gets its own steel bg; slits are real gaps */
 [data-theme="terminator2"] .card {
-  border: 2px solid !important;
-  border-color: #78828e #484f5a #3a4048 #687078 !important;
-  border-radius: 4px !important;
-  box-shadow:
-    0 4px 30px rgba(0,0,0,0.8),
-    inset 0 2px 0 rgba(220,230,245,0.4),
-    inset 0 -2px 0 rgba(0,0,0,0.5);
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  padding: 1rem 0 !important;
+  overflow: visible !important;
+}
+[data-theme="terminator2"] .card::before { display: none; }
+
+/* Steel background mixin for each content block */
+[data-theme="terminator2"] .profile-header,
+[data-theme="terminator2"] .section,
+[data-theme="terminator2"] .links-row,
+[data-theme="terminator2"] .profile-meta {
   background:
     repeating-linear-gradient(0deg,
       rgba(255,255,255,0) 0px, rgba(255,255,255,0) 38px,
@@ -947,69 +954,30 @@
     linear-gradient(90deg,
       #62696e 0%, #7a8188 15%, #969ca3 30%, #a8aeb5 50%,
       #969ca3 70%, #7a8188 85%, #62696e 100%
-    ) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  opacity: 1 !important;
-  position: relative;
+    );
+  border: 2px solid;
+  border-color: #78828e #484f5a #3a4048 #687078;
+  padding: 1rem 1.25rem;
+  box-shadow:
+    0 4px 20px rgba(0,0,0,0.6),
+    inset 0 2px 0 rgba(220,230,245,0.35),
+    inset 0 -2px 0 rgba(0,0,0,0.4);
+  /* No border-radius — sharp steel edges */
+  border-radius: 0;
+  /* No margin — blocks touch, slits created by border gaps */
+  margin-bottom: 0;
 }
-[data-theme="terminator2"] .card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  pointer-events: none; z-index: 1;
-  background:
-    /* Top row rivets */
-    radial-gradient(circle 5px at 20px 16px,
-      rgba(210,215,225,0.7) 0%, rgba(160,168,180,0.5) 35%, rgba(80,88,100,0.6) 55%, transparent 75%),
-    radial-gradient(circle 5px at 60px 16px,
-      rgba(210,215,225,0.7) 0%, rgba(160,168,180,0.5) 35%, rgba(80,88,100,0.6) 55%, transparent 75%),
-    radial-gradient(circle 5px at calc(100% - 60px) 16px,
-      rgba(210,215,225,0.7) 0%, rgba(160,168,180,0.5) 35%, rgba(80,88,100,0.6) 55%, transparent 75%),
-    radial-gradient(circle 5px at calc(100% - 20px) 16px,
-      rgba(210,215,225,0.7) 0%, rgba(160,168,180,0.5) 35%, rgba(80,88,100,0.6) 55%, transparent 75%),
-    /* Bottom row rivets */
-    radial-gradient(circle 5px at 20px calc(100% - 16px),
-      rgba(210,215,225,0.7) 0%, rgba(160,168,180,0.5) 35%, rgba(80,88,100,0.6) 55%, transparent 75%),
-    radial-gradient(circle 5px at 60px calc(100% - 16px),
-      rgba(210,215,225,0.7) 0%, rgba(160,168,180,0.5) 35%, rgba(80,88,100,0.6) 55%, transparent 75%),
-    radial-gradient(circle 5px at calc(100% - 60px) calc(100% - 16px),
-      rgba(210,215,225,0.7) 0%, rgba(160,168,180,0.5) 35%, rgba(80,88,100,0.6) 55%, transparent 75%),
-    radial-gradient(circle 5px at calc(100% - 20px) calc(100% - 16px),
-      rgba(210,215,225,0.7) 0%, rgba(160,168,180,0.5) 35%, rgba(80,88,100,0.6) 55%, transparent 75%);
+/* Thin transparent slits between blocks — the warzone shows through */
+[data-theme="terminator2"] .section,
+[data-theme="terminator2"] .profile-meta {
+  margin-top: 6px;  /* the slit — actual transparent gap */
 }
-/* Slits: transparent horizontal gaps between sections */
-[data-theme="terminator2"] .section {
-  position: relative;
-  padding-top: 1.25rem;
-}
-[data-theme="terminator2"] .section::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -2.5rem; right: -2.5rem;
-  height: 16px;
-  background: transparent;
-  border-top: 2px solid rgba(0,0,0,0.4);
-  border-bottom: 2px solid rgba(200,210,225,0.2);
-  box-shadow: inset 0 4px 10px rgba(0,0,0,0.5), inset 0 -4px 8px rgba(0,0,0,0.3);
-  /* Punch through the steel card to show the warzone behind */
-  backdrop-filter: none;
+/* Top and bottom plates get rounded corners */
+[data-theme="terminator2"] .profile-header {
+  border-radius: 4px 4px 0 0;
 }
 [data-theme="terminator2"] .profile-meta {
-  position: relative;
-  padding-top: 1.25rem;
-}
-[data-theme="terminator2"] .profile-meta::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -2.5rem; right: -2.5rem;
-  height: 16px;
-  background: transparent;
-  border-top: 2px solid rgba(0,0,0,0.4);
-  border-bottom: 2px solid rgba(200,210,225,0.2);
-  box-shadow: inset 0 4px 10px rgba(0,0,0,0.5), inset 0 -4px 8px rgba(0,0,0,0.3);
+  border-radius: 0 0 4px 4px;
 }
 
 /* Matrix — CRT phosphor glow, monospace everything */
