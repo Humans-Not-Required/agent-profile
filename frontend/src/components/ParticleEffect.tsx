@@ -1646,7 +1646,8 @@ function drawWasteland(
       const frontX = sp.x + carW * 0.5 * dir
       const rearX = sp.x - carW * dir
 
-      ctx.fillStyle = `rgba(30,15,5,${0.5 + sp.size * 0.4})`
+      // Car body — lighter than buildings so it's visible in front of skyline
+      ctx.fillStyle = `rgba(80,50,30,${0.6 + sp.size * 0.4})`
 
       // Wedge shape: tapered at front, blunt at rear
       ctx.beginPath()
@@ -1656,6 +1657,11 @@ function drawWasteland(
       ctx.lineTo(rearX, sy + carH * 0.5)            // rear bottom
       ctx.closePath()
       ctx.fill()
+
+      // Subtle edge highlight so body reads against dark bg
+      ctx.strokeStyle = `rgba(140,90,50,${0.3 * sp.size})`
+      ctx.lineWidth = 0.5
+      ctx.stroke()
 
       // Rear LEDs — always at the back of the vehicle
       const ledA = 0.7 + sp.size * 0.3 + Math.sin(t * 0.01) * 0.1
