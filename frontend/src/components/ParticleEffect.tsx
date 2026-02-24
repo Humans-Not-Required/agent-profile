@@ -815,265 +815,195 @@ function drawClouds(
   ctx.drawImage(offscreen, 0, 0)
 }
 
-// ── Warzone (Terminator: laser sweeps, searchlights, sparks, red eye scan) ──
-
-interface WarzoneElement {
-  type: 'ruin' | 'wall' | 'rubble' | 'beam' | 'vehicle' | 'slab'
-  x: number; y: number; width: number; height: number
-  tilt: number
-  jagged?: number[]   // for ruins: broken top edge
-  hasRebar?: boolean
-  rebarLines?: { x1: number; y1: number; x2: number; y2: number }[]
+// ── Warzone: Terminator apocalyptic rubble wasteland + lasers ──
+interface RubbleMound {
+  points: { x: number; y: number }[]  // organic curve control points
+  shade: number  // 0-1, darker for back layers
 }
-interface GroundDot { x: number; y: number; w: number; h: number; r: number; g: number; b: number; a: number }
+interface LaserShot {
+  fromLeft: boolean; y: number; angle: number
+  color: string; width: number; life: number; maxLife: number
+}
 interface WarzoneState {
-  elements: WarzoneElement[]
+  mounds: RubbleMound[]
   groundY: number
-  groundDots: GroundDot[]
+  laserCooldown: number
+  lasers: LaserShot[]
+  burstRemaining: number
+  burstY: number; burstFromLeft: boolean; burstColor: string
+  burstAngle: number; burstWidth: number; burstDelay: number; burstDelayTimer: number
+  flashAlpha: number; flashTimer: number
 }
+
+const LASER_COLORS = ['rgba(255,20,40,A)', 'rgba(60,140,255,A)', 'rgba(180,60,255,A)', 'rgba(255,100,20,A)']
 
 function initWarzoneState(w: number, h: number, foreground: boolean): WarzoneState {
-  const groundY = h * 0.72
-  const elements: WarzoneElement[] = []
-  if (foreground) return { elements, groundY, drawn: false }
-
-  // Mix of vertical ruins, horizontal fallen structures, rubble mounds, vehicles
-  let cx = -30
-  while (cx < w + 60) {
-    const roll = Math.random()
-    if (roll < 0.25) {
-      // Vertical ruin — but varied height, some very short (broken walls)
-      const rw = 20 + Math.random() * 50
-      const rh = 15 + Math.random() * 130  // some short, some tall
-      const jaggedCount = 3 + Math.floor(Math.random() * 5)
-      const jagged: number[] = []
-      for (let j = 0; j <= jaggedCount; j++) jagged.push((Math.random() - 0.5) * rh * 0.35)
-      elements.push({ type: 'ruin', x: cx, y: groundY, width: rw, height: rh, tilt: 0, jagged, hasRebar: Math.random() > 0.5 })
-      cx += rw + 15 + Math.random() * 40
-    } else if (roll < 0.45) {
-      // Fallen wall / collapsed structure — horizontal
-      const bw = 40 + Math.random() * 80
-      const bh = 6 + Math.random() * 12
-      const tilt = (Math.random() - 0.5) * 0.15
-      elements.push({ type: 'wall', x: cx, y: groundY + Math.random() * 8, width: bw, height: bh, tilt })
-      cx += bw + 10 + Math.random() * 30
-    } else if (roll < 0.6) {
-      // Rubble mound — triangular pile
-      const rw = 25 + Math.random() * 50
-      const rh = 10 + Math.random() * 25
-      elements.push({ type: 'rubble', x: cx, y: groundY, width: rw, height: rh, tilt: 0 })
-      cx += rw + 5 + Math.random() * 25
-    } else if (roll < 0.72) {
-      // Fallen beam / rebar — long horizontal line
-      const bw = 50 + Math.random() * 100
-      const bh = 2 + Math.random() * 4
-      const tilt = (Math.random() - 0.5) * 0.2
-      elements.push({ type: 'beam', x: cx, y: groundY - Math.random() * 20, width: bw, height: bh, tilt })
-      cx += bw * 0.6 + Math.random() * 30  // beams can overlap other things
-    } else if (roll < 0.85) {
-      // Wrecked vehicle
-      const vw = 20 + Math.random() * 30
-      const vh = 8 + Math.random() * 10
-      const tilt = (Math.random() - 0.5) * 0.35
-      elements.push({ type: 'vehicle', x: cx, y: groundY + Math.random() * 6, width: vw, height: vh, tilt })
-      cx += vw + 15 + Math.random() * 35
-    } else {
-      // Concrete slab — tilted at angle, leaning
-      const sw = 15 + Math.random() * 35
-      const sh = 25 + Math.random() * 40
-      const tilt = 0.3 + Math.random() * 0.5  // leaning significantly
-      elements.push({ type: 'slab', x: cx, y: groundY, width: sw, height: sh, tilt })
-      cx += sw + 20 + Math.random() * 30
-    }
+  const groundY = h * 0.5  // rubble starts halfway — fills bottom half
+  const mounds: RubbleMound[] = []
+  const empty: WarzoneState = {
+    mounds, groundY, laserCooldown: 90, lasers: [], burstRemaining: 0,
+    burstY: 0, burstFromLeft: true, burstColor: '', burstAngle: 0,
+    burstWidth: 1.5, burstDelay: 3, burstDelayTimer: 0, flashAlpha: 0, flashTimer: 200,
   }
+  if (foreground) return empty
 
-  // Pre-generate ground texture dots (avoid Math.random flicker in draw loop)
-  const groundDots: GroundDot[] = []
-  if (!foreground) {
-    let gx = 0
-    while (gx < w) {
-      groundDots.push({
-        x: gx, y: groundY - 2 + Math.random() * 6,
-        w: 1 + Math.random() * 3, h: 1 + Math.random() * 2,
-        r: 25 + Math.random() * 20, g: 28 + Math.random() * 15, b: 35 + Math.random() * 15,
-        a: 0.3 + Math.random() * 0.4,
-      })
-      gx += 2 + Math.random() * 5
-    }
-  }
-
-  // Pre-generate rebar lines for ruins
-  for (const el of elements) {
-    if (el.type === 'ruin' && el.hasRebar && el.jagged) {
-      el.rebarLines = []
-      const topY = el.y + 4 - el.height
-      for (let r = 0; r < 2 + Math.floor(Math.random() * 2); r++) {
-        const rx = el.x + el.width * (0.2 + r * 0.3)
-        const ry = topY + (el.jagged[Math.min(r + 1, el.jagged.length - 1)] || 0)
-        el.rebarLines.push({
-          x1: rx, y1: ry,
-          x2: rx + (Math.random() - 0.5) * 6, y2: ry - 6 - Math.random() * 14,
-        })
+  // 3 overlapping layers of organic rubble mounds — back to front
+  for (let layer = 0; layer < 3; layer++) {
+    const baseY = groundY + layer * h * 0.1
+    const moundCount = 6 + Math.floor(Math.random() * 4)
+    for (let i = 0; i < moundCount; i++) {
+      const cx = (w / moundCount) * i + (Math.random() - 0.5) * w * 0.2
+      const mw = 80 + Math.random() * 160
+      const mh = 30 + Math.random() * 70 + (2 - layer) * 25  // back layers taller
+      const ptCount = 7 + Math.floor(Math.random() * 5)
+      const points: { x: number; y: number }[] = []
+      for (let p = 0; p <= ptCount; p++) {
+        const frac = p / ptCount
+        const px = cx - mw / 2 + frac * mw
+        const mainHump = Math.sin(frac * Math.PI) * mh
+        const bump1 = Math.sin(frac * Math.PI * 2.7 + i) * mh * 0.25
+        const bump2 = Math.sin(frac * Math.PI * 5.3 + layer * 2) * mh * 0.12
+        const jitter = (Math.random() - 0.5) * mh * 0.18
+        const py = baseY - mainHump - bump1 - bump2 + jitter
+        points.push({ x: px, y: Math.min(py, baseY + 5) })
       }
+      points[0].y = baseY + 15
+      points[points.length - 1].y = baseY + 15
+      mounds.push({ points, shade: 0.3 + layer * 0.25 })  // back=darker, front=lighter
     }
   }
+  // Sort so back (darker/taller) layers draw first
+  mounds.sort((a, b) => a.shade - b.shade)
 
-  return { elements, groundY, groundDots }
+  return { ...empty, mounds, groundY }
 }
 
 function drawWarzone(
   ctx: CanvasRenderingContext2D,
   w: number,
   h: number,
-  _t: number,
+  t: number,
   state: WarzoneState,
   foreground: boolean,
 ) {
-  // Static wasteland backdrop — redrawn each frame (canvas is cleared per frame)
   if (foreground) return
-
   ctx.save()
   const gY = state.groundY
 
-  // Ground plane — broken terrain
-  const groundGrad = ctx.createLinearGradient(0, gY - 10, 0, h)
-  groundGrad.addColorStop(0, '#0c0e14')
-  groundGrad.addColorStop(0.3, '#0a0c10')
-  groundGrad.addColorStop(1, '#060810')
-  ctx.fillStyle = groundGrad
-  ctx.fillRect(0, gY - 10, w, h - gY + 10)
+  // ── Fiery red/orange glow behind rubble (horizon fire) ──
+  const glow1 = ctx.createRadialGradient(w * 0.5, gY + 20, 0, w * 0.5, gY + 20, w * 0.7)
+  glow1.addColorStop(0, 'rgba(200,50,15,0.30)')
+  glow1.addColorStop(0.25, 'rgba(180,35,10,0.18)')
+  glow1.addColorStop(0.6, 'rgba(120,20,5,0.08)')
+  glow1.addColorStop(1, 'rgba(40,5,0,0)')
+  ctx.fillStyle = glow1
+  ctx.fillRect(0, 0, w, h)
 
-  // Rough ground texture — pre-generated rubble dots
-  for (const dot of state.groundDots) {
-    ctx.fillStyle = `rgba(${dot.r|0},${dot.g|0},${dot.b|0},${dot.a})`
-    ctx.fillRect(dot.x, dot.y, dot.w, dot.h)
-  }
+  const glow2 = ctx.createRadialGradient(w * 0.25, gY + 30, 0, w * 0.25, gY + 30, w * 0.45)
+  glow2.addColorStop(0, 'rgba(220,80,15,0.15)')
+  glow2.addColorStop(0.5, 'rgba(160,40,8,0.07)')
+  glow2.addColorStop(1, 'rgba(60,10,0,0)')
+  ctx.fillStyle = glow2
+  ctx.fillRect(0, 0, w, h)
 
-  // Distant horizon line — faint lighter strip
-  ctx.fillStyle = 'rgba(20,22,30,0.5)'
-  ctx.fillRect(0, gY - 12, w, 3)
+  const glow3 = ctx.createRadialGradient(w * 0.75, gY + 10, 0, w * 0.75, gY + 10, w * 0.35)
+  glow3.addColorStop(0, 'rgba(200,60,20,0.12)')
+  glow3.addColorStop(1, 'rgba(80,15,0,0)')
+  ctx.fillStyle = glow3
+  ctx.fillRect(0, 0, w, h)
 
-  // Fiery horizon glow — reddish-orange behind the ruins
-  const fireGlow = ctx.createRadialGradient(w * 0.5, gY, 0, w * 0.5, gY, w * 0.6)
-  fireGlow.addColorStop(0, 'rgba(200,60,20,0.25)')
-  fireGlow.addColorStop(0.3, 'rgba(180,40,10,0.15)')
-  fireGlow.addColorStop(0.7, 'rgba(120,20,5,0.06)')
-  fireGlow.addColorStop(1, 'rgba(60,10,0,0)')
-  ctx.fillStyle = fireGlow
-  ctx.fillRect(0, gY - w * 0.5, w, w * 0.6)
-
-  // Secondary glow — wider, more orange, off-center for variation
-  const fireGlow2 = ctx.createRadialGradient(w * 0.3, gY + 10, 0, w * 0.3, gY + 10, w * 0.4)
-  fireGlow2.addColorStop(0, 'rgba(220,100,20,0.12)')
-  fireGlow2.addColorStop(0.5, 'rgba(160,50,10,0.06)')
-  fireGlow2.addColorStop(1, 'rgba(80,20,0,0)')
-  ctx.fillStyle = fireGlow2
-  ctx.fillRect(0, gY - w * 0.35, w, w * 0.5)
-
-  // Draw all elements
-  for (const el of state.elements) {
-    ctx.save()
-
-    if (el.type === 'ruin') {
-      // Vertical broken structure with jagged top
-      const baseY = el.y + 4
-      const topY = baseY - el.height
-      ctx.fillStyle = '#0a0c10'
-      ctx.beginPath()
-      ctx.moveTo(el.x, baseY)
-      if (el.jagged) {
-        for (let j = 0; j < el.jagged.length; j++) {
-          const frac = j / (el.jagged.length - 1)
-          ctx.lineTo(el.x + frac * el.width, topY + el.jagged[j])
-        }
-      } else {
-        ctx.lineTo(el.x, topY)
-        ctx.lineTo(el.x + el.width, topY)
-      }
-      ctx.lineTo(el.x + el.width, baseY)
-      ctx.closePath()
-      ctx.fill()
-      // Exposed rebar — pre-generated lines
-      if (el.rebarLines) {
-        ctx.strokeStyle = 'rgba(50,44,36,0.7)'
-        ctx.lineWidth = 1.5
-        for (const rb of el.rebarLines) {
-          ctx.beginPath()
-          ctx.moveTo(rb.x1, rb.y1)
-          ctx.lineTo(rb.x2, rb.y2)
-          ctx.stroke()
-        }
-      }
-    } else if (el.type === 'wall') {
-      // Fallen horizontal wall / collapsed slab
-      ctx.translate(el.x + el.width / 2, el.y)
-      ctx.rotate(el.tilt)
-      ctx.fillStyle = '#0c0e16'
-      ctx.fillRect(-el.width / 2, -el.height / 2, el.width, el.height)
-      // Crack
-      ctx.strokeStyle = 'rgba(25,28,38,0.6)'
-      ctx.lineWidth = 1
-      ctx.beginPath()
-      ctx.moveTo(-el.width * 0.4, 0)
-      ctx.lineTo(el.width * 0.3, el.height * 0.2)
-      ctx.stroke()
-    } else if (el.type === 'rubble') {
-      // Triangular rubble mound
-      ctx.fillStyle = '#0b0d12'
-      ctx.beginPath()
-      ctx.moveTo(el.x, el.y + 4)
-      ctx.lineTo(el.x + el.width * 0.3, el.y - el.height)
-      ctx.lineTo(el.x + el.width * 0.55, el.y - el.height * 0.6)
-      ctx.lineTo(el.x + el.width * 0.8, el.y - el.height * 0.85)
-      ctx.lineTo(el.x + el.width, el.y + 4)
-      ctx.closePath()
-      ctx.fill()
-    } else if (el.type === 'beam') {
-      // Long fallen beam / rebar — horizontal line across rubble
-      ctx.translate(el.x + el.width / 2, el.y)
-      ctx.rotate(el.tilt)
-      ctx.fillStyle = 'rgba(45,40,35,0.8)'
-      ctx.fillRect(-el.width / 2, -el.height / 2, el.width, el.height)
-    } else if (el.type === 'vehicle') {
-      // Wrecked vehicle silhouette
-      ctx.translate(el.x + el.width / 2, el.y)
-      ctx.rotate(el.tilt)
-      ctx.fillStyle = '#0c0e14'
-      // Body
-      ctx.fillRect(-el.width / 2, -el.height / 2, el.width, el.height * 0.6)
-      // Cabin bump
-      ctx.fillRect(-el.width * 0.2, -el.height, el.width * 0.45, el.height * 0.55)
-      // Wheels
-      ctx.fillStyle = '#060810'
-      ctx.beginPath()
-      ctx.arc(-el.width * 0.3, el.height * 0.2, 3, 0, Math.PI * 2)
-      ctx.arc(el.width * 0.3, el.height * 0.2, 3, 0, Math.PI * 2)
-      ctx.fill()
-    } else if (el.type === 'slab') {
-      // Leaning concrete slab — propped up at angle
-      ctx.translate(el.x, el.y + 2)
-      ctx.rotate(-el.tilt)
-      ctx.fillStyle = '#0b0d14'
-      ctx.fillRect(0, -el.height, el.width, el.height)
-      // Crack across face
-      ctx.strokeStyle = 'rgba(20,24,34,0.5)'
-      ctx.lineWidth = 1
-      ctx.beginPath()
-      ctx.moveTo(el.width * 0.1, -el.height * 0.7)
-      ctx.lineTo(el.width * 0.8, -el.height * 0.3)
-      ctx.stroke()
+  // ── Rubble mounds — organic curves, back to front ──
+  for (const mound of state.mounds) {
+    const shade = Math.floor(8 + mound.shade * 8)
+    ctx.fillStyle = `rgb(${shade},${shade + 1},${shade + 3})`
+    ctx.beginPath()
+    const pts = mound.points
+    ctx.moveTo(pts[0].x, pts[0].y)
+    // Smooth curve through points
+    for (let i = 1; i < pts.length - 1; i++) {
+      const xc = (pts[i].x + pts[i + 1].x) / 2
+      const yc = (pts[i].y + pts[i + 1].y) / 2
+      ctx.quadraticCurveTo(pts[i].x, pts[i].y, xc, yc)
     }
-
-    ctx.restore()
+    ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y)
+    // Close along bottom
+    ctx.lineTo(pts[pts.length - 1].x, h + 10)
+    ctx.lineTo(pts[0].x, h + 10)
+    ctx.closePath()
+    ctx.fill()
   }
 
-  // Faint smoke/haze gradient at top of ground
-  const hazeGrad = ctx.createLinearGradient(0, gY - 40, 0, gY + 20)
-  hazeGrad.addColorStop(0, 'rgba(6,8,12,0)')
-  hazeGrad.addColorStop(0.5, 'rgba(12,14,20,0.15)')
-  hazeGrad.addColorStop(1, 'rgba(6,8,12,0)')
-  ctx.fillStyle = hazeGrad
-  ctx.fillRect(0, gY - 40, w, 60)
+  // ── Laser burst system ──
+  // Manage active burst
+  if (state.burstRemaining > 0) {
+    state.burstDelayTimer--
+    if (state.burstDelayTimer <= 0) {
+      const yJitter = (Math.random() - 0.5) * 8
+      const shot: LaserShot = {
+        fromLeft: state.burstFromLeft,
+        y: state.burstY + yJitter,
+        angle: state.burstAngle + (Math.random() - 0.5) * 0.02,
+        color: state.burstColor,
+        width: state.burstWidth,
+        life: 8 + Math.floor(Math.random() * 12),
+        maxLife: 0,
+      }
+      shot.maxLife = shot.life
+      state.lasers.push(shot)
+      state.burstRemaining--
+      state.burstDelayTimer = state.burstDelay
+    }
+  }
+
+  // Spawn new burst
+  state.laserCooldown--
+  if (state.laserCooldown <= 0 && state.burstRemaining <= 0) {
+    state.burstRemaining = 3 + Math.floor(Math.random() * 8)
+    state.burstFromLeft = Math.random() > 0.5
+    state.burstColor = LASER_COLORS[Math.floor(Math.random() * LASER_COLORS.length)]
+    state.burstY = h * 0.1 + Math.random() * h * 0.35  // above the rubble line
+    state.burstAngle = (Math.random() - 0.5) * 0.12
+    state.burstWidth = 1.5 + Math.random() * 1.5
+    state.burstDelay = 2 + Math.floor(Math.random() * 3)
+    state.burstDelayTimer = 0
+    state.laserCooldown = 90 + Math.floor(Math.random() * 200)
+  }
+
+  // Draw lasers
+  ctx.globalCompositeOperation = 'lighter'
+  for (let i = state.lasers.length - 1; i >= 0; i--) {
+    const l = state.lasers[i]
+    l.life--
+    if (l.life <= 0) { state.lasers.splice(i, 1); continue }
+    const fade = l.life / l.maxLife
+    const env = fade > 0.7 ? 1.0 : fade / 0.7
+    const a = 0.8 * env
+    const sx = l.fromLeft ? -10 : w + 10
+    const ex = l.fromLeft ? w + 10 : -10
+    const sy = l.y - Math.tan(l.angle) * (l.fromLeft ? 0 : w)
+    const ey = l.y + Math.tan(l.angle) * (l.fromLeft ? w : 0)
+    ctx.strokeStyle = l.color.replace('A', String(a))
+    ctx.lineWidth = l.width
+    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke()
+    ctx.strokeStyle = l.color.replace('A', String(a * 0.2))
+    ctx.lineWidth = l.width * 5
+    ctx.stroke()
+  }
+  ctx.globalCompositeOperation = 'source-over'
+
+  // ── Explosion flashes ──
+  state.flashTimer--
+  if (state.flashTimer <= 0) {
+    state.flashAlpha = 0.12 + Math.random() * 0.1
+    state.flashTimer = 200 + Math.floor(Math.random() * 400)
+  }
+  if (state.flashAlpha > 0) {
+    const colors = ['rgba(255,130,35,A)', 'rgba(255,50,25,A)', 'rgba(200,170,255,A)']
+    ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)].replace('A', String(state.flashAlpha))
+    ctx.fillRect(0, 0, w, h)
+    state.flashAlpha *= 0.9
+    if (state.flashAlpha < 0.005) state.flashAlpha = 0
+  }
 
   ctx.restore()
 }
