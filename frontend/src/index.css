@@ -1014,7 +1014,8 @@ body {
   max-width: 100%; overflow: hidden;
 }
 .profile-link:hover { border-color: var(--accent); color: var(--accent); }
-.link-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.link-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.link-detail { font-weight: 400; color: var(--text-muted); }
 .platform-icon { font-size: 1.05rem; }
 
 /* ── Skills ── */
