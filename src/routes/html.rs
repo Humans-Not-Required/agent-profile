@@ -32,7 +32,7 @@ fn theme_accent(theme: &str) -> &'static str {
         "forest" => "#4caf50", "ocean" => "#0077b6", "desert" => "#f5a623",
         "aurora" => "#7b61ff", "cream" => "#c47f2c", "sky" => "#2196f3",
         "lavender" => "#7c4dff", "sage" => "#4a8c50", "peach" => "#e8734a",
-        "terminator" => "#e03a00", "matrix" => "#00ff41", "replicant" => "#c47a30",
+        "terminator" => "#e03a00", "matrix" => "#00ff41", "replicant" => "#c47a30", "br2049" => "#e87020",
         "snow" => "#60a0e0", "christmas" => "#c42020", "halloween" => "#e87020",
         "spring" => "#d05088", "summer" => "#e0a020", "autumn" => "#c85020",
         "newyear" => "#d4a840", "valentine" => "#d03050", "patriot" => "#d02030",
