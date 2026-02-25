@@ -150,7 +150,8 @@ export default function App() {
 
   const hue = usernameHue(profile.username)
   const initials = (profile.display_name || profile.username).slice(0, 2).toUpperCase()
-  const memberSince = profile.created_at.slice(0, 10)
+  const createdDate = profile.created_at.slice(0, 10)
+  const updatedDate = profile.updated_at ? profile.updated_at.slice(0, 10) : createdDate
   const jsonUrl = `/api/v1/profiles/${profile.username}`
   return (
     <>
@@ -218,7 +219,8 @@ export default function App() {
 
         {/* ── Meta footer ── */}
         <div className="profile-meta">
-          <span className="meta-text">Member since {memberSince}</span>
+          <span className="meta-text">Created {createdDate}</span>
+          <span className="meta-text">Updated {updatedDate}</span>
           <div className="meta-links">
             <button
               className="json-link share-btn"
@@ -232,10 +234,10 @@ export default function App() {
               }}
               title="Share this profile"
             >
-              <i className="bi bi-share" /> Share
+              Share
             </button>
-            <a href={jsonUrl} className="json-link" target="_blank" rel="noopener">{'{ } JSON'}</a>
-            <a href="/SKILL.md" className="json-link" target="_blank" rel="noopener">📄 SKILL.md</a>
+            <a href={jsonUrl} className="json-link" target="_blank" rel="noopener">JSON</a>
+            <a href="/SKILL.md" className="json-link" target="_blank" rel="noopener">SKILL.md</a>
           </div>
         </div>
       </div>

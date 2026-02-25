@@ -180,13 +180,6 @@
   --tag-border: #ecc8d0;
 }
 
-[data-theme="patriot"] {
-  --bg: #060818; --card: #0c1028; --border: #1a2040;
-  --text: #90a0c0; --text-muted: #5a6e90; --text-bright: #d0d8e8;
-  --accent: #d02030; --accent2: #e8e8f0; --tag-bg: #080c20;
-  --tag-border: #1a2040;
-}
-
 [data-theme="boba"] {
   --bg: #f5ece0; --card: #ffffff; --border: #d8c4a8;
   --text: #4a3628; --text-muted: #8a7260; --text-bright: #2e1c10;
@@ -208,32 +201,11 @@
   --tag-border: #f0d8c0;
 }
 
-[data-theme="space"] {
-  --bg: #030108; --card: #0a0618; --border: #1a1040;
-  --text: #a0a8c8; --text-muted: #606888; --text-bright: #d0d8f0;
-  --accent: #7c4dff; --accent2: #00e5ff; --tag-bg: #080414;
-  --tag-border: #1a1040;
-}
-
-[data-theme="neon"] {
-  --bg: #08050e; --card: #0e0a18; --border: #1e1435;
-  --text: #c0b8d8; --text-muted: #7a70a0; --text-bright: #e8e0ff;
-  --accent: #ff2d95; --accent2: #00ffcc; --tag-bg: #0c0816;
-  --tag-border: #1e1435;
-}
-
 [data-theme="candy"] {
   --bg: #fff0f8; --card: #ffffff; --border: #f0c8e0;
   --text: #5a2848; --text-muted: #a06888; --text-bright: #3e1030;
   --accent: #e040a0; --accent2: #8060f0; --tag-bg: #fce8f4;
   --tag-border: #f0c8e0;
-}
-
-[data-theme="retro"] {
-  --bg: #0a0a16; --card: #12122a; --border: #2a2a50;
-  --text: #a0a0d0; --text-muted: #6868a0; --text-bright: #e0e0ff;
-  --accent: #ff4444; --accent2: #44ff44; --tag-bg: #0e0e20;
-  --tag-border: #2a2a50;
 }
 
 [data-theme="coffee"] {
@@ -546,18 +518,6 @@
 }
 
 /* Patriot — The Fourth: red white blue, bold */
-[data-theme="patriot"] body {
-  background: radial-gradient(ellipse at 50% 20%, #101830 0%, #060818 60%);
-}
-[data-theme="patriot"] .card {
-  box-shadow: 0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(208,32,48,0.04);
-  transition: box-shadow 0.2s, transform 0.2s;
-}
-[data-theme="patriot"] .card:hover {
-  box-shadow: 0 4px 28px rgba(208,32,48,0.1), inset 0 1px 0 rgba(208,32,48,0.08);
-  transform: translateY(-1px);
-}
-
 /* Boba — Milk Tea: warm cream-brown gradient, tapioca vibes */
 [data-theme="boba"] body {
   background: linear-gradient(170deg, #f5ece0 0%, #e8d4be 30%, #d4b896 60%, #c4a07a 100%);
@@ -589,52 +549,6 @@
 }
 
 /* Retro — The Arcade: CRT scanlines, pixel-perfect nostalgia */
-[data-theme="retro"] body {
-  background:
-    /* Subtle CRT scanlines */
-    repeating-linear-gradient(0deg,
-      transparent,
-      transparent 2px,
-      rgba(0,0,0,0.15) 2px,
-      rgba(0,0,0,0.15) 4px
-    ),
-    /* Pixel grid hint */
-    repeating-linear-gradient(90deg,
-      transparent,
-      transparent 2px,
-      rgba(0,0,0,0.04) 2px,
-      rgba(0,0,0,0.04) 4px
-    ),
-    radial-gradient(ellipse at 50% 50%, #14142e 0%, #0a0a16 70%);
-  font-family: 'Courier New', 'Consolas', monospace;
-}
-[data-theme="retro"] .card {
-  background: rgba(18,18,42,0.30);
-  backdrop-filter: blur(2px);
-  border-color: rgba(255,68,68,0.15);
-  box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 30px rgba(255,68,68,0.04), 0 0 60px rgba(68,255,68,0.02);
-  transition: box-shadow 0.2s, transform 0.2s;
-}
-[data-theme="retro"] .card:hover {
-  border-color: rgba(255,68,68,0.3);
-  box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 40px rgba(255,68,68,0.08), 0 0 60px rgba(68,255,68,0.04);
-  transform: translateY(-1px);
-}
-[data-theme="retro"] .profile-name {
-  text-shadow: 0 0 8px rgba(255,68,68,0.4), 2px 2px 0 rgba(68,68,255,0.3);
-  letter-spacing: 0.05em;
-}
-[data-theme="retro"] .section-title {
-  color: #44ff44;
-  text-shadow: 0 0 6px rgba(68,255,68,0.3);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-[data-theme="retro"] .skill-tag {
-  text-shadow: 0 0 4px rgba(68,255,68,0.2);
-  border-color: rgba(68,255,68,0.2);
-}
-
 /* Coffee — The Late Night: warm roasted browns, rising steam */
 [data-theme="coffee"] body {
   background:
@@ -651,64 +565,6 @@
 }
 [data-theme="coffee"] .profile-name {
   text-shadow: 0 0 15px rgba(212,148,74,0.15);
-}
-
-/* Space — The Cosmos: deep void with nebula color patches */
-[data-theme="space"] body {
-  background:
-    radial-gradient(ellipse at 25% 20%, rgba(124,77,255,0.12) 0%, transparent 50%),
-    radial-gradient(ellipse at 75% 70%, rgba(0,229,255,0.08) 0%, transparent 45%),
-    radial-gradient(ellipse at 60% 30%, rgba(255,50,130,0.06) 0%, transparent 40%),
-    radial-gradient(ellipse at 40% 80%, rgba(100,60,200,0.05) 0%, transparent 50%),
-    linear-gradient(180deg, #030108 0%, #050210 50%, #020008 100%);
-}
-[data-theme="space"] .card {
-  background: rgba(10,6,24,0.25);
-  backdrop-filter: blur(2px);
-  box-shadow: 0 4px 30px rgba(0,0,0,0.6), 0 0 60px rgba(124,77,255,0.04);
-  transition: box-shadow 0.2s, transform 0.2s;
-}
-[data-theme="space"] .card:hover {
-  box-shadow: 0 4px 30px rgba(0,0,0,0.6), 0 0 70px rgba(124,77,255,0.08), 0 0 40px rgba(0,229,255,0.04);
-  transform: translateY(-1px);
-}
-[data-theme="space"] .profile-name {
-  text-shadow: 0 0 20px rgba(124,77,255,0.25), 0 0 40px rgba(0,229,255,0.1);
-}
-
-/* Neon — The Underground: cyberpunk dark with hot neon glow lines */
-[data-theme="neon"] body {
-  background:
-    radial-gradient(ellipse at 10% 90%, rgba(255,45,149,0.1) 0%, transparent 40%),
-    radial-gradient(ellipse at 90% 10%, rgba(0,255,204,0.08) 0%, transparent 40%),
-    radial-gradient(ellipse at 50% 50%, rgba(130,80,255,0.04) 0%, transparent 60%),
-    linear-gradient(180deg, #0c0816 0%, #08050e 50%, #050310 100%);
-}
-[data-theme="neon"] .card {
-  background: rgba(14,10,24,0.25);
-  backdrop-filter: blur(2px);
-  border-color: rgba(255,45,149,0.15);
-  box-shadow: 0 4px 30px rgba(0,0,0,0.6), 0 0 30px rgba(255,45,149,0.06), 0 0 60px rgba(0,255,204,0.03);
-  transition: box-shadow 0.2s, transform 0.2s;
-}
-[data-theme="neon"] .card:hover {
-  border-color: rgba(255,45,149,0.3);
-  box-shadow: 0 4px 30px rgba(0,0,0,0.6), 0 0 40px rgba(255,45,149,0.1), 0 0 70px rgba(0,255,204,0.06);
-  transform: translateY(-1px);
-}
-[data-theme="neon"] .profile-name {
-  text-shadow: 0 0 12px rgba(255,45,149,0.4), 0 0 30px rgba(0,255,204,0.15);
-}
-[data-theme="neon"] .section-title {
-  color: #00ffcc;
-  text-shadow: 0 0 8px rgba(0,255,204,0.3);
-}
-[data-theme="neon"] .skill-tag {
-  border-color: rgba(255,45,149,0.2);
-  text-shadow: 0 0 6px rgba(128,96,240,0.3);
-}
-[data-theme="neon"] a {
-  text-shadow: 0 0 6px rgba(0,255,204,0.2);
 }
 
 /* Candy — Sugar Rush: pastel rainbow gradient, playful sweets vibe */

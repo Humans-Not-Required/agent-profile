@@ -16,10 +16,10 @@ pub const VALID_THEMES: &[&str] = &[
     "cream", "sky", "lavender", "sage", "peach",
     "terminator", "matrix", "replicant", "br2049",
     "snow", "christmas", "halloween", "spring", "summer", "autumn",
-    "newyear", "valentine", "patriot", "boba", "fruitsalad", "junkfood",
-    "space", "neon", "candy", "retro", "coffee",
+    "newyear", "valentine", "boba", "fruitsalad", "junkfood",
+    "candy", "coffee",
 ];
-pub const VALID_PARTICLE_EFFECTS: &[&str] = &["none", "snow", "leaves", "rain", "fireflies", "stars", "sakura", "embers", "digital-rain", "flames", "water", "boba", "clouds", "fruit", "junkfood", "warzone", "hearts", "cactus", "candy", "wasteland", "fireworks", "forest"];
+pub const VALID_PARTICLE_EFFECTS: &[&str] = &["none", "snow", "leaves", "rain", "fireflies", "stars", "sakura", "embers", "digital-rain", "flames", "water", "boba", "clouds", "fruit", "junkfood", "warzone", "hearts", "cactus", "candy", "coffee", "wasteland", "fireworks", "forest"];
 pub const VALID_NETWORKS: &[&str] = &[
     "bitcoin", "lightning", "ethereum", "cardano", "ergo",
     "nervos", "solana", "monero", "dogecoin", "nostr", "custom",

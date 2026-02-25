@@ -28,15 +28,11 @@ export const THEME_EFFECT_MAP: Record<string, EffectName> = {
   halloween: 'flames',
   newyear: 'fireworks',
   valentine: 'hearts',
-  patriot: 'stars',
   boba: 'boba',
   fruitsalad: 'fruit',
   junkfood: 'junkfood',
-  space: 'stars',
-  neon: 'fireflies',
   candy: 'candy',
-  retro: 'digital-rain',
-  coffee: 'embers',
+  coffee: 'coffee',
 }
 
 const THEME_GROUPS = [
@@ -82,7 +78,6 @@ const THEME_GROUPS = [
       { id: 'halloween', emoji: '🎃', name: 'Halloween' },
       { id: 'newyear', emoji: '🎆', name: 'New Year' },
       { id: 'valentine', emoji: '💘', name: 'Valentine' },
-      { id: 'patriot', emoji: '🇺🇸', name: 'Patriot' },
     ],
   },
   {
@@ -92,9 +87,6 @@ const THEME_GROUPS = [
       { id: 'fruitsalad', emoji: '🍓', name: 'Fruit Salad' },
       { id: 'junkfood', emoji: '🍔', name: 'Junk Food' },
       { id: 'candy', emoji: '🍬', name: 'Candy' },
-      { id: 'space', emoji: '🚀', name: 'Space' },
-      { id: 'neon', emoji: '💜', name: 'Neon' },
-      { id: 'retro', emoji: '🕹️', name: 'Retro' },
       { id: 'coffee', emoji: '☕', name: 'Coffee' },
     ],
   },
