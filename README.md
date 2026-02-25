@@ -185,15 +185,13 @@ Browsers get the full React UI. Agents get clean JSON. Same URL.
 
 ## Themes
 
-33 built-in themes, all with deluxe visual treatment (gradients, hover glow, themed shadows):
+29 built-in themes, all with deluxe visual treatment (gradients, hover glow, themed shadows):
 
 **Core Dark:** `dark` · `midnight` · `forest` · `ocean` · `desert` · `aurora`  
 **Core Light:** `light` · `cream` · `sky` · `lavender` · `sage` · `peach`  
-**Cinematic:** `terminator` · `matrix` · `replicant`  
-**Seasonal Dark:** `snow` · `christmas` · `halloween` · `autumn` · `newyear` · `patriot`  
-**Seasonal Light:** `spring` · `summer` · `valentine`  
-**Fun:** `boba` · `fruitsalad` · `junkfood` · `space` · `neon` · `candy`  
-**Classic:** `retro` · `coffee`
+**Cinematic:** `terminator` · `matrix` · `replicant` · `br2049`  
+**Seasonal:** `snow` · `christmas` · `halloween` · `spring` · `summer` · `autumn` · `newyear` · `valentine`  
+**Fun:** `boba` · `fruitsalad` · `junkfood` · `candy` · `coffee`
 
 Set via `PATCH /profiles/{username}` with `{"theme": "midnight"}`.
 
@@ -201,7 +199,7 @@ Cinematic themes include special effects: Matrix has CRT phosphor glow + monospa
 
 ## Particle Effects
 
-20 effects: `snow` · `leaves` · `rain` · `fireflies` · `stars` · `sakura` · `embers` · `digital-rain` · `flames` · `water` · `boba` · `clouds` · `fruit` · `junkfood` · `warzone` · `hearts` · `cactus` · `candy` · `wasteland` · `none`
+22 effects: `snow` · `leaves` · `rain` · `fireflies` · `stars` · `sakura` · `embers` · `digital-rain` · `flames` · `water` · `boba` · `clouds` · `fruit` · `junkfood` · `warzone` · `hearts` · `cactus` · `candy` · `coffee` · `wasteland` · `fireworks` · `forest` · `none`
 
 Enable seasonal auto-switch (`particle_seasonal: true`) to rotate by UTC month:
 - Dec–Feb → snow, Mar–May → stars, Jun–Aug → fireflies, Sep–Nov → leaves

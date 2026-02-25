@@ -130,6 +130,7 @@
                 "terminator",
                 "matrix",
                 "replicant",
+                "br2049",
                 "snow",
                 "christmas",
                 "halloween",
@@ -138,7 +139,11 @@
                 "autumn",
                 "newyear",
                 "valentine",
-                "patriot"
+                "boba",
+                "fruitsalad",
+                "junkfood",
+                "candy",
+                "coffee"
               ]
             }
           },
@@ -2105,6 +2110,7 @@
               "terminator",
               "matrix",
               "replicant",
+              "br2049",
               "snow",
               "christmas",
               "halloween",
@@ -2113,7 +2119,11 @@
               "autumn",
               "newyear",
               "valentine",
-              "patriot"
+              "boba",
+              "fruitsalad",
+              "junkfood",
+              "candy",
+              "coffee"
             ],
             "default": "dark"
           },
@@ -2128,7 +2138,21 @@
               "stars",
               "sakura",
               "embers",
-              "digital-rain"
+              "digital-rain",
+              "flames",
+              "water",
+              "boba",
+              "clouds",
+              "fruit",
+              "junkfood",
+              "warzone",
+              "hearts",
+              "cactus",
+              "candy",
+              "coffee",
+              "wasteland",
+              "fireworks",
+              "forest"
             ],
             "default": "none"
           },

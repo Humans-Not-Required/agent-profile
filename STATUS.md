@@ -22,7 +22,7 @@
 
 1. ~~**Fix horizontal scroll from long Nostr address**~~ — ✅ DONE (a4ec636). Added overflow:hidden to .card, overflow-wrap:anywhere to profile-name/tagline/third-line, overflow+ellipsis to .addr-display-text.
 
-1. ~~**Three new Fun themes (Space/Neon/Candy)**~~ — ✅ DONE (bdde65c). Space: deep void nebula gradients + stars. Neon: cyberpunk pink/cyan glow + fireflies. Candy: pastel rainbow + falling candy emoji. 30 themes total.
+1. ~~**Fun themes (Boba/Fruit Salad/Junk Food/Candy/Coffee)**~~ — ✅ DONE. 29 themes total.
 
 1. ~~**Random theme button**~~ — ✅ DONE (48d2201). 🎲 "Surprise Me" button at top of theme picker.
 
@@ -57,17 +57,16 @@
    - 🌆 **Replicant** — *Blade Runner 2049.* Amber fog, atmospheric haze, moody warm accent, rain particles
 
    **Seasonal & holiday themes — ✅ DONE (9 themes):**
-   - ❄️ Snow, 🎄 Christmas, 🎃 Halloween, 🌸 Spring, ☀️ Summer, 🍂 Autumn, 🎆 New Year, 💘 Valentine, 🇺🇸 Patriot
+   - ❄️ Snow, 🎄 Christmas, 🎃 Halloween, 🌸 Spring, ☀️ Summer, 🍂 Autumn, 🎆 New Year, 💘 Valentine
 
-   **Fun themes added (6):**
+   **Fun themes added (5):**
    - 🧋 **Boba** — warm cream-brown, physics pearls + accelerometer
    - 🍓 **Fruit Salad** — peachy-pink, tumbling fruit emoji
    - 🍔 **Junk Food** — ketchup-mustard, falling fast food
    - 🍬 **Candy** — pastel rainbow gradient, falling candy emoji
-   - 🚀 **Space** — deep void with nebula color patches, warp-speed stars
-   - 💜 **Neon** — cyberpunk dark, hot pink/cyan neon glow, fireflies
+   - ☕ **Coffee** — warm brown tones, coffee emoji
 
-   **Deluxe treatment — ✅ DONE for all 30 themes:**
+   **Deluxe treatment — ✅ DONE for all 29 themes:**
    - ✅ Backgrounds: gradients, vignettes (no flat colors)
    - ✅ Card depth: theme-specific shadow colors, glass-morphism (ocean, snow, matrix, replicant)
    - ✅ Hover states: cards lift 1px + accent-colored glow
@@ -87,8 +86,7 @@
 **WCAG AA contrast fix for 5 new themes (Feb 22):**
 - replicant, halloween, autumn: --text-muted bumped to ≥ 3:1
 - summer: --accent2 bumped to ≥ 3:1 on tag-bg
-- patriot: --text-muted bumped to ≥ 3:1
-- All 24 themes now WCAG AA compliant
+- All themes WCAG AA compliant
 
 **Search field polish + landing page improvements (Feb 22):**
 - Bootstrap Icons (bi-search) replacing emoji, proper vertical centering
@@ -110,7 +108,7 @@
 - Theme picker upgraded from cycle button to grouped panel (Core/Cinematic/Seasonal/Holiday/Fun)
 - 🎲 "Surprise Me" random theme button in picker
 - Search bar added to landing page (instant client-side filtering)
-- Theme count: 12 → 30 (including cinematic, seasonal, holiday, fun). Particle effects: 7 → 19.
+- Theme count: 12 → 29 (including cinematic, seasonal, holiday, fun). Particle effects: 7 → 22.
 
 **WCAG AA contrast polish (all 12 themes):**
 - Fixed 4 dark themes (midnight, forest, desert, aurora): `--text-muted` was below 3:1 on card bg
