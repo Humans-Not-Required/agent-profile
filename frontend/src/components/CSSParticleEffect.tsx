@@ -39,7 +39,7 @@ const JUNKFOOD_EMOJI = [
 ]
 const SAKURA_EMOJI = ['🌸']
 const HEART_EMOJI = ['❤️', '💕', '💖', '💗', '💘', '💝', '🩷', '♥️']
-const CACTUS_EMOJI = ['🌵', '🏜️', '☀️', '🦎', '🐪', '🌵', '🌵', '🌵']
+const CACTUS_EMOJI = ['🌵', '🌵', '🌵', '☀️', '☀️', '🦎', '🦎', '🐪', '🐪', '🐍']
 const CANDY_EMOJI = ['🍬', '🍭', '🍫', '🍩', '🧁', '🍪', '🎀', '🍬', '🍭', '🍬', '🍭', '🌈']
 
 const LEAF_HUES = [0, 0, 15, 25, 25, 35, 40, 45, 45, 55, 60, 80, 120]
