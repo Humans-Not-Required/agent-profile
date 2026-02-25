@@ -1382,28 +1382,227 @@ function drawRooftops(ctx: CanvasRenderingContext2D, w: number, h: number, state
 
 interface BobaPearl {
   x: number; y: number
+  vx: number; vy: number
   r: number; shade: number
+  wobblePhase: number
+  mass: number
 }
 
 interface BobaSwirl {
   cx: number; cy: number; radius: number; speed: number; phase: number; opacity: number
 }
 
+interface SpatialGrid {
+  cellSize: number
+  cols: number; rows: number
+  cells: Int16Array     // flat array: cells[row * cols * maxPerCell + col * maxPerCell + i]
+  counts: Uint8Array    // counts[row * cols + col] = number of pearls in cell
+  maxPerCell: number
+}
+
+function createGrid(w: number, h: number, cellSize: number): SpatialGrid {
+  const cols = Math.max(1, Math.ceil(w / cellSize))
+  const rows = Math.max(1, Math.ceil(h / cellSize))
+  const maxPerCell = 12
+  return {
+    cellSize, cols, rows, maxPerCell,
+    cells: new Int16Array(rows * cols * maxPerCell),
+    counts: new Uint8Array(rows * cols),
+  }
+}
+
+function populateGrid(grid: SpatialGrid, pearls: BobaPearl[]) {
+  grid.counts.fill(0)
+  const { cellSize, cols, rows, maxPerCell, cells, counts } = grid
+  for (let i = 0; i < pearls.length; i++) {
+    const col = Math.min(cols - 1, Math.max(0, (pearls[i].x / cellSize) | 0))
+    const row = Math.min(rows - 1, Math.max(0, (pearls[i].y / cellSize) | 0))
+    const idx = row * cols + col
+    if (counts[idx] < maxPerCell) {
+      cells[idx * maxPerCell + counts[idx]] = i
+      counts[idx]++
+    }
+  }
+}
+
 interface BobaState {
   pearls: BobaPearl[]
   swirls: BobaSwirl[]
+  grid: SpatialGrid
+  prevW: number; prevH: number
   motionCleanup: (() => void) | null
 }
 
+// Mass range constants — smallest pearl r=8 → mass=64, largest r=22 → mass=484
+const BOBA_MIN_MASS = 64
+const BOBA_MAX_MASS = 484
+
+function applyConvectionForce(p: BobaPearl, w: number, h: number) {
+  const cx = w * 0.5
+  const dx = p.x - cx
+  const normX = dx / (w * 0.5)               // -1..1 from center
+  const normY = p.y / h                       // 0 (top) .. 1 (bottom)
+  // Normalize mass to 1..3 range — small pearls circulate freely, large resist
+  const normMass = 1 + 2 * (p.mass - BOBA_MIN_MASS) / (BOBA_MAX_MASS - BOBA_MIN_MASS)
+  const invMass = 1 / normMass
+
+  // Upwell zone — center column, 50% width
+  const upwellHalf = 0.25
+  const absNormX = Math.abs(normX)
+  if (absNormX < upwellHalf && normY > 0.3) {
+    const proximity = 1 - absNormX / upwellHalf               // 1 at center, 0 at edge
+    const depth = (normY - 0.3) / 0.7                         // 0..1 from 30% to bottom
+    // Strong upward force — must overcome gravity (0.06) + stack pressure
+    p.vy -= 0.35 * proximity * proximity * depth * invMass
+    // Centering pull strengthens near bottom to funnel pearls into column
+    p.vx -= normX * (0.05 + 0.05 * depth) * invMass
+  }
+
+  // Spread zone — top ~45%, push outward from center
+  if (normY < 0.45) {
+    const strength = (1 - normY / 0.45) * 0.1
+    p.vx += Math.sign(dx + 0.001) * strength * invMass
+  }
+
+  // Downdraft — outer edges (|normX| > 0.35), gentle downward pull
+  if (absNormX > 0.35) {
+    const edgeness = (absNormX - 0.35) / 0.65               // 0..1 toward wall
+    p.vy += 0.03 * edgeness * invMass
+  }
+
+  // Inflow — bottom 40%, outside upwell, pull toward center to feed upwell
+  if (normY > 0.6 && absNormX > upwellHalf) {
+    const inflowStrength = (normY - 0.6) / 0.4               // stronger near floor
+    p.vx -= normX * 0.08 * inflowStrength * invMass
+  }
+}
+
+function resolvePair(a: BobaPearl, b: BobaPearl) {
+  const dx = b.x - a.x
+  const dy = b.y - a.y
+  const minDist = a.r + b.r
+  const distSq = dx * dx + dy * dy
+  if (distSq >= minDist * minDist || distSq < 0.01) return
+  const dist = Math.sqrt(distSq)
+  const overlap = minDist - dist
+  const nx = dx / dist
+  const ny = dy / dist
+  // Position correction — proportional to inverse mass
+  const totalInvMass = 1 / a.mass + 1 / b.mass
+  const corrA = (overlap * (1 / a.mass)) / totalInvMass
+  const corrB = (overlap * (1 / b.mass)) / totalInvMass
+  a.x -= nx * corrA
+  a.y -= ny * corrA
+  b.x += nx * corrB
+  b.y += ny * corrB
+  // Very low velocity transfer — viscous liquid absorbs energy
+  const velTransfer = 0.03
+  const relVn = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny
+  if (relVn < 0) {
+    a.vx += nx * relVn * velTransfer
+    a.vy += ny * relVn * velTransfer
+    b.vx -= nx * relVn * velTransfer
+    b.vy -= ny * relVn * velTransfer
+  }
+}
+
+function resolveCollisions(pearls: BobaPearl[], grid: SpatialGrid) {
+  const { cols, rows, maxPerCell, cells, counts } = grid
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const idx = row * cols + col
+      const cnt = counts[idx]
+      if (cnt === 0) continue
+      // Check own cell pairs
+      for (let i = 0; i < cnt; i++) {
+        const ai = cells[idx * maxPerCell + i]
+        for (let j = i + 1; j < cnt; j++) {
+          resolvePair(pearls[ai], pearls[cells[idx * maxPerCell + j]])
+        }
+        // Check right and bottom-left/bottom/bottom-right neighbors
+        for (let dr = 0; dr <= 1; dr++) {
+          for (let dc = (dr === 0 ? 1 : -1); dc <= 1; dc++) {
+            const nr = row + dr, nc = col + dc
+            if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue
+            const nIdx = nr * cols + nc
+            const nCnt = counts[nIdx]
+            for (let k = 0; k < nCnt; k++) {
+              resolvePair(pearls[ai], pearls[cells[nIdx * maxPerCell + k]])
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+function updateBobaPearls(state: BobaState, w: number, h: number, t: number) {
+  const { pearls } = state
+
+  // Handle viewport resize — scale positions proportionally
+  if (state.prevW > 0 && state.prevH > 0 && (w !== state.prevW || h !== state.prevH)) {
+    const sx = w / state.prevW
+    const sy = h / state.prevH
+    for (const p of pearls) {
+      p.x = Math.min(w - p.r, Math.max(p.r, p.x * sx))
+      p.y = Math.min(h - p.r, Math.max(p.r, p.y * sy))
+    }
+    state.grid = createGrid(w, h, state.grid.cellSize)
+  }
+  state.prevW = w
+  state.prevH = h
+
+  for (const p of pearls) {
+    // Gravity — slow, thick liquid
+    p.vy += 0.06
+
+    // Convection force field
+    applyConvectionForce(p, w, h)
+
+    // Organic wobble — sinusoidal lateral drift
+    p.vx += Math.sin(t * 0.001 + p.wobblePhase) * 0.008 / p.mass
+
+    // Viscous drag
+    p.vx *= 0.94
+    p.vy *= 0.94
+
+    // Integrate position
+    p.x += p.vx
+    p.y += p.vy
+
+    // Boundary clamping with near-zero restitution
+    if (p.y > h - p.r) { p.y = h - p.r; p.vy *= -0.08 }
+    if (p.y < p.r) { p.y = p.r; p.vy *= -0.08 }
+    if (p.x < p.r) { p.x = p.r; p.vx *= -0.08 }
+    if (p.x > w - p.r) { p.x = w - p.r; p.vx *= -0.08 }
+
+    // Rest clamping — zero velocity when nearly stopped and on floor
+    const speed = p.vx * p.vx + p.vy * p.vy
+    if (speed < 0.001 && p.y >= h - p.r - 1) {
+      p.vx = 0; p.vy = 0
+    }
+  }
+
+  // Grid-accelerated collision resolution
+  populateGrid(state.grid, pearls)
+  resolveCollisions(pearls, state.grid)
+}
+
 function initBobaState(w: number, h: number, _foreground: boolean): BobaState {
-  // Spawn pearls scattered across screen — static, no movement
+  // Spawn pearls in top 60% so they visibly settle on load
   const pearlCount = Math.min(200, Math.max(30, Math.round(w * h * 0.4 * 0.6 / (Math.PI * 15 * 15))))
-  const pearls: BobaPearl[] = Array.from({ length: pearlCount }, () => ({
-    x: Math.random() * w,
-    y: Math.random() * h,
-    r: 8 + Math.random() * 14,
-    shade: Math.random(),
-  }))
+  const pearls: BobaPearl[] = Array.from({ length: pearlCount }, () => {
+    const r = 8 + Math.random() * 14
+    return {
+      x: r + Math.random() * (w - 2 * r),
+      y: r + Math.random() * (h * 0.6 - 2 * r),
+      vx: 0, vy: 0,
+      r,
+      shade: Math.random(),
+      wobblePhase: Math.random() * Math.PI * 2,
+      mass: r * r,
+    }
+  })
 
   const swirls: BobaSwirl[] = Array.from({ length: 6 }, () => ({
     cx: Math.random() * w,
@@ -1414,7 +1613,9 @@ function initBobaState(w: number, h: number, _foreground: boolean): BobaState {
     opacity: 0.12 + Math.random() * 0.1,
   }))
 
-  return { pearls, swirls, motionCleanup: null }
+  const grid = createGrid(w, h, 50)
+
+  return { pearls, swirls, grid, prevW: w, prevH: h, motionCleanup: null }
 }
 
 function cleanupBobaState(state: BobaState) {
@@ -1429,6 +1630,9 @@ function drawBoba(
   state: BobaState,
   foreground: boolean,
 ) {
+  // ── Physics update ──
+  updateBobaPearls(state, w, h, t)
+
   // ── Swirling milk tea streams (background only) ──
   if (!foreground) {
     ctx.save()
@@ -1453,7 +1657,7 @@ function drawBoba(
     ctx.restore()
   }
 
-  // ── Draw pearls (static — no movement logic) ──
+  // ── Draw pearls ──
   for (const p of state.pearls) {
     const bx = p.x, by = p.y
     ctx.save()
