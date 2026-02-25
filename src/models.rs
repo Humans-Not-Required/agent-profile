@@ -172,6 +172,14 @@ pub struct AddLinkRequest {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct UpdateLinkRequest {
+    pub url: Option<String>,
+    pub label: Option<String>,
+    pub platform: Option<String>,
+    pub display_order: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct AddSectionRequest {
     pub section_type: Option<String>,
     pub title: String,

@@ -32,6 +32,7 @@ DELETE /api/v1/profiles/{username}             — delete profile
 
 ```
 POST   /api/v1/profiles/{username}/links              — add link (url, label, platform)
+PATCH  /api/v1/profiles/{username}/links/{id}         — update link (url, label, platform, display_order)
 DELETE /api/v1/profiles/{username}/links/{id}         — remove link
 POST   /api/v1/profiles/{username}/addresses          — add crypto address (network, address, label)
 DELETE /api/v1/profiles/{username}/addresses/{id}     — remove
@@ -51,7 +52,7 @@ GET /api/v1/profiles                 — list/search profiles
   ?has_pubkey=true                   — filter to agents with secp256k1 identity
   ?theme=<theme>                     — filter by UI theme
   ?sort=<order>                      — sort: score (default), popular, newest, active
-  ?limit=<n>&offset=<n>              — pagination (max 100)
+  ?limit=<n>&offset=<n>              — pagination (max 100); response includes total count + has_more
 
 GET /api/v1/skills                   — ecosystem skill directory (all tags by usage count)
   ?q=<filter>                        — substring filter

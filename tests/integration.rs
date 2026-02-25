@@ -2355,3 +2355,220 @@ fn test_write_rate_limit() {
     // Reset for other tests
     std::env::set_var("WRITE_RATE_LIMIT", "10000");
 }
+
+// ===== Pagination total count =====
+
+#[test]
+fn test_list_profiles_pagination_total() {
+    let client = test_client();
+    // Register 5 profiles
+    for i in 0..5 {
+        register(&client, &format!("page-total-{}", i));
+    }
+
+    // Fetch with limit=2 — total should be 5, has_more should be true
+    let resp = client.get("/api/v1/profiles?limit=2&offset=0").dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["profiles"].as_array().unwrap().len(), 2, "page should have 2 profiles");
+    assert_eq!(body["total"].as_i64().unwrap(), 5, "total should be 5 regardless of limit");
+    assert_eq!(body["has_more"].as_bool().unwrap(), true, "has_more should be true when more pages exist");
+    assert_eq!(body["limit"].as_i64().unwrap(), 2);
+    assert_eq!(body["offset"].as_i64().unwrap(), 0);
+
+    // Fetch last page
+    let resp = client.get("/api/v1/profiles?limit=2&offset=4").dispatch();
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["profiles"].as_array().unwrap().len(), 1, "last page should have 1 profile");
+    assert_eq!(body["total"].as_i64().unwrap(), 5, "total should still be 5");
+    assert_eq!(body["has_more"].as_bool().unwrap(), false, "has_more should be false on last page");
+}
+
+#[test]
+fn test_list_profiles_pagination_total_with_filter() {
+    let client = test_client();
+    // Register some profiles, update one to have a specific theme
+    let (_, reg) = register(&client, "filter-total-a");
+    let key = reg["api_key"].as_str().unwrap().to_string();
+    client.patch("/api/v1/profiles/filter-total-a")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(r#"{"theme":"ocean"}"#)
+        .dispatch();
+    register(&client, "filter-total-b"); // default theme
+
+    // Filter by theme=ocean — total should be 1
+    let resp = client.get("/api/v1/profiles?theme=ocean&limit=50").dispatch();
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["total"].as_i64().unwrap(), 1, "total should reflect filter");
+    assert_eq!(body["has_more"].as_bool().unwrap(), false);
+}
+
+// ===== Health check with DB =====
+
+#[test]
+fn test_health_includes_ok_status() {
+    let client = test_client();
+    let resp = client.get("/api/v1/health").dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["status"], "ok", "health should verify DB connectivity");
+}
+
+// ===== PATCH links =====
+
+#[test]
+fn test_update_link() {
+    let client = test_client();
+    let (_, reg) = register(&client, "link-patch-test");
+    let key = reg["api_key"].as_str().unwrap().to_string();
+
+    // Add a link
+    let resp = client.post("/api/v1/profiles/link-patch-test/links")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(r#"{"url":"https://github.com/test","label":"GitHub","platform":"github"}"#)
+        .dispatch();
+    assert_eq!(resp.status(), Status::Created);
+    let link: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let link_id = link["id"].as_str().unwrap().to_string();
+
+    // Update url and label
+    let url = format!("/api/v1/profiles/link-patch-test/links/{}", link_id);
+    let resp = client.patch(&url)
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(r#"{"url":"https://gitlab.com/test","label":"GitLab","platform":"website"}"#)
+        .dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let updated: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(updated["url"], "https://gitlab.com/test");
+    assert_eq!(updated["label"], "GitLab");
+    assert_eq!(updated["platform"], "website");
+
+    // Verify via full profile fetch
+    let resp = client.get("/api/v1/profiles/link-patch-test")
+        .header(Header::new("Accept", "application/json"))
+        .dispatch();
+    let profile: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let links = profile["links"].as_array().unwrap();
+    assert_eq!(links[0]["url"], "https://gitlab.com/test");
+}
+
+#[test]
+fn test_update_link_partial() {
+    let client = test_client();
+    let (_, reg) = register(&client, "link-partial-test");
+    let key = reg["api_key"].as_str().unwrap().to_string();
+
+    // Add a link
+    let resp = client.post("/api/v1/profiles/link-partial-test/links")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(r#"{"url":"https://example.com","label":"My Site","platform":"website"}"#)
+        .dispatch();
+    let link: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let link_id = link["id"].as_str().unwrap().to_string();
+
+    // Update only display_order — url and label should remain unchanged
+    let url = format!("/api/v1/profiles/link-partial-test/links/{}", link_id);
+    let resp = client.patch(&url)
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(r#"{"display_order": 5}"#)
+        .dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let updated: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(updated["url"], "https://example.com", "url should be unchanged");
+    assert_eq!(updated["label"], "My Site", "label should be unchanged");
+    assert_eq!(updated["display_order"], 5);
+}
+
+#[test]
+fn test_update_link_not_found() {
+    let client = test_client();
+    let (_, reg) = register(&client, "link-notfound-test");
+    let key = reg["api_key"].as_str().unwrap().to_string();
+
+    let resp = client.patch("/api/v1/profiles/link-notfound-test/links/nonexistent-id")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(r#"{"label":"Updated"}"#)
+        .dispatch();
+    assert_eq!(resp.status(), Status::NotFound);
+}
+
+#[test]
+fn test_update_link_no_fields() {
+    let client = test_client();
+    let (_, reg) = register(&client, "link-nofields-test");
+    let key = reg["api_key"].as_str().unwrap().to_string();
+
+    // Add a link
+    let resp = client.post("/api/v1/profiles/link-nofields-test/links")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(r#"{"url":"https://example.com","label":"Test"}"#)
+        .dispatch();
+    let link: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let link_id = link["id"].as_str().unwrap().to_string();
+
+    // Send empty update
+    let url = format!("/api/v1/profiles/link-nofields-test/links/{}", link_id);
+    let resp = client.patch(&url)
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(r#"{}"#)
+        .dispatch();
+    assert_eq!(resp.status(), Status::UnprocessableEntity);
+}
+
+#[test]
+fn test_update_link_invalid_platform() {
+    let client = test_client();
+    let (_, reg) = register(&client, "link-badplatform");
+    let key = reg["api_key"].as_str().unwrap().to_string();
+
+    let resp = client.post("/api/v1/profiles/link-badplatform/links")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(r#"{"url":"https://example.com","label":"Test"}"#)
+        .dispatch();
+    let link: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let link_id = link["id"].as_str().unwrap().to_string();
+
+    let url = format!("/api/v1/profiles/link-badplatform/links/{}", link_id);
+    let resp = client.patch(&url)
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(r#"{"platform":"invalid-platform"}"#)
+        .dispatch();
+    assert_eq!(resp.status(), Status::UnprocessableEntity);
+}
+
+#[test]
+fn test_update_link_wrong_key() {
+    let client = test_client();
+    let (_, reg1) = register(&client, "link-wrongkey-owner");
+    let (_, reg2) = register(&client, "link-wrongkey-other");
+    let key1 = reg1["api_key"].as_str().unwrap().to_string();
+    let key2 = reg2["api_key"].as_str().unwrap().to_string();
+
+    // Add link under owner
+    let resp = client.post("/api/v1/profiles/link-wrongkey-owner/links")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key1.clone()))
+        .body(r#"{"url":"https://example.com","label":"Test"}"#)
+        .dispatch();
+    let link: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let link_id = link["id"].as_str().unwrap().to_string();
+
+    // Try to update with wrong key
+    let url = format!("/api/v1/profiles/link-wrongkey-owner/links/{}", link_id);
+    let resp = client.patch(&url)
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key2.clone()))
+        .body(r#"{"label":"Hacked"}"#)
+        .dispatch();
+    assert_eq!(resp.status(), Status::Unauthorized);
+}

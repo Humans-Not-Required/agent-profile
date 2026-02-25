@@ -243,9 +243,13 @@ fn get_profile_id(conn: &Connection, username: &str) -> Option<String> {
 // --- Health ---
 
 #[get("/health")]
-pub fn health() -> Json<HealthResponse> {
+pub fn health(db: &State<DbConn>) -> Json<HealthResponse> {
+    let db_ok = match db.lock() {
+        Ok(conn) => conn.execute_batch("SELECT 1").is_ok(),
+        Err(_) => false,
+    };
     Json(HealthResponse {
-        status: "ok".to_string(),
+        status: if db_ok { "ok".to_string() } else { "degraded".to_string() },
         version: env!("CARGO_PKG_VERSION").to_string(),
         service: "agent-profile".to_string(),
     })
@@ -381,10 +385,18 @@ pub fn list_profiles(
         conditions.push("pubkey != ''".to_string());
     }
 
-    if !conditions.is_empty() {
-        query.push_str(" WHERE ");
-        query.push_str(&conditions.join(" AND "));
-    }
+    let where_clause = if !conditions.is_empty() {
+        format!(" WHERE {}", conditions.join(" AND "))
+    } else {
+        String::new()
+    };
+
+    // Count total matching rows (before LIMIT/OFFSET)
+    let count_query = format!("SELECT COUNT(*) FROM profiles{}", where_clause);
+    let refs_for_count: Vec<&dyn rusqlite::types::ToSql> = values.iter().map(|p| p.as_ref()).collect();
+    let total: i64 = conn.query_row(&count_query, refs_for_count.as_slice(), |row| row.get(0)).unwrap_or(0);
+
+    query.push_str(&where_clause);
 
     // Sort options: popular (views), newest, active (recently updated), score (default)
     let order_clause = match sort.unwrap_or("score") {
@@ -421,9 +433,10 @@ pub fn list_profiles(
 
     Json(json!({
         "profiles": profiles,
-        "total": profiles.len(),
+        "total": total,
         "limit": lim,
         "offset": off,
+        "has_more": (off + lim) < total,
     }))
 }
 
@@ -1198,6 +1211,105 @@ pub fn delete_link(
     }
     update_profile_score(&conn, &profile_id, &username);
     Ok(Json(json!({"status": "deleted", "id": link_id})))
+}
+
+#[patch("/profiles/<username>/links/<link_id>", data = "<body>")]
+pub fn update_link(
+    db: &State<DbConn>,
+    username: &str,
+    link_id: &str,
+    body: Json<UpdateLinkRequest>,
+    api_key: ApiKey,
+    _write_limit: WriteRateLimit,
+) -> Result<Json<serde_json::Value>, (Status, Json<serde_json::Value>)> {
+    let username = username.to_lowercase();
+    let conn = db.lock().unwrap();
+
+    if !verify_api_key(&conn, &username, &api_key.0) {
+        return Err((Status::Unauthorized, Json(json!({"error": "Invalid API key"}))));
+    }
+
+    let profile_id = get_profile_id(&conn, &username)
+        .ok_or_else(|| (Status::NotFound, Json(json!({"error": "Profile not found"}))))?;
+
+    // Verify link exists and belongs to this profile
+    let exists: bool = conn.query_row(
+        "SELECT COUNT(*) FROM profile_links WHERE id = ?1 AND profile_id = ?2",
+        params![link_id, profile_id],
+        |row| row.get::<_, i64>(0),
+    ).map(|c| c > 0).unwrap_or(false);
+    if !exists {
+        return Err((Status::NotFound, Json(json!({"error": "Link not found"}))));
+    }
+
+    // Build dynamic SET clause
+    let mut sets: Vec<String> = vec![];
+    let mut values: Vec<Box<dyn rusqlite::types::ToSql>> = vec![];
+
+    if let Some(ref url) = body.url {
+        if url.trim().is_empty() {
+            return Err((Status::UnprocessableEntity, Json(json!({"error": "url cannot be empty"}))));
+        }
+        if url.len() > MAX_LINK_URL {
+            return Err((Status::UnprocessableEntity, Json(json!({"error": format!("url max {} chars", MAX_LINK_URL)}))));
+        }
+        sets.push(format!("url = ?{}", values.len() + 1));
+        values.push(Box::new(url.trim().to_string()));
+    }
+    if let Some(ref label) = body.label {
+        if label.trim().is_empty() {
+            return Err((Status::UnprocessableEntity, Json(json!({"error": "label cannot be empty"}))));
+        }
+        if label.len() > MAX_LINK_LABEL {
+            return Err((Status::UnprocessableEntity, Json(json!({"error": format!("label max {} chars", MAX_LINK_LABEL)}))));
+        }
+        sets.push(format!("label = ?{}", values.len() + 1));
+        values.push(Box::new(label.trim().to_string()));
+    }
+    if let Some(ref platform) = body.platform {
+        if !VALID_PLATFORMS.contains(&platform.as_str()) {
+            return Err((Status::UnprocessableEntity, Json(json!({"error": format!("Invalid platform. Allowed: {:?}", VALID_PLATFORMS)}))));
+        }
+        sets.push(format!("platform = ?{}", values.len() + 1));
+        values.push(Box::new(platform.clone()));
+    }
+    if let Some(order) = body.display_order {
+        sets.push(format!("display_order = ?{}", values.len() + 1));
+        values.push(Box::new(order));
+    }
+
+    if sets.is_empty() {
+        return Err((Status::UnprocessableEntity, Json(json!({"error": "No fields to update"}))));
+    }
+
+    let sql = format!(
+        "UPDATE profile_links SET {} WHERE id = ?{} AND profile_id = ?{}",
+        sets.join(", "),
+        values.len() + 1,
+        values.len() + 2,
+    );
+    values.push(Box::new(link_id.to_string()));
+    values.push(Box::new(profile_id.clone()));
+
+    let refs: Vec<&dyn rusqlite::types::ToSql> = values.iter().map(|p| p.as_ref()).collect();
+    conn.execute(&sql, refs.as_slice())
+        .map_err(|e| (Status::InternalServerError, Json(json!({"error": e.to_string()}))))?;
+
+    // Return updated link
+    let link = conn.query_row(
+        "SELECT id, url, label, platform, display_order, created_at FROM profile_links WHERE id = ?1",
+        params![link_id],
+        |row| Ok(json!({
+            "id": row.get::<_, String>(0)?,
+            "url": row.get::<_, String>(1)?,
+            "label": row.get::<_, String>(2)?,
+            "platform": row.get::<_, String>(3)?,
+            "display_order": row.get::<_, i64>(4)?,
+            "created_at": row.get::<_, String>(5)?,
+        })),
+    ).map_err(|e| (Status::InternalServerError, Json(json!({"error": e.to_string()}))))?;
+
+    Ok(Json(link))
 }
 
 // --- Sub-resources: Sections ---
