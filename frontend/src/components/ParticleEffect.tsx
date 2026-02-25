@@ -1134,16 +1134,13 @@ function drawWinterLandscape(
       drawPineTree(ctx, tree)
     }
 
-    // Christmas lights on trees (gentle twinkling, no glow)
+    // Christmas lights on trees (static solid bulbs, no animation)
     if (christmas) {
       for (const tree of state.trees[layer]) {
         for (const light of tree.lights) {
-          // Slow gentle twinkle: ~6s full cycle, alpha 0.7–1.0
-          const alpha = 0.7 + 0.3 * Math.sin(time * 0.001 + light.phase)
-          // Solid bulb only
           ctx.beginPath()
           ctx.arc(light.x, light.y, light.radius, 0, Math.PI * 2)
-          ctx.fillStyle = light.color + Math.round(alpha * 255).toString(16).padStart(2, '0')
+          ctx.fillStyle = light.color
           ctx.fill()
         }
       }
@@ -2480,11 +2477,7 @@ function CanvasParticleEffect({ activeEffect, foreground, theme }: { activeEffec
       if (activeEffect === 'snow-landscape' && winterState) {
         ctx.clearRect(0, 0, w, h)
         drawWinterLandscape(ctx, w, h, winterState, isChristmas, t)
-        if (isChristmas) {
-          // Keep animating for twinkling lights
-          rafRef.current = requestAnimationFrame(animate)
-        }
-        // Non-christmas: static, draws once and stops
+        // Static scene — draws once and stops (no animation loop needed)
         return
       }
 
