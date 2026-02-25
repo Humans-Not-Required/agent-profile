@@ -1770,6 +1770,57 @@
           }
         }
       }
+    },
+    "/me": {
+      "get": {
+        "summary": "Validate API key and return associated profile info",
+        "operationId": "whoami",
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "API key is valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "username": {
+                      "type": "string"
+                    },
+                    "display_name": {
+                      "type": "string"
+                    },
+                    "profile_score": {
+                      "type": "integer"
+                    },
+                    "profile_url": {
+                      "type": "string"
+                    },
+                    "json_url": {
+                      "type": "string"
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing API key"
+          }
+        }
+      }
     }
   },
   "components": {

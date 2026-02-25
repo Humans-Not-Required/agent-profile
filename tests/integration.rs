@@ -2572,3 +2572,68 @@ fn test_update_link_wrong_key() {
         .dispatch();
     assert_eq!(resp.status(), Status::Unauthorized);
 }
+
+// ===== GET /api/v1/me (whoami) =====
+
+#[test]
+fn test_whoami_valid_key() {
+    let client = test_client();
+    let (_, reg) = register(&client, "whoami-test");
+    let key = reg["api_key"].as_str().unwrap().to_string();
+
+    let resp = client.get("/api/v1/me")
+        .header(Header::new("X-API-Key", key))
+        .dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["username"], "whoami-test");
+    assert!(body["profile_url"].as_str().unwrap().contains("whoami-test"));
+    assert!(body["json_url"].as_str().unwrap().contains("whoami-test"));
+    assert!(body.get("created_at").is_some());
+    assert!(body.get("profile_score").is_some());
+}
+
+#[test]
+fn test_whoami_invalid_key() {
+    let client = test_client();
+    let resp = client.get("/api/v1/me")
+        .header(Header::new("X-API-Key", "ap_invalid_key_12345"))
+        .dispatch();
+    assert_eq!(resp.status(), Status::Unauthorized);
+}
+
+#[test]
+fn test_whoami_no_key() {
+    let client = test_client();
+    let resp = client.get("/api/v1/me").dispatch();
+    assert_eq!(resp.status(), Status::Unauthorized);
+}
+
+#[test]
+fn test_whoami_after_reissue() {
+    let client = test_client();
+    let (_, reg) = register(&client, "whoami-reissue");
+    let old_key = reg["api_key"].as_str().unwrap().to_string();
+
+    // Reissue key
+    let resp = client.post("/api/v1/profiles/whoami-reissue/reissue-key")
+        .header(Header::new("X-API-Key", old_key.clone()))
+        .dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let new_body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let new_key = new_body["api_key"].as_str().unwrap().to_string();
+
+    // Old key should fail
+    let resp = client.get("/api/v1/me")
+        .header(Header::new("X-API-Key", old_key))
+        .dispatch();
+    assert_eq!(resp.status(), Status::Unauthorized);
+
+    // New key should work
+    let resp = client.get("/api/v1/me")
+        .header(Header::new("X-API-Key", new_key))
+        .dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["username"], "whoami-reissue");
+}

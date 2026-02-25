@@ -22,6 +22,7 @@ GET /api/v1/profiles/{username}    — always JSON (full profile + all sub-resou
 ## Profile Management (API key required)
 
 ```
+GET    /api/v1/me                              — validate API key, returns associated username + profile URLs
 PATCH  /api/v1/profiles/{username}             — update fields (display_name, tagline, bio, theme, pubkey, ...)
 POST   /api/v1/profiles/{username}/avatar      — upload avatar image (≤100KB, multipart)
 POST   /api/v1/profiles/{username}/reissue-key — rotate API key

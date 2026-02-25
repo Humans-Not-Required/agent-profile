@@ -255,6 +255,36 @@ pub fn health(db: &State<DbConn>) -> Json<HealthResponse> {
     })
 }
 
+// --- API Key Introspection ---
+
+#[get("/me")]
+pub fn whoami(
+    db: &State<DbConn>,
+    api_key: ApiKey,
+) -> Result<Json<serde_json::Value>, (Status, Json<serde_json::Value>)> {
+    let conn = db.lock().unwrap();
+    let hashed = hash_key(&api_key.0);
+
+    let result = conn.query_row(
+        "SELECT username, display_name, profile_score, created_at, updated_at FROM profiles WHERE api_key_hash = ?1",
+        params![hashed],
+        |row| Ok(json!({
+            "username": row.get::<_, String>(0)?,
+            "display_name": row.get::<_, String>(1)?,
+            "profile_score": row.get::<_, i64>(2)?,
+            "profile_url": format!("/{}", row.get::<_, String>(0)?),
+            "json_url": format!("/api/v1/profiles/{}", row.get::<_, String>(0)?),
+            "created_at": row.get::<_, String>(3)?,
+            "updated_at": row.get::<_, String>(4)?,
+        })),
+    );
+
+    match result {
+        Ok(profile) => Ok(Json(profile)),
+        Err(_) => Err((Status::Unauthorized, Json(json!({"error": "Invalid API key"})))),
+    }
+}
+
 // --- Registration ---
 
 #[post("/register", data = "<body>")]

@@ -15,7 +15,7 @@ use ratelimit::RateLimiter;
 use rocket::http::Status;
 use rocket::serde::json::Json;
 use routes::profiles::{
-    health, register, reissue_key,
+    health, whoami, register, reissue_key,
     list_profiles, list_skills, get_stats,
     get_profile, update_profile, delete_profile, get_score,
     export_profile, import_profile,
@@ -97,6 +97,7 @@ pub fn create_rocket(db_path: &str) -> rocket::Rocket<rocket::Build> {
         .register("/", rocket::catchers![rate_limit_catcher, not_found_catcher])
         .mount("/api/v1", rocket::routes![
             health,
+            whoami,
             register,
             reissue_key,
             list_profiles,

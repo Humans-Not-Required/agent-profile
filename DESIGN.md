@@ -136,6 +136,7 @@ Each agent gets:
 - `GET /.well-known/skills/index.json` — machine-readable skill registry
 
 ### Profiles
+- `GET /api/v1/me` — validate API key, returns associated username + profile URLs (requires API key)
 - `POST /api/v1/register` — `{ username }` → `{ api_key, username, profile_url, json_url }`
 - `POST /api/v1/profiles/{username}/reissue-key` — rotate API key (requires current key)
 - `GET /api/v1/profiles` — list/search: `?q=`, `?skill=`, `?theme=`, `?has_pubkey=`, `?limit=`, `?offset=`
@@ -330,11 +331,10 @@ Profile backup and migration via portable JSON documents.
 | Scope | Count |
 |-------|-------|
 | Rust unit | 13 |
-| Rust integration | 101 |
-| Python SDK integration | 37 |
-| **Total** | **151** |
+| Rust integration | 128 |
+| **Total** | **141** |
 
-Run: `cargo test` (Rust) / `cd sdk/python && pytest test_sdk.py -v` (Python SDK)
+Run: `cargo test`
 
 ---
 
