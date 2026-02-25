@@ -1682,17 +1682,20 @@ function initWastelandState(w: number, h: number, foreground: boolean): Wastelan
   const buildingCount = Math.floor(w / 35) + 8
   // Fewer peaks/needles — weight toward blocky shapes
   const topShapes: WastelandBuilding['topShape'][] = ['flat', 'flat', 'slant-left', 'slant-right', 'notch', 'step', 'step', 'peak']
-  const buildings: WastelandBuilding[] = Array.from({ length: buildingCount }, (_, i) => {
-    const bw = 30 + Math.random() * 50  // min 30px — no impossibly thin buildings
-    return {
-      x: (i / buildingCount) * (w + 100) - 50,
+  const buildings: WastelandBuilding[] = []
+  let bx = -10  // start just off-screen left
+  while (bx < w + 50) {
+    const bw = 30 + Math.random() * 50
+    buildings.push({
+      x: bx,
       width: bw,
       height: h * 0.06 + Math.random() * h * 0.28,
-      hasAntenna: Math.random() > 0.88,  // rare antennas (12% instead of 30%)
+      hasAntenna: Math.random() > 0.88,
       topShape: topShapes[Math.floor(Math.random() * topShapes.length)],
-      topParam: 0.15 + Math.random() * 0.4,  // less dramatic shapes
-    }
-  })
+      topParam: 0.15 + Math.random() * 0.4,
+    })
+    bx += bw  // next building starts exactly where this one ends — no gaps
+  }
 
   // Flying spinner cars
   const spinners: Spinner[] = foreground ? [] : Array.from({ length: 4 }, () => spawnSpinner(w, h))
@@ -1813,28 +1816,16 @@ function drawWasteland(
     }
 
     // Curvy road leading toward the city (perspective vanishing point)
-    const roadVanishX = w * 0.5   // road converges to center
+    const roadVanishX = w * 0.5
     const roadVanishY = skylineY + h * 0.02
-    ctx.save()
-    // Road surface — dark asphalt
-    ctx.fillStyle = '#0f0805'
+    ctx.fillStyle = '#1a0c02'  // same color as buildings — seamless intersection
     ctx.beginPath()
-    ctx.moveTo(roadVanishX - 8, roadVanishY)   // narrow at horizon
-    ctx.quadraticCurveTo(w * 0.35, h * 0.82, w * 0.05, h + 10)  // left edge curves left
-    ctx.lineTo(w * 0.65, h + 10)               // wide at bottom
-    ctx.quadraticCurveTo(w * 0.65, h * 0.82, roadVanishX + 8, roadVanishY)  // right edge curves
+    ctx.moveTo(roadVanishX - 8, roadVanishY)
+    ctx.quadraticCurveTo(w * 0.35, h * 0.82, w * 0.05, h + 10)
+    ctx.lineTo(w * 0.65, h + 10)
+    ctx.quadraticCurveTo(w * 0.65, h * 0.82, roadVanishX + 8, roadVanishY)
     ctx.closePath()
     ctx.fill()
-    // Center line — dashed yellow/orange
-    ctx.strokeStyle = 'rgba(200,120,30,0.25)'
-    ctx.lineWidth = 1.5
-    ctx.setLineDash([12, 18])
-    ctx.beginPath()
-    ctx.moveTo(roadVanishX, roadVanishY)
-    ctx.quadraticCurveTo(w * 0.48, h * 0.82, w * 0.35, h + 10)
-    ctx.stroke()
-    ctx.setLineDash([])
-    ctx.restore()
 
     // ── Flying spinner cars ──
     for (const sp of state.spinners) {
