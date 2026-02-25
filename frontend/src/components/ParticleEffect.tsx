@@ -1453,27 +1453,27 @@ function applyConvectionForce(p: BobaPearl, w: number, h: number) {
     const proximity = 1 - absNormX / upwellHalf               // 1 at center, 0 at edge
     const depth = (normY - 0.3) / 0.7                         // 0..1 from 30% to bottom
     // Strong upward force — must overcome gravity (0.06) + stack pressure
-    p.vy -= 0.35 * proximity * proximity * depth * invMass
+    p.vy -= 1.4 * proximity * proximity * depth * invMass
     // Centering pull strengthens near bottom to funnel pearls into column
-    p.vx -= normX * (0.05 + 0.05 * depth) * invMass
+    p.vx -= normX * (0.15 + 0.15 * depth) * invMass
   }
 
   // Spread zone — top ~45%, push outward from center
   if (normY < 0.45) {
-    const strength = (1 - normY / 0.45) * 0.1
+    const strength = (1 - normY / 0.45) * 0.3
     p.vx += Math.sign(dx + 0.001) * strength * invMass
   }
 
   // Downdraft — outer edges (|normX| > 0.35), gentle downward pull
   if (absNormX > 0.35) {
     const edgeness = (absNormX - 0.35) / 0.65               // 0..1 toward wall
-    p.vy += 0.03 * edgeness * invMass
+    p.vy += 0.10 * edgeness * invMass
   }
 
   // Inflow — bottom 40%, outside upwell, pull toward center to feed upwell
   if (normY > 0.6 && absNormX > upwellHalf) {
     const inflowStrength = (normY - 0.6) / 0.4               // stronger near floor
-    p.vx -= normX * 0.08 * inflowStrength * invMass
+    p.vx -= normX * 0.25 * inflowStrength * invMass
   }
 }
 
@@ -1563,8 +1563,8 @@ function updateBobaPearls(state: BobaState, w: number, h: number, t: number) {
     p.vx += Math.sin(t * 0.001 + p.wobblePhase) * 0.008 / p.mass
 
     // Viscous drag
-    p.vx *= 0.94
-    p.vy *= 0.94
+    p.vx *= 0.97
+    p.vy *= 0.97
 
     // Integrate position
     p.x += p.vx
@@ -1590,7 +1590,8 @@ function updateBobaPearls(state: BobaState, w: number, h: number, t: number) {
 
 function initBobaState(w: number, h: number, _foreground: boolean): BobaState {
   // Spawn pearls in top 60% so they visibly settle on load
-  const pearlCount = Math.min(200, Math.max(30, Math.round(w * h * 0.4 * 0.6 / (Math.PI * 15 * 15))))
+  const avgR = 15
+  const pearlCount = Math.max(40, Math.round(w * h * 0.4 * 0.60 / (Math.PI * avgR * avgR)))
   const pearls: BobaPearl[] = Array.from({ length: pearlCount }, () => {
     const r = 8 + Math.random() * 14
     return {
