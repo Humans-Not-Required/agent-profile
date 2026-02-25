@@ -11,6 +11,7 @@ interface Props {
   enabled: boolean
   seasonal: boolean
   foreground?: boolean  // if true, render fewer particles above content
+  theme?: string        // current theme name — drives Christmas lights, replicant rooftops, etc.
 }
 
 /** Returns the seasonal effect name based on current UTC month. */
@@ -1131,12 +1132,12 @@ function drawWinterLandscape(
       drawPineTree(ctx, tree)
     }
 
-    // Christmas lights on trees (twinkling, no glow)
+    // Christmas lights on trees (gentle twinkling, no glow)
     if (christmas) {
       for (const tree of state.trees[layer]) {
         for (const light of tree.lights) {
-          const twinkle = 0.5 + 0.5 * Math.sin(time * 0.003 + light.phase)
-          const alpha = 0.5 + 0.5 * twinkle
+          // Slow gentle twinkle: ~6s full cycle, alpha 0.7–1.0
+          const alpha = 0.7 + 0.3 * Math.sin(time * 0.001 + light.phase)
           // Solid bulb only
           ctx.beginPath()
           ctx.arc(light.x, light.y, light.radius, 0, Math.PI * 2)
@@ -2256,7 +2257,7 @@ function drawForest(ctx: CanvasRenderingContext2D, w: number, h: number, state: 
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export function ParticleEffect({ effect, enabled, seasonal, foreground = false }: Props) {
+export function ParticleEffect({ effect, enabled, seasonal, foreground = false, theme }: Props) {
   const activeEffect: EffectName = !enabled
     ? 'none'
     : seasonal
@@ -2266,7 +2267,7 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
   // Snow: canvas landscape background + CSS snowflakes on top
   if (activeEffect === 'snow') {
     return <>
-      {!foreground && <CanvasParticleEffect activeEffect="snow-landscape" foreground={false} />}
+      {!foreground && <CanvasParticleEffect activeEffect="snow-landscape" foreground={false} theme={theme} />}
       <CSSParticleEffect effect="snow" foreground={foreground} />
     </>
   }
@@ -2276,11 +2277,11 @@ export function ParticleEffect({ effect, enabled, seasonal, foreground = false }
     return <CSSParticleEffect effect={activeEffect as 'leaves' | 'snow' | 'fruit' | 'junkfood' | 'sakura' | 'hearts' | 'cactus'} foreground={foreground} />
   }
 
-  return <CanvasParticleEffect activeEffect={activeEffect} foreground={foreground} />
+  return <CanvasParticleEffect activeEffect={activeEffect} foreground={foreground} theme={theme} />
 }
 
 /** Canvas-based effects (complex rendering: rain, fireflies, stars, embers, flames, water, boba, clouds, warzone, digital-rain) */
-function CanvasParticleEffect({ activeEffect, foreground }: { activeEffect: EffectName, foreground: boolean }) {
+function CanvasParticleEffect({ activeEffect, foreground, theme }: { activeEffect: EffectName, foreground: boolean, theme?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rafRef = useRef<number>(0)
 
@@ -2353,7 +2354,7 @@ function CanvasParticleEffect({ activeEffect, foreground }: { activeEffect: Effe
 
     // Winter landscape (snow theme background)
     let winterState: WinterState | null = null
-    const isChristmas = document.documentElement.getAttribute('data-theme') === 'christmas'
+    const isChristmas = theme === 'christmas'
     if (activeEffect === 'snow-landscape') {
       winterState = initWinterState(canvas.width, canvas.height)
     }
@@ -2373,7 +2374,6 @@ function CanvasParticleEffect({ activeEffect, foreground }: { activeEffect: Effe
     // Replicant rooftops (rain + replicant theme)
     let rooftopState: RooftopState | null = null
     if (activeEffect === 'rain' && !foreground) {
-      const theme = document.documentElement.getAttribute('data-theme')
       if (theme === 'replicant') {
         rooftopState = initRooftopState(canvas.width, canvas.height)
       }
@@ -2603,7 +2603,7 @@ function CanvasParticleEffect({ activeEffect, foreground }: { activeEffect: Effe
       window.removeEventListener('resize', resize)
       if (bobaState) cleanupBobaState(bobaState)
     }
-  }, [activeEffect])
+  }, [activeEffect, theme])
 
   if (activeEffect === 'none') return null
 

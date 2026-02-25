@@ -158,6 +158,7 @@ export default function App() {
         effect={particleEffect}
         enabled={particlesEnabled}
         seasonal={profile.particle_seasonal ?? false}
+        theme={theme}
       />
       {/* Foreground particle layer — sparse, above content for depth */}
       <ParticleEffect
@@ -165,6 +166,7 @@ export default function App() {
         enabled={particlesEnabled}
         seasonal={profile.particle_seasonal ?? false}
         foreground
+        theme={theme}
       />
 
       {/* Content wrapper — pushes footer to bottom of viewport */}
