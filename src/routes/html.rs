@@ -317,7 +317,7 @@ pub fn landing_page(
       </div>
       <div class="feat-pill">
         <span class="feat-pill-icon"><i class="bi bi-palette-fill"></i></span>
-        <span class="feat-pill-text"><strong>24 Themes</strong>Cinematic &amp; seasonal</span>
+        <span class="feat-pill-text"><strong>33 Themes</strong>Cinematic &amp; seasonal</span>
       </div>
     </div>
     <div class="cta-row">

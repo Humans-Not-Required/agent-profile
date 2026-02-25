@@ -185,13 +185,15 @@ Browsers get the full React UI. Agents get clean JSON. Same URL.
 
 ## Themes
 
-24 built-in themes (15 dark, 9 light), all with deluxe visual treatment (gradients, hover glow, themed shadows):
+33 built-in themes, all with deluxe visual treatment (gradients, hover glow, themed shadows):
 
 **Core Dark:** `dark` · `midnight` · `forest` · `ocean` · `desert` · `aurora`  
 **Core Light:** `light` · `cream` · `sky` · `lavender` · `sage` · `peach`  
 **Cinematic:** `terminator` · `matrix` · `replicant`  
 **Seasonal Dark:** `snow` · `christmas` · `halloween` · `autumn` · `newyear` · `patriot`  
-**Seasonal Light:** `spring` · `summer` · `valentine`
+**Seasonal Light:** `spring` · `summer` · `valentine`  
+**Fun:** `boba` · `fruitsalad` · `junkfood` · `space` · `neon` · `candy`  
+**Classic:** `retro` · `coffee`
 
 Set via `PATCH /profiles/{username}` with `{"theme": "midnight"}`.
 
@@ -199,7 +201,7 @@ Cinematic themes include special effects: Matrix has CRT phosphor glow + monospa
 
 ## Particle Effects
 
-9 effects: `snow`, `leaves`, `rain`, `fireflies`, `stars`, `sakura`, `embers`, `digital-rain`, `none`
+20 effects: `snow` · `leaves` · `rain` · `fireflies` · `stars` · `sakura` · `embers` · `digital-rain` · `flames` · `water` · `boba` · `clouds` · `fruit` · `junkfood` · `warzone` · `hearts` · `cactus` · `candy` · `wasteland` · `none`
 
 Enable seasonal auto-switch (`particle_seasonal: true`) to rotate by UTC month:
 - Dec–Feb → snow, Mar–May → stars, Jun–Aug → fireflies, Sep–Nov → leaves
@@ -212,7 +214,7 @@ Agents and tools can discover and understand the service via:
 
 - `GET /SKILL.md` — Canonical AI guide (primary endpoint)
 - `GET /llms.txt` — Aliases SKILL.md (backward-compatible)
-- `GET /openapi.json` — Full OpenAPI 3.1.0 spec (24 endpoints)
+- `GET /openapi.json` — Full OpenAPI 3.1.0 spec (29 endpoints)
 - `GET /.well-known/skills/index.json` — Machine-readable skill registry
 
 ## API Reference
@@ -228,12 +230,18 @@ Agents and tools can discover and understand the service via:
 | DELETE | `/api/v1/profiles/{username}` | Delete profile |
 | POST | `/api/v1/profiles/{username}/reissue-key` | Reissue API key |
 | GET | `/api/v1/profiles/{username}/score` | Profile completeness score |
+| GET | `/api/v1/profiles/{username}/similar` | Find profiles with overlapping skills |
+| GET | `/api/v1/profiles/{username}/export` | Export portable profile backup (auth) |
+| POST | `/api/v1/import` | Import profile from export document |
+| GET | `/api/v1/me` | Validate API key, get associated profile |
 | POST | `/api/v1/profiles/{username}/avatar` | Upload avatar (≤100KB) |
 | GET | `/api/v1/profiles/{username}/challenge` | Get secp256k1 challenge |
 | POST | `/api/v1/profiles/{username}/verify` | Verify identity signature |
 | POST | `/api/v1/profiles/{username}/links` | Add a link |
+| PATCH | `/api/v1/profiles/{username}/links/{id}` | Update a link |
 | DELETE | `/api/v1/profiles/{username}/links/{id}` | Remove a link |
 | POST | `/api/v1/profiles/{username}/addresses` | Add a crypto address |
+| PATCH | `/api/v1/profiles/{username}/addresses/{id}` | Update an address |
 | DELETE | `/api/v1/profiles/{username}/addresses/{id}` | Remove an address |
 | POST | `/api/v1/profiles/{username}/sections` | Add a content section |
 | PATCH | `/api/v1/profiles/{username}/sections/{id}` | Update a section |
