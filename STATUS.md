@@ -158,7 +158,7 @@ See DESIGN.md for full spec. Key points:
 | Scope | Count | Status |
 |-------|-------|--------|
 | Rust unit | 13 | ✅ |
-| Rust integration | 118 | ✅ |
-| **Total** | **131** | ✅ |
+| Rust integration | 119 | ✅ |
+| **Total** | **132** | ✅ |
 
 **Last updated:** 2026-02-25
