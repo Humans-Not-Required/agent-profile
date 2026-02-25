@@ -293,7 +293,7 @@
 }
 [data-theme="ocean"] .card {
   background: rgba(255,255,255,0.20);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(2px);
   box-shadow: 0 2px 20px rgba(0,100,160,0.1), inset 0 1px 0 rgba(255,255,255,0.7);
   transition: box-shadow 0.2s, transform 0.2s;
 }
@@ -416,7 +416,7 @@
 }
 [data-theme="snow"] .card {
   background: rgba(255,255,255,0.20);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(2px);
   box-shadow: 0 2px 20px rgba(100,140,180,0.12), inset 0 1px 0 rgba(255,255,255,0.8);
   transition: box-shadow 0.2s, transform 0.2s;
 }
@@ -564,7 +564,7 @@
 }
 [data-theme="boba"] .card {
   background: rgba(255,255,255,0.20);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(2px);
   box-shadow: 0 2px 20px rgba(90,60,30,0.12), inset 0 1px 0 rgba(255,255,255,0.6);
   transition: box-shadow 0.2s, transform 0.2s;
 }
@@ -579,7 +579,7 @@
 }
 [data-theme="junkfood"] .card {
   background: rgba(255,255,255,0.20);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(2px);
   box-shadow: 0 2px 20px rgba(180,80,20,0.10), inset 0 1px 0 rgba(255,255,255,0.6);
   transition: box-shadow 0.2s, transform 0.2s;
 }
@@ -610,7 +610,7 @@
 }
 [data-theme="retro"] .card {
   background: rgba(18,18,42,0.30);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(2px);
   border-color: rgba(255,68,68,0.15);
   box-shadow: 0 4px 24px rgba(0,0,0,0.5), 0 0 30px rgba(255,68,68,0.04), 0 0 60px rgba(68,255,68,0.02);
   transition: box-shadow 0.2s, transform 0.2s;
@@ -664,7 +664,7 @@
 }
 [data-theme="space"] .card {
   background: rgba(10,6,24,0.25);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(2px);
   box-shadow: 0 4px 30px rgba(0,0,0,0.6), 0 0 60px rgba(124,77,255,0.04);
   transition: box-shadow 0.2s, transform 0.2s;
 }
@@ -686,7 +686,7 @@
 }
 [data-theme="neon"] .card {
   background: rgba(14,10,24,0.25);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(2px);
   border-color: rgba(255,45,149,0.15);
   box-shadow: 0 4px 30px rgba(0,0,0,0.6), 0 0 30px rgba(255,45,149,0.06), 0 0 60px rgba(0,255,204,0.03);
   transition: box-shadow 0.2s, transform 0.2s;
@@ -717,7 +717,7 @@
 }
 [data-theme="candy"] .card {
   background: rgba(255,255,255,0.25);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(2px);
   box-shadow: 0 2px 20px rgba(224,64,160,0.08), inset 0 1px 0 rgba(255,255,255,0.7);
   transition: box-shadow 0.2s, transform 0.2s;
 }
@@ -732,7 +732,7 @@
 }
 [data-theme="fruitsalad"] .card {
   background: rgba(255,255,255,0.20);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(2px);
   box-shadow: 0 2px 20px rgba(200,80,80,0.08), inset 0 1px 0 rgba(255,255,255,0.6);
   transition: box-shadow 0.2s, transform 0.2s;
 }
@@ -987,7 +987,7 @@
   border-color: #0a3a0a;
   background: rgba(5,15,5,0.20);
   box-shadow: 0 0 30px rgba(0,255,65,0.04), inset 0 0 60px rgba(0,255,65,0.02);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(2px);
 }
 [data-theme="matrix"] .profile-name,
 [data-theme="matrix"] .section-title {
@@ -1017,7 +1017,7 @@
 [data-theme="replicant"] .card {
   background: rgba(14,17,24,0.25);
   box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 60px rgba(255,45,123,0.03), 0 0 80px rgba(0,229,255,0.02);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(2px);
   border-color: rgba(26,32,48,0.7);
 }
 [data-theme="replicant"] .card:hover {
@@ -1050,7 +1050,7 @@
 [data-theme="br2049"] .card {
   background: rgba(42,22,8,0.35);
   box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 60px rgba(232,112,32,0.06);
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(2px);
   border-color: rgba(200,120,50,0.2);
 }
 [data-theme="br2049"] .card:hover {
@@ -1103,8 +1103,8 @@ body {
   max-width: 720px;
   margin: 0 auto;
   background: color-mix(in srgb, var(--card) 20%, transparent);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   border: 1px solid color-mix(in srgb, var(--border) 25%, transparent);
   border-radius: 12px;
   padding: 2.5rem;
@@ -1358,7 +1358,7 @@ body {
 .picker-modal-backdrop {
   position: fixed; inset: 0; z-index: 200;
   background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(2px);
   display: flex; align-items: center; justify-content: center;
   padding: 1rem;
 }
