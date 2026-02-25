@@ -33,7 +33,7 @@ impl Fairing for SecurityHeaders {
         // Allow specific CDN for Bootstrap Icons font
         let csp = "default-src 'self'; \
                     script-src 'self'; \
-                    style-src 'self' 'unsafe-inline'; \
+                    style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; \
                     img-src 'self' data: https:; \
                     font-src 'self' https://cdn.jsdelivr.net; \
                     connect-src 'self'; \
