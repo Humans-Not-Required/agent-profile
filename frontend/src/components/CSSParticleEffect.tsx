@@ -126,6 +126,14 @@ export function CSSParticleEffect({ effect, foreground = false }: Props) {
       kfParts.push(
         `@keyframes ${wanderName}{0%{transform:translateX(0)}33%{transform:translateX(${wanderRange * wanderSign}vw)}66%{transform:translateX(${-wanderRange * wanderSign * 0.6}vw)}100%{transform:translateX(0)}}`
       )
+      // Animation assignment rules — use !important to override prefers-reduced-motion blanket kill.
+      // Particle effects are opt-in decorative content (toggle-controlled), not UI chrome.
+      kfParts.push(
+        `[data-particles] .p${i}o{animation:${wanderName} ${p.wanderDuration}s ease-in-out ${p.delay}s infinite!important}`
+      )
+      kfParts.push(
+        `[data-particles] .p${i}i{animation:${fallName} ${p.duration}s linear ${p.delay}s infinite!important}`
+      )
     }
 
     return { particles: result, keyframesCSS: kfParts.join('\n') }
@@ -161,20 +169,20 @@ export function CSSParticleEffect({ effect, foreground = false }: Props) {
         return (
           <div
             key={p.id}
+            className={`p${p.id}o`}
             style={{
               position: 'absolute',
               left: `${p.x}%`,
               top: `${p.startY}%`,
               willChange: 'transform',
-              animation: `${wanderName} ${p.wanderDuration}s ease-in-out ${p.delay}s infinite`,
             }}
           >
             <div
+              className={`p${p.id}i`}
               style={{
                 fontSize: `${p.size}px`,
                 opacity: p.opacity,
                 willChange: 'transform',
-                animation: `${fallName} ${p.duration}s linear ${p.delay}s infinite`,
                 lineHeight: 1,
                 userSelect: 'none',
                 ...extraStyle,
