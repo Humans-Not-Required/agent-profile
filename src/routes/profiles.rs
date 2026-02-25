@@ -8,6 +8,7 @@ use chrono::Utc;
 use std::sync::Mutex;
 
 use crate::models::*;
+use crate::ratelimit::WriteRateLimit;
 
 pub type DbConn = Mutex<Connection>;
 
@@ -584,6 +585,7 @@ pub fn update_profile(
     username: &str,
     body: Json<UpdateProfileRequest>,
     api_key: ApiKey,
+    _write_limit: WriteRateLimit,
 ) -> Result<Json<serde_json::Value>, (Status, Json<serde_json::Value>)> {
     let username = username.to_lowercase();
     let conn = db.lock().unwrap();
@@ -1026,6 +1028,7 @@ pub fn add_address(
     username: &str,
     body: Json<AddAddressRequest>,
     api_key: ApiKey,
+    _write_limit: WriteRateLimit,
 ) -> Result<(Status, Json<serde_json::Value>), (Status, Json<serde_json::Value>)> {
     let username = username.to_lowercase();
     let conn = db.lock().unwrap();
@@ -1110,6 +1113,7 @@ pub fn add_link(
     username: &str,
     body: Json<AddLinkRequest>,
     api_key: ApiKey,
+    _write_limit: WriteRateLimit,
 ) -> Result<(Status, Json<serde_json::Value>), (Status, Json<serde_json::Value>)> {
     let username = username.to_lowercase();
     let conn = db.lock().unwrap();
@@ -1204,6 +1208,7 @@ pub fn add_section(
     username: &str,
     body: Json<AddSectionRequest>,
     api_key: ApiKey,
+    _write_limit: WriteRateLimit,
 ) -> Result<(Status, Json<serde_json::Value>), (Status, Json<serde_json::Value>)> {
     let username = username.to_lowercase();
     let conn = db.lock().unwrap();
@@ -1371,6 +1376,7 @@ pub fn add_skill(
     username: &str,
     body: Json<AddSkillRequest>,
     api_key: ApiKey,
+    _write_limit: WriteRateLimit,
 ) -> Result<(Status, Json<serde_json::Value>), (Status, Json<serde_json::Value>)> {
     let username = username.to_lowercase();
     let conn = db.lock().unwrap();
@@ -2012,6 +2018,7 @@ pub fn add_endorsement(
     username: &str,
     body: Json<AddEndorsementRequest>,
     api_key: ApiKey,
+    _write_limit: WriteRateLimit,
 ) -> Result<Json<serde_json::Value>, (Status, Json<serde_json::Value>)> {
     let endorsee_username = username.to_lowercase();
     let endorser_username = body.from.to_lowercase();

@@ -3,6 +3,8 @@ use rocket::local::blocking::Client;
 use uuid::Uuid;
 
 fn test_client() -> Client {
+    // Relax write rate limit for integration tests (default 30/min too low for bulk tests)
+    std::env::set_var("WRITE_RATE_LIMIT", "10000");
     let db_path = format!("/tmp/agent_profile_test_{}.db", Uuid::new_v4());
     let rocket = agent_profile::create_rocket(&db_path);
     Client::tracked(rocket).expect("valid rocket instance")
@@ -2318,4 +2320,38 @@ fn test_sub_resource_count_limit_skills() {
         .body(serde_json::json!({"skill": "too-many"}).to_string())
         .dispatch();
     assert_eq!(resp.status(), Status::UnprocessableEntity);
+}
+
+#[test]
+fn test_write_rate_limit() {
+    // Use a low write rate limit for this specific test
+    std::env::set_var("WRITE_RATE_LIMIT", "3");
+    let db_path = format!("/tmp/agent_profile_test_{}.db", uuid::Uuid::new_v4());
+    let rocket = agent_profile::create_rocket(&db_path);
+    let client = Client::tracked(rocket).expect("valid rocket instance");
+
+    let (_, reg) = register(&client, "write-rl-test");
+    let key = reg["api_key"].as_str().unwrap().to_string();
+
+    // First 3 writes should succeed (within limit)
+    for i in 0..3 {
+        let resp = client.post("/api/v1/profiles/write-rl-test/skills")
+            .header(ContentType::JSON)
+            .header(Header::new("X-API-Key", key.clone()))
+            .body(serde_json::json!({"skill": format!("rl-skill-{}", i)}).to_string())
+            .dispatch();
+        assert_eq!(resp.status(), Status::Created, "write {} should succeed", i);
+    }
+
+    // 4th should hit rate limit
+    let resp = client.post("/api/v1/profiles/write-rl-test/skills")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(serde_json::json!({"skill": "rl-skill-blocked"}).to_string())
+        .dispatch();
+    assert_eq!(resp.status(), Status::TooManyRequests,
+        "4th write should be rate limited");
+
+    // Reset for other tests
+    std::env::set_var("WRITE_RATE_LIMIT", "10000");
 }

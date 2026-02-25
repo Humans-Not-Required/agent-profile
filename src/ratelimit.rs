@@ -128,6 +128,34 @@ impl<'r> FromRequest<'r> for ChallengeRateLimit {
     }
 }
 
+
+/// Request guard: allow max 30 write operations (POST/PATCH/DELETE) per IP per minute.
+/// Prevents rapid-fire sub-resource spam even with valid API keys.
+pub struct WriteRateLimit;
+
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for WriteRateLimit {
+    type Error = ();
+
+    async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+        let rl = match request.guard::<&State<RateLimiter>>().await {
+            Outcome::Success(s) => s,
+            _ => return Outcome::Success(WriteRateLimit),
+        };
+        let limit = std::env::var("WRITE_RATE_LIMIT")
+            .ok()
+            .and_then(|v| v.parse::<usize>().ok())
+            .unwrap_or(30);
+        let ip = client_ip(request);
+        let key = format!("write:{}", ip);
+        if rl.check(&key, limit, Duration::from_secs(60)) {
+            Outcome::Success(WriteRateLimit)
+        } else {
+            Outcome::Error((Status::TooManyRequests, ()))
+        }
+    }
+}
+
 // ── Unit tests ────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
