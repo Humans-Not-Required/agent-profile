@@ -1032,10 +1032,13 @@ function initWinterState(w: number, h: number): WinterState {
 
   for (let layer = 0; layer < 3; layer++) {
     const layerTrees: WinterTree[] = []
-    const treeCount = layer === 0 ? 4 : layer === 1 ? 6 : 8
+    const treeCount = layer === 0 ? 8 : layer === 1 ? 12 : 16
     const treeScale = layer === 0 ? 0.5 : layer === 1 ? 0.7 : 1.0
     for (let t = 0; t < treeCount; t++) {
-      const tx = (w / (treeCount + 1)) * (t + 0.5 + (Math.sin(t * 7.3 + layer * 13) * 0.4))
+      // Distribute evenly across full width with moderate random jitter
+      const spacing = w / treeCount
+      const jitter = (Math.random() - 0.5) * spacing * 0.6
+      const tx = spacing * (t + 0.5) + jitter
       const hillY = hillBase[layer]
         - Math.sin(tx * hillFreq[layer] + hillPhase[layer]) * hillAmp[layer]
         - Math.sin(tx * hillFreq[layer] * 2.3 + hillPhase[layer] * 1.7) * hillAmp[layer] * 0.3
@@ -1122,26 +1125,16 @@ function drawWinterLandscape(
       drawPineTree(ctx, tree)
     }
 
-    // Christmas lights on trees (twinkling)
+    // Christmas lights on trees (twinkling, no glow)
     if (christmas) {
       for (const tree of state.trees[layer]) {
         for (const light of tree.lights) {
           const twinkle = 0.5 + 0.5 * Math.sin(time * 0.003 + light.phase)
           const alpha = 0.5 + 0.5 * twinkle
-          // Subtle glow halo
-          ctx.beginPath()
-          ctx.arc(light.x, light.y, light.radius * 1.8, 0, Math.PI * 2)
-          ctx.fillStyle = light.color + Math.round(alpha * 0.15 * 255).toString(16).padStart(2, '0')
-          ctx.fill()
-          // Solid bulb
+          // Solid bulb only
           ctx.beginPath()
           ctx.arc(light.x, light.y, light.radius, 0, Math.PI * 2)
           ctx.fillStyle = light.color + Math.round(alpha * 255).toString(16).padStart(2, '0')
-          ctx.fill()
-          // Tiny specular highlight
-          ctx.beginPath()
-          ctx.arc(light.x, light.y, light.radius * 0.3, 0, Math.PI * 2)
-          ctx.fillStyle = `rgba(255,255,255,${alpha * 0.5})`
           ctx.fill()
         }
       }
