@@ -1679,17 +1679,18 @@ interface WastelandState {
 
 function initWastelandState(w: number, h: number, foreground: boolean): WastelandState {
   // Skyline — jagged silhouette of ruined buildings
-  const buildingCount = Math.floor(w / 30) + 10
-  const topShapes: WastelandBuilding['topShape'][] = ['flat', 'slant-left', 'slant-right', 'peak', 'notch', 'step']
+  const buildingCount = Math.floor(w / 35) + 8
+  // Fewer peaks/needles — weight toward blocky shapes
+  const topShapes: WastelandBuilding['topShape'][] = ['flat', 'flat', 'slant-left', 'slant-right', 'notch', 'step', 'step', 'peak']
   const buildings: WastelandBuilding[] = Array.from({ length: buildingCount }, (_, i) => {
-    const bw = 15 + Math.random() * 40
+    const bw = 30 + Math.random() * 50  // min 30px — no impossibly thin buildings
     return {
       x: (i / buildingCount) * (w + 100) - 50,
       width: bw,
-      height: h * 0.08 + Math.random() * h * 0.35,
-      hasAntenna: Math.random() > 0.7,
+      height: h * 0.06 + Math.random() * h * 0.28,
+      hasAntenna: Math.random() > 0.88,  // rare antennas (12% instead of 30%)
       topShape: topShapes[Math.floor(Math.random() * topShapes.length)],
-      topParam: 0.2 + Math.random() * 0.6,
+      topParam: 0.15 + Math.random() * 0.4,  // less dramatic shapes
     }
   })
 
@@ -1716,7 +1717,7 @@ function spawnSpinner(w: number, h: number): Spinner {
   const goingRight = Math.random() > 0.3   // mostly moving away (right)
   return {
     x: goingRight ? -60 : w + 60,
-    y: h * 0.1 + Math.random() * h * 0.4,  // upper half of sky
+    y: h * 0.15 + Math.random() * h * 0.4,  // in the sky above skyline
     speed: (goingRight ? 1 : -1) * (0.5 + size * 1.5 + Math.random()),  // closer = faster
     size,
     ledColor: Math.random() > 0.5 ? 'rgba(255,60,30,A)' : 'rgba(255,160,40,A)',
@@ -1741,7 +1742,7 @@ function drawWasteland(
     state.hazeDrift += 0.0002
 
     // Draw city skyline silhouette — fully opaque
-    const skylineY = h * 0.45  // horizon line
+    const skylineY = h * 0.62  // horizon line — lower to show more sky
     ctx.fillStyle = '#1a0c02'
     for (const b of state.buildings) {
       const baseY = skylineY + (h - skylineY) * 0.05
@@ -1762,7 +1763,8 @@ function drawWasteland(
           break
         case 'peak':
           ctx.lineTo(b.x, topY)
-          ctx.lineTo(b.x + b.width * (0.3 + b.topParam * 0.4), topY - slopeH)
+          ctx.lineTo(b.x + b.width * 0.3, topY - slopeH)
+          ctx.lineTo(b.x + b.width * 0.7, topY - slopeH)  // wide flat-top peak, not a needle
           ctx.lineTo(b.x + b.width, topY)
           break
         case 'notch':
@@ -1787,11 +1789,10 @@ function drawWasteland(
       ctx.closePath()
       ctx.fill()
 
-      // Antenna spire
-      if (b.hasAntenna) {
-        const antennaX = b.topShape === 'peak' ? b.x + b.width * (0.3 + b.topParam * 0.4) : b.x + b.width * 0.45
-        const antennaBase = b.topShape === 'peak' ? topY - slopeH : topY
-        ctx.fillRect(antennaX - 1, antennaBase - b.height * 0.25, 2, b.height * 0.25)
+      // Antenna spire — only on flat/step tops (not peaks which already have points)
+      if (b.hasAntenna && b.topShape !== 'peak') {
+        const antennaX = b.x + b.width * 0.45
+        ctx.fillRect(antennaX - 1.5, topY - b.height * 0.15, 3, b.height * 0.15)
       }
 
       // Window glows — dim orange squares (sparse)
@@ -1811,10 +1812,29 @@ function drawWasteland(
       }
     }
 
-    // Distant bridge/overpass silhouettes
-    ctx.fillStyle = '#1a0c02'
-    ctx.fillRect(0, skylineY + h * 0.08, w, 4)
-    ctx.fillRect(w * 0.2, skylineY + h * 0.15, w * 0.6, 3)
+    // Curvy road leading toward the city (perspective vanishing point)
+    const roadVanishX = w * 0.5   // road converges to center
+    const roadVanishY = skylineY + h * 0.02
+    ctx.save()
+    // Road surface — dark asphalt
+    ctx.fillStyle = '#0f0805'
+    ctx.beginPath()
+    ctx.moveTo(roadVanishX - 8, roadVanishY)   // narrow at horizon
+    ctx.quadraticCurveTo(w * 0.35, h * 0.82, w * 0.05, h + 10)  // left edge curves left
+    ctx.lineTo(w * 0.65, h + 10)               // wide at bottom
+    ctx.quadraticCurveTo(w * 0.65, h * 0.82, roadVanishX + 8, roadVanishY)  // right edge curves
+    ctx.closePath()
+    ctx.fill()
+    // Center line — dashed yellow/orange
+    ctx.strokeStyle = 'rgba(200,120,30,0.25)'
+    ctx.lineWidth = 1.5
+    ctx.setLineDash([12, 18])
+    ctx.beginPath()
+    ctx.moveTo(roadVanishX, roadVanishY)
+    ctx.quadraticCurveTo(w * 0.48, h * 0.82, w * 0.35, h + 10)
+    ctx.stroke()
+    ctx.setLineDash([])
+    ctx.restore()
 
     // ── Flying spinner cars ──
     for (const sp of state.spinners) {
