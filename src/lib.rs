@@ -89,11 +89,11 @@ pub fn create_rocket(db_path: &str) -> rocket::Rocket<rocket::Build> {
     db::init_db(&conn).expect("Failed to initialize database");
     let db_state = Mutex::new(conn);
 
-    let addr = std::env::var("ROCKET_ADDRESS").unwrap_or_else(|_| "0.0.0.0".to_string());
+    let addr = std::env::var("ROCKET_ADDRESS").unwrap_or_else(|_| "127.0.0.1".to_string());
     let port: u16 = std::env::var("ROCKET_PORT")
         .ok()
         .and_then(|p| p.parse().ok())
-        .unwrap_or(8003);
+        .unwrap_or(8000);
 
     let figment = rocket::Config::figment()
         .merge(("address", addr))
