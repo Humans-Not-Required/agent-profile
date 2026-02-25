@@ -133,6 +133,7 @@ export function CSSParticleEffect({ effect, foreground = false }: Props) {
 
   return (
     <div
+      data-particles=""
       style={{
         position: 'fixed',
         inset: 0,

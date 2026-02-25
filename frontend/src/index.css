@@ -1477,6 +1477,10 @@ body {
 }
 
 /* ── Reduced motion ── */
+/* Respect accessibility preference for UI transitions, but particle effects
+   are opt-in decorative content — users control them via the particle toggle.
+   Killing particle animations here makes them invisible (stuck off-screen at
+   startY: -15%) which looks like a bug, not an accessibility win. */
 @media (prefers-reduced-motion: reduce) {
-  * { transition: none !important; animation: none !important; }
+  *:not([data-particles] *) { transition: none !important; animation: none !important; }
 }
