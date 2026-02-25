@@ -6,9 +6,7 @@ import { Sections } from './components/Sections'
 // Skills component removed from display (data kept in API for discovery)
 import { CryptoAddresses } from './components/CryptoAddresses'
 import { ParticleEffect } from './components/ParticleEffect'
-import type { EffectName } from './components/ParticleEffect'
-import { ThemeToggle } from './components/ThemeToggle'
-import { ParticleToggle } from './components/ParticleToggle'
+import { ThemeToggle, THEME_EFFECT_MAP } from './components/ThemeToggle'
 import Endorsements from './components/Endorsements'
 import SimilarProfiles from './components/SimilarProfiles'
 
@@ -53,9 +51,8 @@ export default function App() {
   // Theme: localStorage overrides profile default
   const [theme, setTheme] = useState<string>('dark')
 
-  // Particles: localStorage can override both enabled state and effect choice
+  // Particles: on/off only — effect is derived from theme
   const [particlesEnabled, setParticlesEnabled] = useState<boolean>(true)
-  const [particleEffect, setParticleEffect] = useState<EffectName>('none')
 
   // Cinema mode: hide profile, show only background + particles
   const [cinemaMode, setCinemaMode] = useState(false)
@@ -98,12 +95,11 @@ export default function App() {
         setTheme(resolved)
         document.documentElement.setAttribute('data-theme', resolved)
 
-        // ── Particles: localStorage wins ──
+        // ── Particles: on/off from localStorage or profile default ──
         const localParticles = localStorage.getItem(`particles:${username}`)
-        const localEffect = localStorage.getItem(`particle-effect:${username}`)
-        const profileEffect = (p.particle_effect ?? 'none') as EffectName
         setParticlesEnabled(localParticles !== null ? localParticles === '1' : (p.particle_enabled ?? false))
-        setParticleEffect(localEffect ? localEffect as EffectName : profileEffect)
+        // Clean stale particle-effect localStorage key (no longer used)
+        localStorage.removeItem(`particle-effect:${username}`)
       })
       .catch(e => setError(e.message))
   }, [username])
@@ -111,15 +107,6 @@ export default function App() {
   function changeTheme(t: string) {
     setTheme(t)
     document.documentElement.setAttribute('data-theme', t)
-  }
-
-  function changeParticles(effect: EffectName | 'none') {
-    if (effect === 'none') {
-      setParticlesEnabled(false)
-    } else {
-      setParticlesEnabled(true)
-      setParticleEffect(effect)
-    }
   }
 
   function copyToClipboard(text: string) {
@@ -153,18 +140,19 @@ export default function App() {
   const createdDate = profile.created_at.slice(0, 10)
   const updatedDate = profile.updated_at ? profile.updated_at.slice(0, 10) : createdDate
   const jsonUrl = `/api/v1/profiles/${profile.username}`
+  const activeEffect = THEME_EFFECT_MAP[theme] ?? 'none'
   return (
     <>
       {/* Particle canvas — behind everything */}
       <ParticleEffect
-        effect={particleEffect}
+        effect={activeEffect}
         enabled={particlesEnabled}
         seasonal={profile.particle_seasonal ?? false}
         theme={theme}
       />
       {/* Foreground particle layer — sparse, above content for depth */}
       <ParticleEffect
-        effect={particleEffect}
+        effect={activeEffect}
         enabled={particlesEnabled}
         seasonal={profile.particle_seasonal ?? false}
         foreground
@@ -260,20 +248,19 @@ export default function App() {
       >
         <i className={`bi ${cinemaMode ? 'bi-eye' : 'bi-eye-slash'}`} />
       </button>
-      <ParticleToggle
-        enabled={particlesEnabled}
-        activeEffect={particleEffect}
-        username={username}
-        onChange={changeParticles}
-      />
-      <ThemeToggle current={theme} username={username} onChange={changeTheme} onEffectChange={(eff) => {
-        if (eff === 'none') {
-          setParticlesEnabled(false)
-        } else {
-          setParticlesEnabled(true)
-          setParticleEffect(eff)
-        }
-      }} />
+      <button
+        onClick={() => {
+          const next = !particlesEnabled
+          setParticlesEnabled(next)
+          localStorage.setItem(`particles:${username}`, next ? '1' : '0')
+        }}
+        title={particlesEnabled ? 'Particles on' : 'Particles off'}
+        aria-label={particlesEnabled ? 'Turn off particles' : 'Turn on particles'}
+        className={`picker-fab picker-fab-secondary${particlesEnabled ? ' picker-fab-active' : ''}`}
+      >
+        <i className={`bi ${particlesEnabled ? 'bi-stars' : 'bi-circle'}`} />
+      </button>
+      <ThemeToggle current={theme} username={username} onChange={changeTheme} />
 
       {/* ── Toast ── */}
       <div className={`toast ${toast ? 'show' : ''}`} style={{ zIndex: 200 }}>Copied!</div>

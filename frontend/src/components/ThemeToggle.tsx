@@ -96,29 +96,15 @@ interface Props {
   current: string
   username: string
   onChange: (theme: string) => void
-  onEffectChange?: (effect: EffectName) => void
 }
 
-export function ThemeToggle({ current, username, onChange, onEffectChange }: Props) {
+export function ThemeToggle({ current, username, onChange }: Props) {
   const [open, setOpen] = useState(false)
 
   function select(id: string) {
     onChange(id)
     localStorage.setItem(`theme:${username}`, id)
     document.documentElement.setAttribute('data-theme', id)
-
-    const mappedEffect = THEME_EFFECT_MAP[id] ?? 'none'
-    if (onEffectChange) {
-      onEffectChange(mappedEffect)
-      if (mappedEffect === 'none') {
-        localStorage.setItem(`particles:${username}`, '0')
-        localStorage.removeItem(`particle-effect:${username}`)
-      } else {
-        localStorage.setItem(`particles:${username}`, '1')
-        localStorage.setItem(`particle-effect:${username}`, mappedEffect)
-      }
-    }
-
     setOpen(false)
   }
 

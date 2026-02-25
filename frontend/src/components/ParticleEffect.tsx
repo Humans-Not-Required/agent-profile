@@ -9,7 +9,7 @@ const CSS_EFFECTS = new Set<EffectName>(['leaves', 'snow', 'fruit', 'junkfood', 
 interface Props {
   effect: EffectName
   enabled: boolean
-  seasonal: boolean
+  seasonal?: boolean    // defaults to false
   foreground?: boolean  // if true, render fewer particles above content
   theme?: string        // current theme name — drives Christmas lights, replicant rooftops, etc.
 }

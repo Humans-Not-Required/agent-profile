@@ -1254,16 +1254,14 @@ body {
   display: grid; gap: 4px;
 }
 .picker-grid-themes { grid-template-columns: repeat(4, 1fr); }
-.picker-grid-effects { grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 0.5rem; }
-.picker-item, .picker-effect-item {
+.picker-item {
   display: flex; flex-direction: column; align-items: center; gap: 3px;
   padding: 0.4rem 0.25rem; background: transparent;
   border: 1px solid transparent; border-radius: 8px;
   cursor: pointer; color: var(--text); font-size: 0.75rem;
   transition: background 0.15s, border-color 0.15s;
 }
-.picker-effect-item { flex-direction: row; gap: 0.5rem; padding: 0.5rem 0.65rem; font-size: 0.82rem; }
-.picker-item:hover, .picker-effect-item:hover { background: var(--tag-bg); }
+.picker-item:hover { background: var(--tag-bg); }
 .picker-item-active { background: var(--tag-bg); border-color: var(--accent); color: var(--accent); }
 .picker-surprise-btn {
   display: flex; align-items: center; justify-content: center; gap: 0.4rem;
