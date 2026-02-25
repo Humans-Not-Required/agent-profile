@@ -1,0 +1,11 @@
+target/
+frontend/node_modules/
+.git/
+.github/
+sdk/
+*.png
+*.db
+*.db-wal
+*.db-shm
+.playwright-mcp/
+.claude/
