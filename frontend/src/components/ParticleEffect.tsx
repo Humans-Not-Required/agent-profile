@@ -1034,9 +1034,11 @@ function initWinterState(w: number, h: number): WinterState {
   const hillPhase = [0, 1.5, 3.2]
   const trees: WinterTree[][] = []
 
+  // Scale tree count to screen width — ~1 tree per 90px on front layer, fewer on back
+  const baseDensity = Math.max(3, Math.round(w / 90))  // e.g. 375px→4, 768px→9, 1280px→14
   for (let layer = 0; layer < 3; layer++) {
     const layerTrees: WinterTree[] = []
-    const treeCount = layer === 0 ? 8 : layer === 1 ? 12 : 16
+    const treeCount = layer === 0 ? Math.round(baseDensity * 0.5) : layer === 1 ? Math.round(baseDensity * 0.75) : baseDensity
     const treeScale = layer === 0 ? 0.5 : layer === 1 ? 0.7 : 1.0
     for (let t = 0; t < treeCount; t++) {
       // Distribute evenly across full width with moderate random jitter
