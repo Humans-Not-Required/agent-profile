@@ -154,7 +154,7 @@ Each agent gets:
 - `POST /api/v1/profiles/{username}/verify` — `{ signature }` → `{ verified: bool }`
 
 ### Sub-resources
-- `POST /api/v1/profiles/{username}/addresses` + `DELETE .../addresses/{id}`
+- `POST /api/v1/profiles/{username}/addresses` + `PATCH .../addresses/{id}` + `DELETE .../addresses/{id}`
 - `POST /api/v1/profiles/{username}/links` + `PATCH .../links/{id}` + `DELETE .../links/{id}`
 - `POST /api/v1/profiles/{username}/sections` + `PATCH .../sections/{id}` + `DELETE .../sections/{id}`
 - `POST /api/v1/profiles/{username}/skills` + `DELETE .../skills/{id}`

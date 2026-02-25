@@ -2637,3 +2637,72 @@ fn test_whoami_after_reissue() {
     let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
     assert_eq!(body["username"], "whoami-reissue");
 }
+
+// ===== PATCH crypto addresses =====
+
+#[test]
+fn test_update_address() {
+    let client = test_client();
+    let (_, reg) = register(&client, "addr-patch-test");
+    let key = reg["api_key"].as_str().unwrap().to_string();
+
+    // Add an address
+    let resp = client.post("/api/v1/profiles/addr-patch-test/addresses")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(r#"{"network":"bitcoin","address":"bc1qtest123","label":"Tips"}"#)
+        .dispatch();
+    assert_eq!(resp.status(), Status::Created);
+    let addr: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let addr_id = addr["id"].as_str().unwrap().to_string();
+
+    // Update network and label
+    let url = format!("/api/v1/profiles/addr-patch-test/addresses/{}", addr_id);
+    let resp = client.patch(&url)
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(r#"{"network":"ethereum","label":"ETH Tips"}"#)
+        .dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let updated: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(updated["network"], "ethereum");
+    assert_eq!(updated["label"], "ETH Tips");
+    assert_eq!(updated["address"], "bc1qtest123", "address should be unchanged");
+}
+
+#[test]
+fn test_update_address_invalid_network() {
+    let client = test_client();
+    let (_, reg) = register(&client, "addr-badnet");
+    let key = reg["api_key"].as_str().unwrap().to_string();
+
+    let resp = client.post("/api/v1/profiles/addr-badnet/addresses")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(r#"{"network":"bitcoin","address":"bc1qtest"}"#)
+        .dispatch();
+    let addr: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let addr_id = addr["id"].as_str().unwrap().to_string();
+
+    let url = format!("/api/v1/profiles/addr-badnet/addresses/{}", addr_id);
+    let resp = client.patch(&url)
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(r#"{"network":"fakecoin"}"#)
+        .dispatch();
+    assert_eq!(resp.status(), Status::UnprocessableEntity);
+}
+
+#[test]
+fn test_update_address_not_found() {
+    let client = test_client();
+    let (_, reg) = register(&client, "addr-notfound");
+    let key = reg["api_key"].as_str().unwrap().to_string();
+
+    let resp = client.patch("/api/v1/profiles/addr-notfound/addresses/nonexistent-id")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(r#"{"label":"test"}"#)
+        .dispatch();
+    assert_eq!(resp.status(), Status::NotFound);
+}

@@ -164,6 +164,13 @@ pub struct AddAddressRequest {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct UpdateAddressRequest {
+    pub network: Option<String>,
+    pub address: Option<String>,
+    pub label: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct AddLinkRequest {
     pub url: String,
     pub label: String,

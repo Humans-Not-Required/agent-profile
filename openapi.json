@@ -880,6 +880,68 @@
             "$ref": "#/components/responses/NotFound"
           }
         }
+      },
+      "patch": {
+        "summary": "Update a crypto address",
+        "operationId": "updateAddress",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "network": {
+                    "type": "string"
+                  },
+                  "address": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Address updated"
+          },
+          "401": {
+            "description": "Invalid API key"
+          },
+          "404": {
+            "description": "Profile or address not found"
+          },
+          "422": {
+            "description": "Validation error"
+          }
+        }
       }
     },
     "/profiles/{username}/links": {

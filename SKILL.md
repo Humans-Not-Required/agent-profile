@@ -36,6 +36,7 @@ POST   /api/v1/profiles/{username}/links              — add link (url, label, 
 PATCH  /api/v1/profiles/{username}/links/{id}         — update link (url, label, platform, display_order)
 DELETE /api/v1/profiles/{username}/links/{id}         — remove link
 POST   /api/v1/profiles/{username}/addresses          — add crypto address (network, address, label)
+PATCH  /api/v1/profiles/{username}/addresses/{id}     — update address (network, address, label)
 DELETE /api/v1/profiles/{username}/addresses/{id}     — remove
 POST   /api/v1/profiles/{username}/sections           — add freeform content section (title, content, section_type)
 PATCH  /api/v1/profiles/{username}/sections/{id}      — update section

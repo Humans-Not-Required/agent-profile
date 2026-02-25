@@ -1148,6 +1148,89 @@ pub fn delete_address(
     Ok(Json(json!({"status": "deleted", "id": address_id})))
 }
 
+#[patch("/profiles/<username>/addresses/<address_id>", data = "<body>")]
+pub fn update_address(
+    db: &State<DbConn>,
+    username: &str,
+    address_id: &str,
+    body: Json<UpdateAddressRequest>,
+    api_key: ApiKey,
+    _write_limit: WriteRateLimit,
+) -> Result<Json<serde_json::Value>, (Status, Json<serde_json::Value>)> {
+    let username = username.to_lowercase();
+    let conn = db.lock().unwrap();
+
+    if !verify_api_key(&conn, &username, &api_key.0) {
+        return Err((Status::Unauthorized, Json(json!({"error": "Invalid API key"}))));
+    }
+
+    let profile_id = get_profile_id(&conn, &username)
+        .ok_or_else(|| (Status::NotFound, Json(json!({"error": "Profile not found"}))))?;
+
+    // Verify address exists
+    let exists: bool = conn.query_row(
+        "SELECT COUNT(*) FROM crypto_addresses WHERE id = ?1 AND profile_id = ?2",
+        params![address_id, profile_id],
+        |row| row.get::<_, i64>(0),
+    ).map(|c| c > 0).unwrap_or(false);
+    if !exists {
+        return Err((Status::NotFound, Json(json!({"error": "Address not found"}))));
+    }
+
+    let mut sets: Vec<String> = vec![];
+    let mut values: Vec<Box<dyn rusqlite::types::ToSql>> = vec![];
+
+    if let Some(ref network) = body.network {
+        if !VALID_NETWORKS.contains(&network.as_str()) {
+            return Err((Status::UnprocessableEntity, Json(json!({"error": format!("Invalid network. Allowed: {:?}", VALID_NETWORKS)}))));
+        }
+        sets.push(format!("network = ?{}", values.len() + 1));
+        values.push(Box::new(network.clone()));
+    }
+    if let Some(ref address) = body.address {
+        if address.trim().is_empty() {
+            return Err((Status::UnprocessableEntity, Json(json!({"error": "address cannot be empty"}))));
+        }
+        sets.push(format!("address = ?{}", values.len() + 1));
+        values.push(Box::new(address.trim().to_string()));
+    }
+    if let Some(ref label) = body.label {
+        sets.push(format!("label = ?{}", values.len() + 1));
+        values.push(Box::new(label.clone()));
+    }
+
+    if sets.is_empty() {
+        return Err((Status::UnprocessableEntity, Json(json!({"error": "No fields to update"}))));
+    }
+
+    let sql = format!(
+        "UPDATE crypto_addresses SET {} WHERE id = ?{} AND profile_id = ?{}",
+        sets.join(", "),
+        values.len() + 1,
+        values.len() + 2,
+    );
+    values.push(Box::new(address_id.to_string()));
+    values.push(Box::new(profile_id.clone()));
+
+    let refs: Vec<&dyn rusqlite::types::ToSql> = values.iter().map(|p| p.as_ref()).collect();
+    conn.execute(&sql, refs.as_slice())
+        .map_err(|e| (Status::InternalServerError, Json(json!({"error": e.to_string()}))))?;
+
+    let addr = conn.query_row(
+        "SELECT id, network, address, label, created_at FROM crypto_addresses WHERE id = ?1",
+        params![address_id],
+        |row| Ok(json!({
+            "id": row.get::<_, String>(0)?,
+            "network": row.get::<_, String>(1)?,
+            "address": row.get::<_, String>(2)?,
+            "label": row.get::<_, String>(3)?,
+            "created_at": row.get::<_, String>(4)?,
+        })),
+    ).map_err(|e| (Status::InternalServerError, Json(json!({"error": e.to_string()}))))?;
+
+    Ok(Json(addr))
+}
+
 // --- Sub-resources: Links ---
 
 #[post("/profiles/<username>/links", data = "<body>")]
