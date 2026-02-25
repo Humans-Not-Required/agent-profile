@@ -597,6 +597,7 @@ pub fn update_profile(
     let mut values: Vec<Box<dyn rusqlite::types::ToSql>> = vec![];
 
     if let Some(ref v) = body.display_name {
+        if v.len() > MAX_DISPLAY_NAME { return Err((Status::UnprocessableEntity, Json(json!({"error": format!("display_name max {} chars", MAX_DISPLAY_NAME)})))); }
         updates.push(format!("display_name = ?{}", values.len() + 1));
         values.push(Box::new(v.trim().to_string()));
     }
@@ -611,10 +612,12 @@ pub fn update_profile(
         values.push(Box::new(v.clone()));
     }
     if let Some(ref v) = body.third_line {
+        if v.len() > MAX_THIRD_LINE { return Err((Status::UnprocessableEntity, Json(json!({"error": format!("third_line max {} chars", MAX_THIRD_LINE)})))); }
         updates.push(format!("third_line = ?{}", values.len() + 1));
         values.push(Box::new(v.trim().to_string()));
     }
     if let Some(ref v) = body.avatar_url {
+        if v.len() > MAX_AVATAR_URL { return Err((Status::UnprocessableEntity, Json(json!({"error": format!("avatar_url max {} chars", MAX_AVATAR_URL)})))); }
         updates.push(format!("avatar_url = ?{}", values.len() + 1));
         values.push(Box::new(v.trim().to_string()));
     }
@@ -1040,6 +1043,16 @@ pub fn add_address(
     let profile_id = get_profile_id(&conn, &username)
         .ok_or_else(|| (Status::NotFound, Json(json!({"error": "Profile not found"}))))?;
 
+    // Enforce sub-resource count limit
+    let count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM crypto_addresses WHERE profile_id = ?1",
+        params![profile_id],
+        |row| row.get(0),
+    ).unwrap_or(0);
+    if count as usize >= MAX_ADDRESSES {
+        return Err((Status::UnprocessableEntity, Json(json!({"error": format!("Maximum {} addresses per profile", MAX_ADDRESSES)}))))
+    }
+
     let id = Uuid::new_v4().to_string();
     let ts = now();
 
@@ -1112,9 +1125,25 @@ pub fn add_link(
     if body.url.trim().is_empty() || body.label.trim().is_empty() {
         return Err((Status::UnprocessableEntity, Json(json!({"error": "url and label are required"}))));
     }
+    if body.url.len() > MAX_LINK_URL {
+        return Err((Status::UnprocessableEntity, Json(json!({"error": format!("url max {} chars", MAX_LINK_URL)}))));
+    }
+    if body.label.len() > MAX_LINK_LABEL {
+        return Err((Status::UnprocessableEntity, Json(json!({"error": format!("label max {} chars", MAX_LINK_LABEL)}))));
+    }
 
     let profile_id = get_profile_id(&conn, &username)
         .ok_or_else(|| (Status::NotFound, Json(json!({"error": "Profile not found"}))))?;
+
+    // Enforce sub-resource count limit
+    let count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM profile_links WHERE profile_id = ?1",
+        params![profile_id],
+        |row| row.get(0),
+    ).unwrap_or(0);
+    if count as usize >= MAX_LINKS {
+        return Err((Status::UnprocessableEntity, Json(json!({"error": format!("Maximum {} links per profile", MAX_LINKS)}))))
+    }
 
     let id = Uuid::new_v4().to_string();
     let ts = now();
@@ -1190,12 +1219,25 @@ pub fn add_section(
     if body.title.trim().is_empty() {
         return Err((Status::UnprocessableEntity, Json(json!({"error": "title is required"}))));
     }
+    if body.title.len() > MAX_SECTION_TITLE {
+        return Err((Status::UnprocessableEntity, Json(json!({"error": format!("title max {} chars", MAX_SECTION_TITLE)}))));
+    }
     if body.content.len() > 5000 {
         return Err((Status::UnprocessableEntity, Json(json!({"error": "content max 5000 chars"}))));
     }
 
     let profile_id = get_profile_id(&conn, &username)
         .ok_or_else(|| (Status::NotFound, Json(json!({"error": "Profile not found"}))))?;
+
+    // Enforce sub-resource count limit
+    let count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM profile_sections WHERE profile_id = ?1",
+        params![profile_id],
+        |row| row.get(0),
+    ).unwrap_or(0);
+    if count as usize >= MAX_SECTIONS {
+        return Err((Status::UnprocessableEntity, Json(json!({"error": format!("Maximum {} sections per profile", MAX_SECTIONS)}))))
+    }
 
     let id = Uuid::new_v4().to_string();
     let ts = now();
@@ -1344,6 +1386,16 @@ pub fn add_skill(
 
     let profile_id = get_profile_id(&conn, &username)
         .ok_or_else(|| (Status::NotFound, Json(json!({"error": "Profile not found"}))))?;
+
+    // Enforce sub-resource count limit
+    let count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM profile_skills WHERE profile_id = ?1",
+        params![profile_id],
+        |row| row.get(0),
+    ).unwrap_or(0);
+    if count as usize >= MAX_SKILLS {
+        return Err((Status::UnprocessableEntity, Json(json!({"error": format!("Maximum {} skills per profile", MAX_SKILLS)}))))
+    }
 
     let exists: i64 = conn.query_row(
         "SELECT COUNT(*) FROM profile_skills WHERE profile_id = ?1 AND skill = ?2",
@@ -1998,6 +2050,16 @@ pub fn add_endorsement(
             "error": format!("Profile '{}' not found", endorsee_username)
         })))),
     };
+
+    // Enforce endorsement count limit
+    let endorsement_count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM endorsements WHERE endorsee_id = ?1",
+        params![endorsee_id],
+        |row| row.get(0),
+    ).unwrap_or(0);
+    if endorsement_count as usize >= MAX_ENDORSEMENTS {
+        return Err((Status::UnprocessableEntity, Json(json!({"error": format!("Maximum {} endorsements per profile", MAX_ENDORSEMENTS)}))));
+    }
 
     // Optional: verify secp256k1 signature over the message if provided
     let sig_str = body.signature.clone().unwrap_or_default();

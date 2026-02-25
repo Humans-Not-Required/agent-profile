@@ -33,6 +33,24 @@ pub const VALID_SECTION_TYPES: &[&str] = &[
     "currently_working_on", "currently_learning", "looking_for", "open_to", "custom",
 ];
 
+/// Maximum number of sub-resources per profile.
+pub const MAX_LINKS: usize = 20;
+pub const MAX_SECTIONS: usize = 20;
+pub const MAX_SKILLS: usize = 50;
+pub const MAX_ADDRESSES: usize = 10;
+pub const MAX_ENDORSEMENTS: usize = 100;
+
+/// Maximum field lengths for fields without inline limits.
+pub const MAX_DISPLAY_NAME: usize = 100;
+pub const MAX_THIRD_LINE: usize = 200;
+pub const MAX_AVATAR_URL: usize = 2000;
+pub const MAX_LINK_URL: usize = 2000;
+pub const MAX_LINK_LABEL: usize = 100;
+pub const MAX_SKILL_NAME: usize = 50;
+pub const MAX_ADDRESS_VALUE: usize = 500;
+pub const MAX_ADDRESS_LABEL: usize = 100;
+pub const MAX_SECTION_TITLE: usize = 200;
+
 // --- Sub-resource types ---
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

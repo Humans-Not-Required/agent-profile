@@ -2206,3 +2206,116 @@ fn test_404_json_for_curl() {
     assert!(body["error"].as_str().unwrap().contains("not found") || body["error"].as_str().unwrap().contains("Not found"),
         "should have error message: {}", body["error"]);
 }
+
+// ===== Input Validation Limits =====
+
+#[test]
+fn test_display_name_max_length() {
+    let client = test_client();
+    let (_, reg) = register(&client, "dn-limit-test");
+    let key = reg["api_key"].as_str().unwrap().to_string();
+
+    // 101 chars should fail
+    let long_name = "A".repeat(101);
+    let resp = client.patch("/api/v1/profiles/dn-limit-test")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(serde_json::json!({"display_name": long_name}).to_string())
+        .dispatch();
+    assert_eq!(resp.status(), Status::UnprocessableEntity);
+
+    // 100 chars should work
+    let ok_name = "B".repeat(100);
+    let resp = client.patch("/api/v1/profiles/dn-limit-test")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(serde_json::json!({"display_name": ok_name}).to_string())
+        .dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+}
+
+#[test]
+fn test_link_url_max_length() {
+    let client = test_client();
+    let (_, reg) = register(&client, "link-limit-test");
+    let key = reg["api_key"].as_str().unwrap().to_string();
+
+    // URL over 2000 chars should fail
+    let long_url = format!("https://example.com/{}", "a".repeat(2000));
+    let resp = client.post("/api/v1/profiles/link-limit-test/links")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(serde_json::json!({"url": long_url, "label": "test"}).to_string())
+        .dispatch();
+    assert_eq!(resp.status(), Status::UnprocessableEntity);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert!(body["error"].as_str().unwrap().contains("max"), "error should mention max: {}", body);
+}
+
+#[test]
+fn test_section_title_max_length() {
+    let client = test_client();
+    let (_, reg) = register(&client, "sec-title-limit");
+    let key = reg["api_key"].as_str().unwrap().to_string();
+
+    // Title over 200 chars should fail
+    let long_title = "T".repeat(201);
+    let resp = client.post("/api/v1/profiles/sec-title-limit/sections")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(serde_json::json!({"title": long_title, "content": "ok"}).to_string())
+        .dispatch();
+    assert_eq!(resp.status(), Status::UnprocessableEntity);
+}
+
+#[test]
+fn test_sub_resource_count_limit_links() {
+    let client = test_client();
+    let (_, reg) = register(&client, "link-count-limit");
+    let key = reg["api_key"].as_str().unwrap().to_string();
+
+    // Add 20 links (the maximum)
+    for i in 0..20 {
+        let resp = client.post("/api/v1/profiles/link-count-limit/links")
+            .header(ContentType::JSON)
+            .header(Header::new("X-API-Key", key.clone()))
+            .body(serde_json::json!({"url": format!("https://example.com/{}", i), "label": format!("Link {}", i)}).to_string())
+            .dispatch();
+        assert_eq!(resp.status(), Status::Created, "link {} should succeed", i);
+    }
+
+    // 21st should fail
+    let resp = client.post("/api/v1/profiles/link-count-limit/links")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(serde_json::json!({"url": "https://example.com/21", "label": "Too many"}).to_string())
+        .dispatch();
+    assert_eq!(resp.status(), Status::UnprocessableEntity);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert!(body["error"].as_str().unwrap().contains("Maximum"), "error should mention limit: {}", body);
+}
+
+#[test]
+fn test_sub_resource_count_limit_skills() {
+    let client = test_client();
+    let (_, reg) = register(&client, "skill-count-limit");
+    let key = reg["api_key"].as_str().unwrap().to_string();
+
+    // Add 50 skills (the maximum)
+    for i in 0..50 {
+        let resp = client.post("/api/v1/profiles/skill-count-limit/skills")
+            .header(ContentType::JSON)
+            .header(Header::new("X-API-Key", key.clone()))
+            .body(serde_json::json!({"skill": format!("skill-{}", i)}).to_string())
+            .dispatch();
+        assert_eq!(resp.status(), Status::Created, "skill {} should succeed", i);
+    }
+
+    // 51st should fail
+    let resp = client.post("/api/v1/profiles/skill-count-limit/skills")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(serde_json::json!({"skill": "too-many"}).to_string())
+        .dispatch();
+    assert_eq!(resp.status(), Status::UnprocessableEntity);
+}
