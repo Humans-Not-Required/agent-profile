@@ -2044,3 +2044,165 @@ fn test_landing_page_og_tags() {
     assert!(body.contains(r##"og:type" content="website""##), "landing page should have og:type");
     assert!(body.contains(r##"twitter:card" content="summary""##), "landing page should have twitter:card");
 }
+
+// ===== Security Headers =====
+
+#[test]
+fn test_security_headers_on_api() {
+    let client = test_client();
+    let resp = client.get("/api/v1/health").dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+
+    // Check all security headers present
+    let headers = resp.headers();
+    assert!(headers.get_one("Content-Security-Policy").is_some(),
+        "should have Content-Security-Policy header");
+    assert_eq!(headers.get_one("X-Content-Type-Options"), Some("nosniff"),
+        "should have X-Content-Type-Options: nosniff");
+    assert_eq!(headers.get_one("X-Frame-Options"), Some("DENY"),
+        "should have X-Frame-Options: DENY");
+    assert!(headers.get_one("Referrer-Policy").is_some(),
+        "should have Referrer-Policy header");
+    assert!(headers.get_one("Permissions-Policy").is_some(),
+        "should have Permissions-Policy header");
+}
+
+#[test]
+fn test_csp_allows_inline_styles() {
+    let client = test_client();
+    let resp = client.get("/api/v1/health").dispatch();
+    let csp = resp.headers().get_one("Content-Security-Policy").unwrap();
+
+    assert!(csp.contains("style-src 'self' 'unsafe-inline'"),
+        "CSP should allow inline styles for React: {}", csp);
+    assert!(csp.contains("img-src 'self' data: https:"),
+        "CSP should allow data: and https: images: {}", csp);
+    assert!(csp.contains("frame-src 'none'"),
+        "CSP should block iframes: {}", csp);
+    assert!(csp.contains("object-src 'none'"),
+        "CSP should block objects: {}", csp);
+}
+
+#[test]
+fn test_security_headers_on_profile_page() {
+    let client = test_client();
+    register(&client, "sec-headers-profile");
+
+    let resp = client.get("/sec-headers-profile")
+        .header(Header::new("Accept", "text/html"))
+        .dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+
+    assert!(resp.headers().get_one("Content-Security-Policy").is_some(),
+        "profile page should have CSP");
+    assert_eq!(resp.headers().get_one("X-Frame-Options"), Some("DENY"),
+        "profile page should have X-Frame-Options");
+}
+
+// ===== Cache-Control Headers =====
+
+#[test]
+fn test_cache_control_health_no_cache() {
+    let client = test_client();
+    let resp = client.get("/api/v1/health").dispatch();
+    assert_eq!(resp.headers().get_one("Cache-Control"), Some("no-cache"),
+        "health endpoint should be no-cache");
+}
+
+#[test]
+fn test_cache_control_api_short() {
+    let client = test_client();
+    register(&client, "cache-api-test");
+
+    let resp = client.get("/api/v1/profiles/cache-api-test").dispatch();
+    let cc = resp.headers().get_one("Cache-Control").unwrap_or("");
+    assert!(cc.contains("max-age=60"),
+        "API endpoints should have short cache: {}", cc);
+}
+
+#[test]
+fn test_cache_control_skill_md() {
+    let client = test_client();
+    let resp = client.get("/SKILL.md").dispatch();
+    let cc = resp.headers().get_one("Cache-Control").unwrap_or("");
+    assert!(cc.contains("max-age=3600"),
+        "SKILL.md should have 1-hour cache: {}", cc);
+}
+
+#[test]
+fn test_cache_control_robots_txt() {
+    let client = test_client();
+    let resp = client.get("/robots.txt").dispatch();
+    let cc = resp.headers().get_one("Cache-Control").unwrap_or("");
+    assert!(cc.contains("max-age=86400"),
+        "robots.txt should have 1-day cache: {}", cc);
+}
+
+#[test]
+fn test_cache_control_profile_page() {
+    let client = test_client();
+    register(&client, "cache-page-test");
+
+    let resp = client.get("/cache-page-test")
+        .header(Header::new("Accept", "text/html"))
+        .dispatch();
+    let cc = resp.headers().get_one("Cache-Control").unwrap_or("");
+    assert!(cc.contains("max-age=300"),
+        "profile pages should have 5-minute cache: {}", cc);
+}
+
+#[test]
+fn test_cache_control_feed_xml() {
+    let client = test_client();
+    let resp = client.get("/feed.xml").dispatch();
+    let cc = resp.headers().get_one("Cache-Control").unwrap_or("");
+    assert!(cc.contains("max-age=900"),
+        "feed.xml should have 15-minute cache: {}", cc);
+}
+
+// ===== 404 Content Negotiation =====
+
+#[test]
+fn test_404_html_for_browsers() {
+    let client = test_client();
+
+    let resp = client.get("/nonexistent-agent-xyz")
+        .header(Header::new("Accept", "text/html,application/xhtml+xml"))
+        .header(Header::new("User-Agent", "Mozilla/5.0"))
+        .dispatch();
+    assert_eq!(resp.status(), Status::NotFound);
+
+    let body = resp.into_string().unwrap();
+    assert!(body.contains("<!DOCTYPE html>"), "browser 404 should be HTML");
+    assert!(body.contains("404"), "should show 404");
+    assert!(body.contains("Browse all agents"), "should link back to landing page");
+}
+
+#[test]
+fn test_404_json_for_agents() {
+    let client = test_client();
+
+    let resp = client.get("/api/v1/profiles/nonexistent-agent-xyz")
+        .header(Header::new("Accept", "application/json"))
+        .dispatch();
+    assert_eq!(resp.status(), Status::NotFound);
+
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert!(body["error"].as_str().unwrap().contains("not found") || body["error"].as_str().unwrap().contains("Not found"),
+        "should have error message: {}", body["error"]);
+}
+
+#[test]
+fn test_404_json_for_curl() {
+    let client = test_client();
+
+    let resp = client.get("/nonexistent-agent-xyz")
+        .header(Header::new("Accept", "text/html"))
+        .header(Header::new("User-Agent", "curl/8.0"))
+        .dispatch();
+    assert_eq!(resp.status(), Status::NotFound);
+
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert!(body["error"].as_str().unwrap().contains("not found") || body["error"].as_str().unwrap().contains("Not found"),
+        "should have error message: {}", body["error"]);
+}

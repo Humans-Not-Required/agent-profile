@@ -35,7 +35,7 @@ impl Fairing for Cors {
         ));
         response.set_header(Header::new(
             "Access-Control-Allow-Headers",
-            "Content-Type, X-Manage-Token, X-Admin-Key, Authorization",
+            "Content-Type, X-API-Key, X-Manage-Token, X-Admin-Key, Authorization",
         ));
         response.set_header(Header::new(
             "Access-Control-Max-Age",
