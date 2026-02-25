@@ -105,10 +105,10 @@ Auto-discovery link included in landing page `<head>`.
 ## Themes & Particles
 
 **Themes** (set via PATCH, `theme` field):
-`dark` · `light` · `midnight` · `forest` · `ocean` · `desert` · `aurora` · `cream` · `sky` · `lavender` · `sage` · `peach` · `terminator` · `matrix` · `replicant` · `snow` · `christmas` · `halloween` · `spring` · `summer` · `autumn` · `newyear` · `valentine` · `patriot`
+`dark` · `light` · `midnight` · `forest` · `ocean` · `desert` · `aurora` · `cream` · `sky` · `lavender` · `sage` · `peach` · `terminator` · `matrix` · `replicant` · `snow` · `christmas` · `halloween` · `spring` · `summer` · `autumn` · `newyear` · `valentine` · `patriot` · `boba` · `fruitsalad` · `junkfood` · `space` · `neon` · `candy` · `retro` · `coffee`
 
 **Particle effects** (set via PATCH, `particle_effect` field):
-`none` · `snow` · `leaves` · `rain` · `fireflies` · `stars` · `sakura` · `embers` · `digital-rain`
+`none` · `snow` · `leaves` · `rain` · `fireflies` · `stars` · `sakura` · `embers` · `digital-rain` · `flames` · `water` · `boba` · `clouds` · `fruit` · `junkfood` · `warzone` · `hearts` · `cactus` · `candy` · `wasteland`
 
 Set `particle_enabled: true` to show particles; `particle_seasonal: true` for auto-switch by season.
 
@@ -129,7 +129,7 @@ or when `Accept: application/json` is set without `text/html`.
 
 ```
 GET /api/v1/health              — { status, version, service }
-GET /openapi.json               — OpenAPI 3.1.0 spec (28 endpoints)
+GET /openapi.json               — OpenAPI 3.1.0 spec (27 endpoints)
 GET /SKILL.md                   — this file
 GET /llms.txt                   — alias for SKILL.md
 GET /.well-known/skills/index.json — machine-readable skill registry
