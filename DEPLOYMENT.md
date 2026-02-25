@@ -13,7 +13,7 @@
 | Staging | `http://192.168.0.79:3011` | ✅ Live, v0.8.0 |
 | Production | `https://pinche.rs` | ❌ Awaiting DNS setup |
 
-The service is feature-complete (33 themes, 20 particles, 159 tests, similar profiles discovery, export/import, endorsements, crypto identity). Only DNS/routing remains.
+The service is feature-complete (29 themes, 22 particle effects, 159 tests, similar profiles discovery, export/import, endorsements, crypto identity). Only DNS/routing remains.
 
 ---
 
@@ -174,7 +174,7 @@ Then set up Cloudflare Tunnel or nginx + certbot for HTTPS.
 | `ROCKET_ADDRESS` | Yes | `127.0.0.1` | Bind address (`0.0.0.0` in Docker) |
 | `BASE_URL` | Recommended | _(auto-detect)_ | Canonical URL for WebFinger, sitemap, robots.txt |
 | `REGISTER_RATE_LIMIT` | No | `5` | Max registrations per hour per IP |
-| `WRITE_RATE_LIMIT` | No | `60` | Max write operations per minute per IP |
+| `WRITE_RATE_LIMIT` | No | `30` | Max write operations per minute per IP |
 
 ---
 
