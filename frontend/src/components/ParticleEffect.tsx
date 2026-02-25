@@ -1127,21 +1127,21 @@ function drawWinterLandscape(
       for (const tree of state.trees[layer]) {
         for (const light of tree.lights) {
           const twinkle = 0.5 + 0.5 * Math.sin(time * 0.003 + light.phase)
-          const alpha = 0.4 + 0.6 * twinkle
-          // Glow
+          const alpha = 0.5 + 0.5 * twinkle
+          // Subtle glow halo
           ctx.beginPath()
-          ctx.arc(light.x, light.y, light.radius * 3, 0, Math.PI * 2)
-          ctx.fillStyle = light.color + Math.round(alpha * 0.3 * 255).toString(16).padStart(2, '0')
+          ctx.arc(light.x, light.y, light.radius * 1.8, 0, Math.PI * 2)
+          ctx.fillStyle = light.color + Math.round(alpha * 0.15 * 255).toString(16).padStart(2, '0')
           ctx.fill()
-          // Bright center
+          // Solid bulb
           ctx.beginPath()
           ctx.arc(light.x, light.y, light.radius, 0, Math.PI * 2)
           ctx.fillStyle = light.color + Math.round(alpha * 255).toString(16).padStart(2, '0')
           ctx.fill()
-          // White hot center
+          // Tiny specular highlight
           ctx.beginPath()
-          ctx.arc(light.x, light.y, light.radius * 0.4, 0, Math.PI * 2)
-          ctx.fillStyle = `rgba(255,255,255,${alpha * 0.8})`
+          ctx.arc(light.x, light.y, light.radius * 0.3, 0, Math.PI * 2)
+          ctx.fillStyle = `rgba(255,255,255,${alpha * 0.5})`
           ctx.fill()
         }
       }
