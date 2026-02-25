@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { CSSParticleEffect } from './CSSParticleEffect'
 
-export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'embers' | 'digital-rain' | 'flames' | 'water' | 'boba' | 'clouds' | 'fruit' | 'junkfood' | 'warzone' | 'hearts' | 'cactus' | 'candy' | 'wasteland' | 'none'
+export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'embers' | 'digital-rain' | 'flames' | 'water' | 'boba' | 'clouds' | 'fruit' | 'junkfood' | 'warzone' | 'hearts' | 'cactus' | 'candy' | 'wasteland' | 'fireworks' | 'forest' | 'none'
 
 // Effects that use GPU-composited CSS animations instead of canvas
 const CSS_EFFECTS = new Set<EffectName>(['leaves', 'snow', 'fruit', 'junkfood', 'sakura', 'hearts', 'cactus', 'candy'])
@@ -1017,7 +1017,10 @@ interface ChristmasLight {
 interface WinterTree {
   x: number; groundY: number; scale: number; layer: number
   trunkH: number; treeH: number; baseW: number; tiers: number
-  lights: ChristmasLight[]  // pre-generated light positions on this tree
+  snowCoverage: number   // 0-1: how much snow on tips (0 = bare, 1 = full caps)
+  greenHue: number       // variation in green shade
+  lean: number           // slight tilt (-0.1 to 0.1)
+  lights: ChristmasLight[]
 }
 interface WinterState {
   trees: WinterTree[][]  // per layer
@@ -1042,10 +1045,10 @@ function initWinterState(w: number, h: number): WinterState {
       const hillY = hillBase[layer]
         - Math.sin(tx * hillFreq[layer] + hillPhase[layer]) * hillAmp[layer]
         - Math.sin(tx * hillFreq[layer] * 2.3 + hillPhase[layer] * 1.7) * hillAmp[layer] * 0.3
-      const trunkH = (8 + Math.random() * 4) * treeScale
-      const treeH = (30 + Math.random() * 20) * treeScale
-      const baseW = (16 + Math.random() * 8) * treeScale
-      const tiers = 3 + Math.floor(Math.random() * 2)
+      const trunkH = (6 + Math.random() * 6) * treeScale
+      const treeH = (20 + Math.random() * 35) * treeScale  // more height variation
+      const baseW = (12 + Math.random() * 14) * treeScale  // more width variation
+      const tiers = 2 + Math.floor(Math.random() * 3)      // 2-4 tiers
 
       // Pre-generate Christmas light positions along tree edges
       const lightColors = ['#ff2020', '#00cc44', '#ffcc00', '#2288ff', '#ff6600', '#ff44aa']
@@ -1083,6 +1086,9 @@ function initWinterState(w: number, h: number): WinterState {
       layerTrees.push({
         x: tx, groundY: hillY, scale: treeScale, layer,
         trunkH, treeH, baseW, tiers, lights,
+        snowCoverage: 0.2 + Math.random() * 0.8,  // some trees barely have snow, others full
+        greenHue: -15 + Math.random() * 30,        // vary green shade
+        lean: (Math.random() - 0.5) * 0.15,        // slight tilt
       })
     }
     trees.push(layerTrees)
@@ -1154,19 +1160,35 @@ function drawWinterLandscape(
 }
 
 function drawPineTree(ctx: CanvasRenderingContext2D, t: WinterTree) {
-  const { x, groundY, scale, layer, trunkH, treeH, baseW, tiers } = t
+  const { x, groundY, scale, layer, trunkH, treeH, baseW, tiers, snowCoverage, greenHue, lean } = t
 
-  ctx.fillStyle = layer === 0 ? '#8a9aaa' : '#6a5a4a'
+  ctx.save()
+  // Apply lean (tilt)
+  if (lean) {
+    ctx.translate(x, groundY)
+    ctx.rotate(lean)
+    ctx.translate(-x, -groundY)
+  }
+
+  // Trunk — varied brown
+  const trunkShade = layer === 0 ? '#8a9aaa' : `hsl(${25 + greenHue * 0.3}, 25%, ${25 + layer * 8}%)`
+  ctx.fillStyle = trunkShade
   ctx.fillRect(x - 2 * scale, groundY - trunkH, 4 * scale, trunkH)
 
-  const greenShade = layer === 0 ? 'rgba(80,100,90,' : layer === 1 ? 'rgba(50,80,60,' : 'rgba(35,65,45,'
+  // Green foliage — varied hue
+  const gBase = layer === 0 ? [80, 100, 90] : layer === 1 ? [50, 80, 60] : [35, 65, 45]
+  const gR = Math.max(0, Math.min(255, gBase[0] + greenHue))
+  const gG = Math.max(0, Math.min(255, gBase[1] + greenHue * 0.5))
+  const gB = Math.max(0, Math.min(255, gBase[2] + greenHue * 0.3))
+
   for (let i = 0; i < tiers; i++) {
     const frac = i / tiers
     const tierY = groundY - trunkH - frac * treeH
     const tierW = baseW * (1 - frac * 0.6)
     const tierH = treeH / tiers * 1.4
 
-    ctx.fillStyle = greenShade + (0.7 + layer * 0.1) + ')'
+    // Green tier
+    ctx.fillStyle = `rgba(${gR},${gG},${gB},${0.7 + layer * 0.1})`
     ctx.beginPath()
     ctx.moveTo(x, tierY - tierH)
     ctx.lineTo(x - tierW, tierY)
@@ -1174,14 +1196,19 @@ function drawPineTree(ctx: CanvasRenderingContext2D, t: WinterTree) {
     ctx.closePath()
     ctx.fill()
 
-    ctx.fillStyle = layer === 0 ? 'rgba(200,210,225,0.8)' : 'rgba(240,245,250,0.9)'
-    ctx.beginPath()
-    ctx.moveTo(x, tierY - tierH)
-    ctx.lineTo(x - tierW * 0.7, tierY - tierH * 0.35)
-    ctx.lineTo(x + tierW * 0.7, tierY - tierH * 0.35)
-    ctx.closePath()
-    ctx.fill()
+    // Snow cap — only on some tiers based on snowCoverage
+    if (Math.random() < snowCoverage) {
+      const capW = 0.3 + snowCoverage * 0.5  // wider cap = more snow
+      ctx.fillStyle = layer === 0 ? `rgba(200,210,225,${0.5 + snowCoverage * 0.3})` : `rgba(240,245,250,${0.5 + snowCoverage * 0.4})`
+      ctx.beginPath()
+      ctx.moveTo(x, tierY - tierH)
+      ctx.lineTo(x - tierW * capW, tierY - tierH * (0.2 + snowCoverage * 0.2))
+      ctx.lineTo(x + tierW * capW, tierY - tierH * (0.2 + snowCoverage * 0.2))
+      ctx.closePath()
+      ctx.fill()
+    }
   }
+  ctx.restore()
 }
 
 // ── Replicant rooftops (static backdrop for rain on replicant theme) ──
@@ -1936,6 +1963,297 @@ function drawWasteland(
   ctx.restore()
 }
 
+// ── Fireworks (New Year: cityscape + water + fireworks) ──
+
+interface FireworkShell {
+  x: number; y: number; targetY: number
+  vx: number; vy: number
+  color: string; phase: 'rising' | 'exploding' | 'fading'
+  sparks: { x: number; y: number; vx: number; vy: number; life: number }[]
+  life: number; maxLife: number
+}
+
+interface FireworksState {
+  shells: FireworkShell[]
+  buildings: { x: number; w: number; h: number }[]
+  nextLaunch: number
+}
+
+function initFireworksState(w: number, h: number): FireworksState {
+  // City skyline
+  const buildings: FireworksState['buildings'] = []
+  let bx = 0
+  while (bx < w) {
+    const bw = 20 + Math.random() * 40
+    buildings.push({ x: bx, w: bw, h: h * (0.08 + Math.random() * 0.2) })
+    bx += bw
+  }
+  return { shells: [], buildings, nextLaunch: 30 }
+}
+
+function launchFirework(w: number, h: number): FireworkShell {
+  const colors = ['#ff3040', '#40ff60', '#4080ff', '#ffcc00', '#ff60ff', '#00ffcc', '#ff8020', '#ffffff']
+  return {
+    x: w * 0.15 + Math.random() * w * 0.7,
+    y: h * 0.85,
+    targetY: h * (0.1 + Math.random() * 0.3),
+    vx: (Math.random() - 0.5) * 1.5,
+    vy: -(4 + Math.random() * 3),
+    color: colors[Math.floor(Math.random() * colors.length)],
+    phase: 'rising',
+    sparks: [],
+    life: 0,
+    maxLife: 80 + Math.random() * 40,
+  }
+}
+
+function drawFireworks(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, state: FireworksState) {
+  ctx.save()
+
+  // Dark sky gradient
+  const sky = ctx.createLinearGradient(0, 0, 0, h)
+  sky.addColorStop(0, '#050510')
+  sky.addColorStop(0.5, '#0a0a20')
+  sky.addColorStop(1, '#101030')
+  ctx.fillStyle = sky
+  ctx.fillRect(0, 0, w, h)
+
+  const waterY = h * 0.7
+  const skylineY = waterY
+
+  // City skyline silhouette
+  ctx.fillStyle = '#0a0a15'
+  for (const b of state.buildings) {
+    ctx.fillRect(b.x, skylineY - b.h, b.w, b.h + 20)
+    // Sparse lit windows
+    const seed = b.x * 7 + b.w * 13
+    for (let wi = 0; wi < b.h / 20; wi++) {
+      if (Math.sin(seed + wi * 17) > 0.3) {
+        const wx = b.x + 3 + ((Math.sin(seed + wi * 31) * 0.5 + 0.5) * Math.max(b.w - 8, 2))
+        const wy = skylineY - b.h + 6 + wi * 18
+        ctx.fillStyle = 'rgba(255,200,100,0.2)'
+        ctx.fillRect(wx, wy, 2, 1.5)
+        ctx.fillStyle = '#0a0a15'
+      }
+    }
+  }
+
+  // Water — dark reflective surface
+  const waterGrad = ctx.createLinearGradient(0, waterY, 0, h)
+  waterGrad.addColorStop(0, '#080818')
+  waterGrad.addColorStop(1, '#050510')
+  ctx.fillStyle = waterGrad
+  ctx.fillRect(0, waterY, w, h - waterY)
+
+  // Water ripple highlights
+  ctx.strokeStyle = 'rgba(100,120,180,0.06)'
+  ctx.lineWidth = 1
+  for (let ry = waterY + 5; ry < h; ry += 8) {
+    ctx.beginPath()
+    for (let rx = 0; rx < w; rx += 4) {
+      const rOff = Math.sin(rx * 0.02 + t * 0.003 + ry * 0.1) * 2
+      if (rx === 0) ctx.moveTo(rx, ry + rOff)
+      else ctx.lineTo(rx, ry + rOff)
+    }
+    ctx.stroke()
+  }
+
+  // Launch new fireworks
+  state.nextLaunch--
+  if (state.nextLaunch <= 0) {
+    state.shells.push(launchFirework(w, h * 0.7))  // explode above waterline
+    state.nextLaunch = 20 + Math.floor(Math.random() * 50)
+  }
+
+  // Update + draw shells
+  for (let i = state.shells.length - 1; i >= 0; i--) {
+    const s = state.shells[i]
+    s.life++
+
+    if (s.phase === 'rising') {
+      s.x += s.vx
+      s.y += s.vy
+      s.vy += 0.03  // gravity
+      // Trail
+      ctx.fillStyle = 'rgba(255,200,100,0.8)'
+      ctx.beginPath()
+      ctx.arc(s.x, s.y, 1.5, 0, Math.PI * 2)
+      ctx.fill()
+      // Explode when near target or velocity flips
+      if (s.y <= s.targetY || s.vy > -1) {
+        s.phase = 'exploding'
+        s.life = 0
+        const sparkCount = 40 + Math.floor(Math.random() * 40)
+        for (let si = 0; si < sparkCount; si++) {
+          const angle = (si / sparkCount) * Math.PI * 2 + Math.random() * 0.3
+          const speed = 1.5 + Math.random() * 3
+          s.sparks.push({
+            x: s.x, y: s.y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 60 + Math.random() * 40,
+          })
+        }
+      }
+    } else {
+      // Exploding/fading sparks
+      for (const sp of s.sparks) {
+        sp.x += sp.vx
+        sp.y += sp.vy
+        sp.vy += 0.04  // gravity on sparks
+        sp.vx *= 0.98  // drag
+        sp.life--
+        const alpha = Math.max(0, sp.life / 100)
+        // Spark in sky
+        ctx.fillStyle = s.color + Math.round(alpha * 200).toString(16).padStart(2, '0')
+        ctx.beginPath()
+        ctx.arc(sp.x, sp.y, 1 + alpha, 0, Math.PI * 2)
+        ctx.fill()
+        // Reflection in water
+        if (sp.y < waterY) {
+          const reflY = waterY + (waterY - sp.y) * 0.4
+          const reflAlpha = alpha * 0.25
+          ctx.fillStyle = s.color + Math.round(reflAlpha * 200).toString(16).padStart(2, '0')
+          ctx.beginPath()
+          ctx.arc(sp.x + Math.sin(t * 0.01 + sp.x * 0.1) * 2, reflY, 1, 0, Math.PI * 2)
+          ctx.fill()
+        }
+      }
+      // Remove dead sparks
+      s.sparks = s.sparks.filter(sp => sp.life > 0)
+      if (s.sparks.length === 0) {
+        state.shells.splice(i, 1)
+      }
+    }
+  }
+
+  ctx.restore()
+}
+
+// ── Forest (dense trees, mushrooms, forest floor) ──
+
+interface ForestTree {
+  x: number; trunkH: number; canopyR: number; canopyY: number
+  green: string; trunkColor: string; canopyLayers: number
+}
+interface ForestMushroom {
+  x: number; y: number; capR: number; stemH: number
+  isRed: boolean  // red with white spots vs brown
+}
+interface ForestState {
+  trees: ForestTree[]
+  mushrooms: ForestMushroom[]
+  groundFerns: { x: number; y: number; size: number }[]
+}
+
+function initForestState(w: number, h: number): ForestState {
+  const groundY = h * 0.75
+  // Dense trees across the width
+  const trees: ForestTree[] = []
+  let tx = -20
+  while (tx < w + 40) {
+    const canopyR = 25 + Math.random() * 45
+    const trunkH = 40 + Math.random() * 60
+    trees.push({
+      x: tx + (Math.random() - 0.5) * 15,
+      trunkH,
+      canopyR,
+      canopyY: groundY - trunkH - canopyR * 0.5,
+      green: `hsl(${100 + Math.random() * 50}, ${40 + Math.random() * 30}%, ${18 + Math.random() * 20}%)`,
+      trunkColor: `hsl(${20 + Math.random() * 15}, ${30 + Math.random() * 20}%, ${18 + Math.random() * 12}%)`,
+      canopyLayers: 2 + Math.floor(Math.random() * 2),
+    })
+    tx += canopyR * 0.9 + Math.random() * 20  // slightly overlapping canopies
+  }
+
+  // Red mushrooms + brown mushrooms on forest floor
+  const mushrooms: ForestMushroom[] = Array.from({ length: 12 + Math.floor(Math.random() * 8) }, () => ({
+    x: Math.random() * w,
+    y: groundY - 2 + Math.random() * (h - groundY) * 0.3,
+    capR: 4 + Math.random() * 8,
+    stemH: 5 + Math.random() * 8,
+    isRed: Math.random() > 0.4,  // 60% red
+  }))
+
+  // Ground ferns
+  const groundFerns = Array.from({ length: 20 + Math.floor(Math.random() * 15) }, () => ({
+    x: Math.random() * w,
+    y: groundY - 2 + Math.random() * 8,
+    size: 6 + Math.random() * 10,
+  }))
+
+  return { trees, mushrooms, groundFerns }
+}
+
+function drawForest(ctx: CanvasRenderingContext2D, w: number, h: number, state: ForestState) {
+  ctx.save()
+  const groundY = h * 0.75
+
+  // Dark forest floor gradient
+  const floorGrad = ctx.createLinearGradient(0, groundY - 10, 0, h)
+  floorGrad.addColorStop(0, '#1a2810')
+  floorGrad.addColorStop(1, '#0e1a08')
+  ctx.fillStyle = floorGrad
+  ctx.fillRect(0, groundY - 10, w, h - groundY + 10)
+
+  // Trunks first (behind canopy)
+  for (const t of state.trees) {
+    ctx.fillStyle = t.trunkColor
+    const tw = 4 + t.canopyR * 0.12
+    ctx.fillRect(t.x - tw / 2, groundY - t.trunkH, tw, t.trunkH + 5)
+  }
+
+  // Canopy layers — overlapping circles
+  for (const t of state.trees) {
+    for (let c = 0; c < t.canopyLayers; c++) {
+      const cx = t.x + (Math.sin(c * 2.5 + t.x) * t.canopyR * 0.3)
+      const cy = t.canopyY + c * t.canopyR * 0.2
+      const cr = t.canopyR * (1 - c * 0.15)
+      ctx.fillStyle = t.green
+      ctx.beginPath()
+      ctx.arc(cx, cy, cr, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  }
+
+  // Ferns — simple frond shapes
+  for (const f of state.groundFerns) {
+    ctx.fillStyle = `hsl(${110 + Math.random() * 20}, 45%, 22%)`
+    for (let side = -1; side <= 1; side += 2) {
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath()
+        ctx.ellipse(f.x + side * (3 + i * 3), f.y - i * 2, f.size * 0.3, f.size * 0.8, side * 0.3, 0, Math.PI * 2)
+        ctx.fill()
+      }
+    }
+  }
+
+  // Mushrooms
+  for (const m of state.mushrooms) {
+    // Stem
+    ctx.fillStyle = '#e8dcc8'
+    ctx.fillRect(m.x - m.capR * 0.25, m.y - m.stemH, m.capR * 0.5, m.stemH)
+    // Cap
+    ctx.beginPath()
+    ctx.arc(m.x, m.y - m.stemH, m.capR, Math.PI, 0)
+    ctx.fillStyle = m.isRed ? '#cc2020' : '#8a6040'
+    ctx.fill()
+    // Spots on red mushrooms
+    if (m.isRed) {
+      ctx.fillStyle = '#f0e8d8'
+      for (let s = 0; s < 3; s++) {
+        const sx = m.x + (s - 1) * m.capR * 0.4
+        const sy = m.y - m.stemH - m.capR * (0.3 + s * 0.15)
+        ctx.beginPath()
+        ctx.arc(sx, sy, m.capR * 0.12, 0, Math.PI * 2)
+        ctx.fill()
+      }
+    }
+  }
+
+  ctx.restore()
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export function ParticleEffect({ effect, enabled, seasonal, foreground = false }: Props) {
@@ -2040,6 +2358,18 @@ function CanvasParticleEffect({ activeEffect, foreground }: { activeEffect: Effe
       winterState = initWinterState(canvas.width, canvas.height)
     }
 
+    // Fireworks (New Year)
+    let fireworksState: FireworksState | null = null
+    if (activeEffect === 'fireworks' && !foreground) {
+      fireworksState = initFireworksState(canvas.width, canvas.height)
+    }
+
+    // Forest
+    let forestState: ForestState | null = null
+    if (activeEffect === 'forest' && !foreground) {
+      forestState = initForestState(canvas.width, canvas.height)
+    }
+
     // Replicant rooftops (rain + replicant theme)
     let rooftopState: RooftopState | null = null
     if (activeEffect === 'rain' && !foreground) {
@@ -2058,11 +2388,11 @@ function CanvasParticleEffect({ activeEffect, foreground }: { activeEffect: Effe
     // Background counts (emoji effects handled by CSSParticleEffect)
     const bgCountMap: Record<string, number> = {
       rain: 250, fireflies: 90, stars: 800,
-      embers: 250, 'digital-rain': 0, flames: 200, water: 0, boba: 0, clouds: 0, warzone: 0, wasteland: 0, none: 0,
+      embers: 250, 'digital-rain': 0, flames: 200, water: 0, boba: 0, clouds: 0, warzone: 0, wasteland: 0, fireworks: 0, forest: 0, none: 0,
     }
     const fgCountMap: Record<string, number> = {
       rain: 20, fireflies: 6, stars: 0,
-      embers: 20, 'digital-rain': 0, flames: 15, water: 0, boba: 0, clouds: 0, warzone: 0, wasteland: 0, none: 0,
+      embers: 20, 'digital-rain': 0, flames: 15, water: 0, boba: 0, clouds: 0, warzone: 0, wasteland: 0, fireworks: 0, forest: 0, none: 0,
     }
     const countMap = foreground ? fgCountMap : bgCountMap
     const count = countMap[activeEffect] ?? 80
@@ -2168,6 +2498,19 @@ function CanvasParticleEffect({ activeEffect, foreground }: { activeEffect: Effe
         drawWasteland(ctx, w, h, t, wastelandState, foreground)
         rafRef.current = requestAnimationFrame(animate)
         return
+      }
+
+      // Fireworks (New Year)
+      if (activeEffect === 'fireworks' && fireworksState) {
+        drawFireworks(ctx, w, h, t, fireworksState)
+        rafRef.current = requestAnimationFrame(animate)
+        return
+      }
+
+      // Forest
+      if (activeEffect === 'forest' && forestState) {
+        drawForest(ctx, w, h, forestState)
+        return  // static — draws once
       }
 
       // Clouds

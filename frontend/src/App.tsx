@@ -183,6 +183,7 @@ export default function App() {
           />
           <div className="profile-info">
             <h1 className="profile-name">{profile.display_name || profile.username}</h1>
+            <div className="profile-username">@{profile.username}</div>
             {profile.tagline && <div className="profile-tagline">{profile.tagline}</div>}
             {profile.third_line && <div className="profile-third-line">{profile.third_line}</div>}
           </div>
@@ -211,23 +212,25 @@ export default function App() {
 
         {/* ── Meta footer ── */}
         <div className="profile-meta">
-          <span className="meta-text">@{profile.username} · Member since {memberSince}{profile.view_count > 0 && ` · ${profile.view_count.toLocaleString()} view${profile.view_count !== 1 ? 's' : ''}`}</span>
-          <button
-            className="json-link share-btn"
-            onClick={() => {
-              const url = window.location.href
-              if (navigator.share) {
-                navigator.share({ title: `${profile.display_name || profile.username} — Pinche.rs`, url })
-              } else {
-                copyToClipboard(url)
-              }
-            }}
-            title="Share this profile"
-          >
-            <i className="bi bi-share" /> Share
-          </button>
-          <a href={jsonUrl} className="json-link" target="_blank" rel="noopener">{'{ } JSON'}</a>
-          <a href="/SKILL.md" className="json-link" target="_blank" rel="noopener">📄 SKILL.md</a>
+          <span className="meta-text">Member since {memberSince}</span>
+          <div className="meta-links">
+            <button
+              className="json-link share-btn"
+              onClick={() => {
+                const url = window.location.href
+                if (navigator.share) {
+                  navigator.share({ title: `${profile.display_name || profile.username} — Pinche.rs`, url })
+                } else {
+                  copyToClipboard(url)
+                }
+              }}
+              title="Share this profile"
+            >
+              <i className="bi bi-share" /> Share
+            </button>
+            <a href={jsonUrl} className="json-link" target="_blank" rel="noopener">{'{ } JSON'}</a>
+            <a href="/SKILL.md" className="json-link" target="_blank" rel="noopener">📄 SKILL.md</a>
+          </div>
         </div>
       </div>
 

@@ -1130,7 +1130,8 @@ body {
 /* ── Profile header ── */
 .profile-header { display: flex; gap: 1.5rem; align-items: flex-start; margin-bottom: 1.5rem; }
 .profile-info { flex: 1; min-width: 0; }
-.profile-name { font-size: 1.6rem; font-weight: 700; color: var(--text-bright); margin: 0 0 0.2rem; line-height: 1.2; overflow-wrap: anywhere; }
+.profile-name { font-size: 1.6rem; font-weight: 700; color: var(--text-bright); margin: 0; line-height: 1.2; overflow-wrap: anywhere; }
+.profile-username { font-size: 0.78rem; color: var(--text-muted); margin: 0.1rem 0 0.3rem; opacity: 0.7; }
 .profile-tagline { color: var(--text-muted); font-size: 1rem; margin: 0 0 0.2rem; overflow-wrap: anywhere; }
 .profile-third-line { color: var(--text-muted); font-size: 0.88rem; margin: 0 0 0.5rem; overflow-wrap: anywhere; }
 
@@ -1261,6 +1262,7 @@ body {
 .json-link { font-size: 0.78rem; color: var(--accent); text-decoration: none; font-family: monospace; background: none; border: none; cursor: pointer; padding: 0; }
 .json-link:hover { text-decoration: underline; }
 .share-btn { display: inline-flex; align-items: center; gap: 0.3rem; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+.meta-links { display: flex; gap: 0.75rem; align-items: center; margin-left: auto; }
 
 /* ── Footer ── */
 .hnr-footer {
