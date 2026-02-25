@@ -789,6 +789,100 @@ pub fn get_score(
     Ok(Json(ProfileScoreResponse { score, max_score: 100, breakdown, next_steps }))
 }
 
+// --- Similar Profiles (Discovery) ---
+
+/// GET /api/v1/profiles/{username}/similar?limit=5
+/// Find profiles with overlapping skills, ranked by number of shared skills.
+/// Public endpoint — no auth required. Returns up to `limit` similar profiles (max 20).
+#[get("/profiles/<username>/similar?<limit>")]
+pub fn similar_profiles(
+    db: &State<DbConn>,
+    username: &str,
+    limit: Option<i64>,
+) -> Result<Json<serde_json::Value>, (Status, Json<serde_json::Value>)> {
+    let username = username.to_lowercase();
+    let conn = db.lock().unwrap();
+
+    // Verify the target profile exists
+    let profile_id: String = conn.query_row(
+        "SELECT id FROM profiles WHERE username = ?1",
+        params![username],
+        |row| row.get(0),
+    ).map_err(|_| (Status::NotFound, Json(json!({"error": format!("Profile '{}' not found", username)}))))?;
+
+    // Get this profile's skills
+    let mut skill_stmt = conn.prepare(
+        "SELECT LOWER(skill) FROM profile_skills WHERE profile_id = ?1"
+    ).map_err(|e| (Status::InternalServerError, Json(json!({"error": e.to_string()}))))?;
+    let my_skills: Vec<String> = skill_stmt.query_map(params![profile_id], |row| {
+        row.get(0)
+    }).map_err(|e| (Status::InternalServerError, Json(json!({"error": e.to_string()}))))?
+    .flatten().collect();
+
+    if my_skills.is_empty() {
+        return Ok(Json(json!({
+            "username": username,
+            "similar": [],
+            "total": 0,
+        })));
+    }
+
+    let lim = limit.unwrap_or(5).max(1).min(20);
+
+    // Find profiles sharing skills, ranked by overlap count
+    // Build placeholders for IN clause
+    let placeholders: Vec<String> = (0..my_skills.len()).map(|i| format!("?{}", i + 1)).collect();
+    let in_clause = placeholders.join(", ");
+
+    let query = format!(
+        "SELECT p.username, p.display_name, p.tagline, p.avatar_url, p.theme, \
+         p.profile_score, p.view_count, \
+         COUNT(ps.skill) as shared_count, \
+         GROUP_CONCAT(ps.skill, ', ') as shared_skills \
+         FROM profiles p \
+         JOIN profile_skills ps ON ps.profile_id = p.id \
+         WHERE LOWER(ps.skill) IN ({}) AND p.username != ?{} \
+         GROUP BY p.id \
+         ORDER BY shared_count DESC, p.profile_score DESC \
+         LIMIT ?{}",
+        in_clause,
+        my_skills.len() + 1,
+        my_skills.len() + 2,
+    );
+
+    let mut params_vec: Vec<Box<dyn rusqlite::types::ToSql>> = my_skills.iter()
+        .map(|s| Box::new(s.clone()) as Box<dyn rusqlite::types::ToSql>)
+        .collect();
+    params_vec.push(Box::new(username.clone()));
+    params_vec.push(Box::new(lim));
+
+    let refs: Vec<&dyn rusqlite::types::ToSql> = params_vec.iter().map(|p| p.as_ref()).collect();
+
+    let mut stmt = conn.prepare(&query)
+        .map_err(|e| (Status::InternalServerError, Json(json!({"error": e.to_string()}))))?;
+
+    let similar: Vec<serde_json::Value> = stmt.query_map(refs.as_slice(), |row| {
+        Ok(json!({
+            "username": row.get::<_, String>(0)?,
+            "display_name": row.get::<_, String>(1)?,
+            "tagline": row.get::<_, String>(2)?,
+            "avatar_url": row.get::<_, String>(3)?,
+            "theme": row.get::<_, String>(4)?,
+            "profile_score": row.get::<_, i64>(5)?,
+            "view_count": row.get::<_, i64>(6)?,
+            "shared_count": row.get::<_, i64>(7)?,
+            "shared_skills": row.get::<_, String>(8)?,
+        }))
+    }).map_err(|e| (Status::InternalServerError, Json(json!({"error": e.to_string()}))))?
+    .flatten().collect();
+
+    Ok(Json(json!({
+        "username": username,
+        "similar": similar,
+        "total": similar.len(),
+    })))
+}
+
 // --- Export / Import ---
 
 /// GET /api/v1/profiles/{username}/export

@@ -1,14 +1,16 @@
 # Agent Profile Service - Status
 
-**Version:** 0.7.0   (production-ready)
+**Version:** 0.8.0   (production-ready)
 **Stage:** Feature complete + fully documented. Awaiting: prod domain DNS (`pinche.rs`).
 **Last updated:** 2026-02-25
 
-**Tests:** 150 total (13 unit + 137 integration)
+**Tests:** 159 total (13 unit + 146 integration)
 
 ---
 
 ## What's Next (priority order)
+
+1. ~~**Similar Profiles discovery**~~ — ✅ DONE (v0.8.0). `GET /api/v1/profiles/{username}/similar?limit=5` finds profiles with overlapping skills, ranked by shared count. Public endpoint, no auth. Frontend "Similar Agents" section auto-appears on profile pages when matches exist. 9 new integration tests.
 
 1. ~~**Discovery API sort + landing page tabs**~~ — ✅ DONE (f587e78, 8493338). Sort options for `GET /api/v1/profiles`: score (default), popular/views, newest/new, active/updated. Landing page: Top/Popular/New sort tabs with client-side re-sorting. List endpoint now returns view_count + updated_at. 3 new integration tests.
 
@@ -161,7 +163,7 @@ See DESIGN.md for full spec. Key points:
 | Scope | Count | Status |
 |-------|-------|--------|
 | Rust unit | 13 | ✅ |
-| Rust integration | 137 | ✅ |
-| **Total** | **150** | ✅ |
+| Rust integration | 146 | ✅ |
+| **Total** | **159** | ✅ |
 
 **Last updated:** 2026-02-25

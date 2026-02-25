@@ -2766,3 +2766,183 @@ fn test_import_invalid_theme() {
         .dispatch();
     assert_eq!(resp.status(), Status::UnprocessableEntity);
 }
+
+// ===== Similar Profiles (Discovery) =====
+
+/// Helper: add skills to a profile
+fn add_skills(client: &Client, username: &str, api_key: &str, skills: &[&str]) {
+    for skill in skills {
+        client.post(format!("/api/v1/profiles/{}/skills", username))
+            .header(ContentType::JSON)
+            .header(Header::new("X-API-Key", api_key.to_string()))
+            .body(serde_json::json!({"skill": skill}).to_string())
+            .dispatch();
+    }
+}
+
+#[test]
+fn test_similar_not_found() {
+    let client = test_client();
+    let resp = client.get("/api/v1/profiles/nonexistent-agent/similar").dispatch();
+    assert_eq!(resp.status(), Status::NotFound);
+}
+
+#[test]
+fn test_similar_no_skills() {
+    let client = test_client();
+    let (_, _body) = register(&client, "sim-empty");
+
+    let resp = client.get("/api/v1/profiles/sim-empty/similar").dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["similar"].as_array().unwrap().len(), 0);
+    assert_eq!(body["total"], 0);
+}
+
+#[test]
+fn test_similar_no_overlap() {
+    let client = test_client();
+    let (_, a) = register(&client, "sim-a");
+    let (_, b) = register(&client, "sim-b");
+    add_skills(&client, "sim-a", a["api_key"].as_str().unwrap(), &["rust", "nats"]);
+    add_skills(&client, "sim-b", b["api_key"].as_str().unwrap(), &["python", "django"]);
+
+    let resp = client.get("/api/v1/profiles/sim-a/similar").dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["similar"].as_array().unwrap().len(), 0);
+}
+
+#[test]
+fn test_similar_basic_overlap() {
+    let client = test_client();
+    let (_, a) = register(&client, "sim-alice");
+    let (_, b) = register(&client, "sim-bob");
+    add_skills(&client, "sim-alice", a["api_key"].as_str().unwrap(), &["rust", "nats", "docker"]);
+    add_skills(&client, "sim-bob", b["api_key"].as_str().unwrap(), &["rust", "docker", "python"]);
+
+    let resp = client.get("/api/v1/profiles/sim-alice/similar").dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let similar = body["similar"].as_array().unwrap();
+    assert_eq!(similar.len(), 1);
+    assert_eq!(similar[0]["username"], "sim-bob");
+    assert_eq!(similar[0]["shared_count"], 2); // rust + docker
+    assert!(similar[0]["shared_skills"].as_str().unwrap().contains("rust"));
+    assert!(similar[0]["shared_skills"].as_str().unwrap().contains("docker"));
+}
+
+#[test]
+fn test_similar_ranking() {
+    let client = test_client();
+    let (_, a) = register(&client, "sim-rank-a");
+    let (_, b) = register(&client, "sim-rank-b");
+    let (_, c) = register(&client, "sim-rank-c");
+
+    // A has: rust, nats, docker, python
+    add_skills(&client, "sim-rank-a", a["api_key"].as_str().unwrap(), &["rust", "nats", "docker", "python"]);
+    // B has 3 overlap: rust, nats, docker
+    add_skills(&client, "sim-rank-b", b["api_key"].as_str().unwrap(), &["rust", "nats", "docker"]);
+    // C has 1 overlap: rust
+    add_skills(&client, "sim-rank-c", c["api_key"].as_str().unwrap(), &["rust", "java"]);
+
+    let resp = client.get("/api/v1/profiles/sim-rank-a/similar").dispatch();
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let similar = body["similar"].as_array().unwrap();
+    assert_eq!(similar.len(), 2);
+    // B should rank first (3 shared) > C (1 shared)
+    assert_eq!(similar[0]["username"], "sim-rank-b");
+    assert_eq!(similar[0]["shared_count"], 3);
+    assert_eq!(similar[1]["username"], "sim-rank-c");
+    assert_eq!(similar[1]["shared_count"], 1);
+}
+
+#[test]
+fn test_similar_excludes_self() {
+    let client = test_client();
+    let (_, a) = register(&client, "sim-self");
+    add_skills(&client, "sim-self", a["api_key"].as_str().unwrap(), &["rust"]);
+
+    let resp = client.get("/api/v1/profiles/sim-self/similar").dispatch();
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let similar = body["similar"].as_array().unwrap();
+    // Should not include self
+    for s in similar {
+        assert_ne!(s["username"], "sim-self");
+    }
+}
+
+#[test]
+fn test_similar_limit() {
+    let client = test_client();
+    let (_, a) = register(&client, "sim-lim-src");
+    let (_, b) = register(&client, "sim-lim-1");
+    let (_, c) = register(&client, "sim-lim-2");
+    let (_, d) = register(&client, "sim-lim-3");
+
+    // All share "rust" skill
+    add_skills(&client, "sim-lim-src", a["api_key"].as_str().unwrap(), &["rust"]);
+    add_skills(&client, "sim-lim-1", b["api_key"].as_str().unwrap(), &["rust"]);
+    add_skills(&client, "sim-lim-2", c["api_key"].as_str().unwrap(), &["rust"]);
+    add_skills(&client, "sim-lim-3", d["api_key"].as_str().unwrap(), &["rust"]);
+
+    // Without limit: should return all 3 similar
+    let resp = client.get("/api/v1/profiles/sim-lim-src/similar").dispatch();
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["similar"].as_array().unwrap().len(), 3);
+
+    // With limit=1: should return only 1
+    let resp = client.get("/api/v1/profiles/sim-lim-src/similar?limit=1").dispatch();
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["similar"].as_array().unwrap().len(), 1);
+}
+
+#[test]
+fn test_similar_case_insensitive() {
+    let client = test_client();
+    let (_, a) = register(&client, "sim-case-a");
+    let (_, b) = register(&client, "sim-case-b");
+    add_skills(&client, "sim-case-a", a["api_key"].as_str().unwrap(), &["Rust"]);
+    add_skills(&client, "sim-case-b", b["api_key"].as_str().unwrap(), &["rust"]);
+
+    let resp = client.get("/api/v1/profiles/sim-case-a/similar").dispatch();
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let similar = body["similar"].as_array().unwrap();
+    assert_eq!(similar.len(), 1);
+    assert_eq!(similar[0]["username"], "sim-case-b");
+}
+
+#[test]
+fn test_similar_returns_profile_fields() {
+    let client = test_client();
+    let (_, a) = register(&client, "sim-fields-a");
+    let (_, b) = register(&client, "sim-fields-b");
+
+    // Update B with display info
+    client.patch("/api/v1/profiles/sim-fields-b")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", b["api_key"].as_str().unwrap().to_string()))
+        .body(serde_json::json!({
+            "display_name": "Field Bot",
+            "tagline": "Testing fields",
+            "theme": "ocean"
+        }).to_string())
+        .dispatch();
+
+    add_skills(&client, "sim-fields-a", a["api_key"].as_str().unwrap(), &["nats"]);
+    add_skills(&client, "sim-fields-b", b["api_key"].as_str().unwrap(), &["nats"]);
+
+    let resp = client.get("/api/v1/profiles/sim-fields-a/similar").dispatch();
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let similar = body["similar"].as_array().unwrap();
+    assert_eq!(similar.len(), 1);
+    let s = &similar[0];
+    assert_eq!(s["username"], "sim-fields-b");
+    assert_eq!(s["display_name"], "Field Bot");
+    assert_eq!(s["tagline"], "Testing fields");
+    assert_eq!(s["theme"], "ocean");
+    assert!(s["profile_score"].is_number());
+    assert!(s["view_count"].is_number());
+    assert!(s["shared_count"].is_number());
+    assert!(s["shared_skills"].is_string());
+}

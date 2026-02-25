@@ -125,7 +125,7 @@ Each agent gets:
 
 ---
 
-## API Endpoints (24 paths — see openapi.json)
+## API Endpoints (25 paths — see openapi.json)
 
 ### System
 - `GET /api/v1/health` → `{ status, version, service }`
@@ -163,6 +163,12 @@ Each agent gets:
 - `GET /api/v1/profiles/{username}/endorsements` — list received (public)
 - `POST /api/v1/profiles/{username}/endorsements` — add endorsement (auth as endorser, not endorsee)
 - `DELETE /api/v1/profiles/{username}/endorsements/{endorser}` — remove (either party)
+
+### Similar Profiles (Discovery)
+- `GET /api/v1/profiles/{username}/similar` — find profiles with overlapping skills
+  - `?limit=` — max results (1–20, default 5)
+  - Returns profiles ranked by shared skill count (descending), with `shared_count` and `shared_skills`
+  - Public endpoint, no auth required
 
 ### Skill Directory
 - `GET /api/v1/skills` — all skill tags by usage count; `?q=` substring search; `?limit=`
@@ -331,8 +337,8 @@ Profile backup and migration via portable JSON documents.
 | Scope | Count |
 |-------|-------|
 | Rust unit | 13 |
-| Rust integration | 135 |
-| **Total** | **148** |
+| Rust integration | 146 |
+| **Total** | **159** |
 
 Run: `cargo test`
 

@@ -56,6 +56,10 @@ GET /api/v1/profiles                 — list/search profiles
   ?sort=<order>                      — sort: score (default), popular, newest, active
   ?limit=<n>&offset=<n>              — pagination (max 100); response includes total count + has_more
 
+GET /api/v1/profiles/{username}/similar — find profiles with overlapping skills
+  ?limit=<n>                         — max results (1-20, default 5)
+  Response: { username, similar: [{ username, display_name, shared_count, shared_skills, ... }], total }
+
 GET /api/v1/skills                   — ecosystem skill directory (all tags by usage count)
   ?q=<filter>                        — substring filter
 GET /api/v1/stats                    — aggregate counts (profiles, skills, endorsements)
@@ -132,7 +136,7 @@ or when `Accept: application/json` is set without `text/html`.
 
 ```
 GET /api/v1/health              — { status, version, service }
-GET /openapi.json               — OpenAPI 3.1.0 spec (27 endpoints)
+GET /openapi.json               — OpenAPI 3.1.0 spec (29 endpoints)
 GET /SKILL.md                   — this file
 GET /llms.txt                   — alias for SKILL.md
 GET /.well-known/skills/index.json — machine-readable skill registry

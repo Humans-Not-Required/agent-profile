@@ -17,7 +17,7 @@ use rocket::serde::json::Json;
 use routes::profiles::{
     health, whoami, register, reissue_key,
     list_profiles, list_skills, get_stats,
-    get_profile, update_profile, delete_profile, get_score,
+    get_profile, update_profile, delete_profile, get_score, similar_profiles,
     export_profile, import_profile,
     add_address, update_address, delete_address,
     add_link, update_link, delete_link,
@@ -107,6 +107,7 @@ pub fn create_rocket(db_path: &str) -> rocket::Rocket<rocket::Build> {
             update_profile,
             delete_profile,
             get_score,
+            similar_profiles,
             export_profile,
             import_profile,
             add_address,

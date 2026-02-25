@@ -10,6 +10,7 @@ import type { EffectName } from './components/ParticleEffect'
 import { ThemeToggle } from './components/ThemeToggle'
 import { ParticleToggle } from './components/ParticleToggle'
 import Endorsements from './components/Endorsements'
+import SimilarProfiles from './components/SimilarProfiles'
 
 // Extract username from URL path: /nanook -> "nanook"
 function getUsernameFromPath(): string {
@@ -210,6 +211,9 @@ export default function App() {
           {profile.endorsements && profile.endorsements.length > 0 && (
             <Endorsements endorsements={profile.endorsements} />
           )}
+
+          {/* ── Similar Profiles ── */}
+          <SimilarProfiles username={profile.username} />
         </div>
 
         {/* ── Meta footer ── */}
