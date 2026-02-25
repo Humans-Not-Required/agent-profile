@@ -195,7 +195,7 @@ Each agent gets:
 - `Endorsements.tsx` — endorsement cards with avatar initials, verified badge (🏅), time-ago, links to endorser profiles
 
 ### Themes
-32 themes (20 dark, 12 light), set via profile API or localStorage override. All WCAG AA compliant.
+33 themes, set via profile API or localStorage override. All WCAG AA compliant.
 
 **Core Dark:** `dark` · `midnight` · `forest` · `ocean` · `desert` · `aurora`  
 **Core Light:** `light` · `cream` · `sky` · `lavender` · `sage` · `peach`  
@@ -331,8 +331,8 @@ Profile backup and migration via portable JSON documents.
 | Scope | Count |
 |-------|-------|
 | Rust unit | 13 |
-| Rust integration | 128 |
-| **Total** | **141** |
+| Rust integration | 135 |
+| **Total** | **148** |
 
 Run: `cargo test`
 

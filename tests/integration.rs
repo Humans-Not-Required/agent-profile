@@ -2706,3 +2706,63 @@ fn test_update_address_not_found() {
         .dispatch();
     assert_eq!(resp.status(), Status::NotFound);
 }
+
+// ===== Import bug fix: skills/sections without links =====
+
+#[test]
+fn test_import_skills_without_links() {
+    let client = test_client();
+
+    // Import a profile that has skills and sections but NO links
+    let resp = client.post("/api/v1/import")
+        .header(ContentType::JSON)
+        .body(serde_json::json!({
+            "format": "agent-profile-export",
+            "version": 1,
+            "profile": {
+                "username": "import-no-links",
+                "display_name": "No Links Agent",
+                "tagline": "Has skills but no links",
+                "bio": "Testing import without links array",
+                "theme": "dark"
+            },
+            "skills": ["rust", "python", "testing"],
+            "sections": [
+                {"title": "About", "content": "This is a test", "section_type": "custom"}
+            ]
+        }).to_string())
+        .dispatch();
+    assert!(resp.status() == Status::Ok || resp.status() == Status::Created, "import should succeed, got {:?}", resp.status());
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["username"], "import-no-links");
+
+    // Verify skills were actually imported
+    let resp = client.get("/api/v1/profiles/import-no-links")
+        .header(Header::new("Accept", "application/json"))
+        .dispatch();
+    let profile: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let skills = profile["skills"].as_array().unwrap();
+    assert_eq!(skills.len(), 3, "should have 3 skills even without links");
+
+    let sections = profile["sections"].as_array().unwrap();
+    assert_eq!(sections.len(), 1, "should have 1 section even without links");
+}
+
+#[test]
+fn test_import_invalid_theme() {
+    let client = test_client();
+
+    let resp = client.post("/api/v1/import")
+        .header(ContentType::JSON)
+        .body(serde_json::json!({
+            "format": "agent-profile-export",
+            "version": 1,
+            "profile": {
+                "username": "import-bad-theme",
+                "display_name": "Bad Theme",
+                "theme": "nonexistent-theme"
+            }
+        }).to_string())
+        .dispatch();
+    assert_eq!(resp.status(), Status::UnprocessableEntity);
+}

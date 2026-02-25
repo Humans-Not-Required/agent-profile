@@ -934,13 +934,19 @@ pub fn import_profile(
         (new_key, true)
     };
 
-    // Apply profile fields
+    // Apply profile fields with validation
     let display_name = profile_data.get("display_name").and_then(|v| v.as_str()).unwrap_or("");
     let tagline = profile_data.get("tagline").and_then(|v| v.as_str()).unwrap_or("");
     let bio = profile_data.get("bio").and_then(|v| v.as_str()).unwrap_or("");
     let third_line = profile_data.get("third_line").and_then(|v| v.as_str()).unwrap_or("");
     let theme = profile_data.get("theme").and_then(|v| v.as_str()).unwrap_or("dark");
+    if !VALID_THEMES.contains(&theme) {
+        return Err((Status::UnprocessableEntity, Json(json!({"error": format!("Invalid theme '{}'. Valid: {:?}", theme, VALID_THEMES)}))));
+    }
     let particle_effect = profile_data.get("particle_effect").and_then(|v| v.as_str()).unwrap_or("none");
+    if !VALID_PARTICLE_EFFECTS.contains(&particle_effect) {
+        return Err((Status::UnprocessableEntity, Json(json!({"error": format!("Invalid particle_effect '{}'. Valid: {:?}", particle_effect, VALID_PARTICLE_EFFECTS)}))));
+    }
     let particle_enabled = profile_data.get("particle_enabled").and_then(|v| v.as_bool()).unwrap_or(false) as i32;
     let particle_seasonal = profile_data.get("particle_seasonal").and_then(|v| v.as_bool()).unwrap_or(false) as i32;
     let pubkey = profile_data.get("pubkey").and_then(|v| v.as_str()).unwrap_or("");
@@ -954,17 +960,16 @@ pub fn import_profile(
                 particle_enabled, particle_seasonal, pubkey, ts, username],
     ).map_err(|e| (Status::InternalServerError, Json(json!({"error": e.to_string()}))))?;
 
+    // Import sub-resources — all independent of each other
+    let profile_id: String = conn.query_row(
+        "SELECT id FROM profiles WHERE username = ?1", params![username], |row| row.get(0),
+    ).unwrap();
+
     // Import links
     if let Some(links) = body.get("links").and_then(|v| v.as_array()) {
-        let profile_id: String = conn.query_row(
-            "SELECT id FROM profiles WHERE username = ?1", params![username], |row| row.get(0),
-        ).unwrap();
-
-        // Clear existing links on import (replace semantics)
         if !is_new {
             let _ = conn.execute("DELETE FROM profile_links WHERE profile_id = ?1", params![profile_id]);
         }
-
         for link in links {
             let url = link.get("url").and_then(|v| v.as_str()).unwrap_or("");
             let label = link.get("label").and_then(|v| v.as_str()).unwrap_or("");
@@ -977,59 +982,59 @@ pub fn import_profile(
                 );
             }
         }
+    }
 
-        // Import sections
-        if let Some(sections) = body.get("sections").and_then(|v| v.as_array()) {
-            if !is_new {
-                let _ = conn.execute("DELETE FROM profile_sections WHERE profile_id = ?1", params![profile_id]);
-            }
-            for (i, section) in sections.iter().enumerate() {
-                let title = section.get("title").and_then(|v| v.as_str()).unwrap_or("");
-                let content = section.get("content").and_then(|v| v.as_str()).unwrap_or("");
-                let section_type = section.get("section_type").and_then(|v| v.as_str()).unwrap_or("custom");
-                if !title.is_empty() {
-                    let _ = conn.execute(
-                        "INSERT INTO profile_sections (id, profile_id, section_type, title, content, display_order, created_at) \
-                         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-                        params![Uuid::new_v4().to_string(), profile_id, section_type, title, content, i as i32, ts],
-                    );
-                }
+    // Import sections
+    if let Some(sections) = body.get("sections").and_then(|v| v.as_array()) {
+        if !is_new {
+            let _ = conn.execute("DELETE FROM profile_sections WHERE profile_id = ?1", params![profile_id]);
+        }
+        for (i, section) in sections.iter().enumerate() {
+            let title = section.get("title").and_then(|v| v.as_str()).unwrap_or("");
+            let content = section.get("content").and_then(|v| v.as_str()).unwrap_or("");
+            let section_type = section.get("section_type").and_then(|v| v.as_str()).unwrap_or("custom");
+            if !title.is_empty() {
+                let _ = conn.execute(
+                    "INSERT INTO profile_sections (id, profile_id, section_type, title, content, display_order, created_at) \
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                    params![Uuid::new_v4().to_string(), profile_id, section_type, title, content, i as i32, ts],
+                );
             }
         }
+    }
 
-        // Import skills
-        if let Some(skills) = body.get("skills").and_then(|v| v.as_array()) {
-            if !is_new {
-                let _ = conn.execute("DELETE FROM profile_skills WHERE profile_id = ?1", params![profile_id]);
-            }
-            for skill_val in skills {
-                let skill = skill_val.as_str().unwrap_or("");
-                if !skill.is_empty() {
-                    let _ = conn.execute(
-                        "INSERT OR IGNORE INTO profile_skills (id, profile_id, skill, created_at) \
-                         VALUES (?1, ?2, ?3, ?4)",
-                        params![Uuid::new_v4().to_string(), profile_id, skill, ts],
-                    );
-                }
+    // Import skills
+    if let Some(skills) = body.get("skills").and_then(|v| v.as_array()) {
+        if !is_new {
+            let _ = conn.execute("DELETE FROM profile_skills WHERE profile_id = ?1", params![profile_id]);
+        }
+        for skill_val in skills {
+            let skill = skill_val.as_str().unwrap_or("");
+            if !skill.is_empty() {
+                let _ = conn.execute(
+                    "INSERT OR IGNORE INTO profile_skills (id, profile_id, skill, created_at) \
+                     VALUES (?1, ?2, ?3, ?4)",
+                    params![Uuid::new_v4().to_string(), profile_id, skill, ts],
+                );
             }
         }
+    }
 
-        // Import crypto addresses
-        if let Some(addresses) = body.get("crypto_addresses").and_then(|v| v.as_array()) {
-            if !is_new {
-                let _ = conn.execute("DELETE FROM crypto_addresses WHERE profile_id = ?1", params![profile_id]);
-            }
-            for addr in addresses {
-                let network = addr.get("network").and_then(|v| v.as_str()).unwrap_or("");
-                let address = addr.get("address").and_then(|v| v.as_str()).unwrap_or("");
-                let label = addr.get("label").and_then(|v| v.as_str()).unwrap_or("");
-                if !network.is_empty() && !address.is_empty() {
-                    let _ = conn.execute(
-                        "INSERT INTO crypto_addresses (id, profile_id, network, address, label, created_at) \
-                         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-                        params![Uuid::new_v4().to_string(), profile_id, network, address, label, ts],
-                    );
-                }
+    // Import crypto addresses
+    if let Some(addresses) = body.get("crypto_addresses").and_then(|v| v.as_array()) {
+        if !is_new {
+            let _ = conn.execute("DELETE FROM crypto_addresses WHERE profile_id = ?1", params![profile_id]);
+        }
+        for addr in addresses {
+            let network = addr.get("network").and_then(|v| v.as_str()).unwrap_or("");
+            let address = addr.get("address").and_then(|v| v.as_str()).unwrap_or("");
+            let label = addr.get("label").and_then(|v| v.as_str()).unwrap_or("");
+            if !network.is_empty() && !address.is_empty() {
+                let _ = conn.execute(
+                    "INSERT INTO crypto_addresses (id, profile_id, network, address, label, created_at) \
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                    params![Uuid::new_v4().to_string(), profile_id, network, address, label, ts],
+                );
             }
         }
     }
