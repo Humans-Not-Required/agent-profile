@@ -4,8 +4,7 @@
 **Stage:** Feature complete + fully documented. Awaiting: prod domain DNS (`pinche.rs`).
 **Last updated:** 2026-02-25
 
-**Tests:** 131 total (13 unit + 118 integration)
-**Python SDK:** `sdk/python/` — zero-dependency client, pip-installable, 32 integration tests all green
+**Tests:** 141 total (13 unit + 128 integration)
 
 ---
 
@@ -75,7 +74,9 @@
 
 2. ~~**Fix demo profiles**~~ — ✅ DONE. 12 themed showcase profiles seeded (3 cinematic + 9 seasonal/holiday). All score ≥ 55. Seed script at `scripts/seed-demos.sh`.
 3. ~~**Add search to landing page**~~ — ✅ DONE. Client-side instant search filters profiles by name, skill, or keyword.
-4. **Production domain** — `pinche.rs` (assigned by Jordan 2026-02-21). Needs DNS + Cloudflare Tunnel or reverse proxy setup.
+4. ~~**PATCH links + pagination fix + health DB check**~~ — ✅ DONE (770c7ad). PATCH `/api/v1/profiles/{username}/links/{id}` for partial link updates (url, label, platform, display_order). List pagination `total` now returns actual matching count (was page count), plus `has_more` boolean. Health endpoint verifies DB connectivity. 9 new integration tests.
+
+5. **Production domain** — `pinche.rs` (assigned by Jordan 2026-02-21). Needs DNS + Cloudflare Tunnel or reverse proxy setup.
 
 ## ✅ Done (v0.5.0 — Feb 22)
 
@@ -158,7 +159,7 @@ See DESIGN.md for full spec. Key points:
 | Scope | Count | Status |
 |-------|-------|--------|
 | Rust unit | 13 | ✅ |
-| Rust integration | 119 | ✅ |
-| **Total** | **132** | ✅ |
+| Rust integration | 128 | ✅ |
+| **Total** | **141** | ✅ |
 
 **Last updated:** 2026-02-25
