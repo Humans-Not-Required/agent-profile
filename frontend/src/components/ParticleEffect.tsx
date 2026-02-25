@@ -1381,8 +1381,8 @@ function drawRooftops(ctx: CanvasRenderingContext2D, w: number, h: number, state
 // ── Boba (milk tea with tapioca pearls + swirling liquid + accelerometer) ──
 
 interface BobaPearl {
-  x: number; y: number; vx: number; vy: number
-  r: number; shade: number; wobblePhase: number
+  x: number; y: number
+  r: number; shade: number
 }
 
 interface BobaSwirl {
@@ -1392,35 +1392,18 @@ interface BobaSwirl {
 interface BobaState {
   pearls: BobaPearl[]
   swirls: BobaSwirl[]
-  accelX: number   // current accelerometer tilt (-1 to 1)
-  accelY: number
-  mouseX: number   // mouse position for desktop repulsion
-  mouseY: number
-  mouseActive: boolean
   motionCleanup: (() => void) | null
 }
 
 function initBobaState(w: number, h: number, _foreground: boolean): BobaState {
-  // Calculate pearl count to fill ~30% of screen bottom
-  // avgR ≈ 15, pearl area ≈ π*15² ≈ 707, packing efficiency ~0.6
-  const avgR = 15
-  const targetArea = w * h * 0.40
-  const packingEfficiency = 0.6
-  const pearlArea = Math.PI * avgR * avgR
-  const pearlCount = Math.min(300, Math.max(40, Math.round(targetArea * packingEfficiency / pearlArea)))
-
-  // Spawn pearls scattered — they'll settle via gravity
-  const pearls: BobaPearl[] = Array.from({ length: pearlCount }, () => {
-    const r = 8 + Math.random() * 14
-    return {
-      x: Math.random() * w,
-      y: h * 0.3 + Math.random() * h * 0.7,  // bottom 70%, will settle
-      vx: 0, vy: 0,
-      r,
-      shade: Math.random(),
-      wobblePhase: Math.random() * Math.PI * 2,
-    }
-  })
+  // Spawn pearls scattered across screen — static, no movement
+  const pearlCount = Math.min(200, Math.max(30, Math.round(w * h * 0.4 * 0.6 / (Math.PI * 15 * 15))))
+  const pearls: BobaPearl[] = Array.from({ length: pearlCount }, () => ({
+    x: Math.random() * w,
+    y: Math.random() * h,
+    r: 8 + Math.random() * 14,
+    shade: Math.random(),
+  }))
 
   const swirls: BobaSwirl[] = Array.from({ length: 6 }, () => ({
     cx: Math.random() * w,
@@ -1431,84 +1414,7 @@ function initBobaState(w: number, h: number, _foreground: boolean): BobaState {
     opacity: 0.12 + Math.random() * 0.1,
   }))
 
-  const state: BobaState = { pearls, swirls, accelX: 0, accelY: 0, mouseX: -1000, mouseY: -1000, mouseActive: false, motionCleanup: null }
-
-  // ── Accelerometer setup ──
-  // Low-pass filter + dead zone to prevent jitter from sensor noise
-  const accelSmoothing = 0.1    // blend factor: 0 = ignore new data, 1 = no smoothing
-  const accelDeadZone = 0.12    // ignore tilts smaller than this (normalized -1 to 1)
-  let rawAccelX = 0, rawAccelY = 0
-
-  const handleMotion = (e: DeviceMotionEvent) => {
-    const ag = e.accelerationIncludingGravity
-    if (!ag) return
-    rawAccelX = (ag.x ?? 0) / 9.8
-    rawAccelY = (ag.y ?? 0) / 9.8
-    // Dead zone — ignore tiny tilts (sensor noise)
-    if (Math.abs(rawAccelX) < accelDeadZone) rawAccelX = 0
-    if (Math.abs(rawAccelY) < accelDeadZone) rawAccelY = 0
-    // Low-pass filter — smooth out rapid changes
-    state.accelX += (rawAccelX - state.accelX) * accelSmoothing
-    state.accelY += (rawAccelY - state.accelY) * accelSmoothing
-  }
-
-  if (typeof window !== 'undefined' && 'DeviceMotionEvent' in window) {
-    const DME = DeviceMotionEvent as unknown as {
-      requestPermission?: () => Promise<string>
-    }
-    let permissionGranted = false
-
-    if (typeof DME.requestPermission === 'function') {
-      // iOS 13+ — needs user gesture. Listen for ANY interaction (touch, click, pointerdown).
-      // Don't use { once: true } — keep retrying until permission granted in case
-      // the first interaction gets consumed by scrolling or the prompt is dismissed.
-      const requestPermission = () => {
-        if (permissionGranted) return
-        DME.requestPermission!().then((perm: string) => {
-          if (perm === 'granted') {
-            permissionGranted = true
-            window.addEventListener('devicemotion', handleMotion)
-            // Clean up gesture listeners once granted
-            document.removeEventListener('touchstart', requestPermission)
-            document.removeEventListener('click', requestPermission)
-            document.removeEventListener('pointerdown', requestPermission)
-          }
-        }).catch(() => {})
-      }
-      document.addEventListener('touchstart', requestPermission)
-      document.addEventListener('click', requestPermission)
-      document.addEventListener('pointerdown', requestPermission)
-      state.motionCleanup = () => {
-        document.removeEventListener('touchstart', requestPermission)
-        document.removeEventListener('click', requestPermission)
-        document.removeEventListener('pointerdown', requestPermission)
-        window.removeEventListener('devicemotion', handleMotion)
-      }
-    } else {
-      // Android / desktop — just listen directly (no permission needed)
-      window.addEventListener('devicemotion', handleMotion)
-      state.motionCleanup = () => window.removeEventListener('devicemotion', handleMotion)
-    }
-  }
-
-  // ── Mouse tracking for desktop repulsion ──
-  const handleMouseMove = (e: MouseEvent) => {
-    state.mouseX = e.clientX
-    state.mouseY = e.clientY
-    state.mouseActive = true
-  }
-  const handleMouseLeave = () => { state.mouseActive = false }
-  window.addEventListener('mousemove', handleMouseMove)
-  document.addEventListener('mouseleave', handleMouseLeave)
-
-  const origCleanup = state.motionCleanup
-  state.motionCleanup = () => {
-    if (origCleanup) origCleanup()
-    window.removeEventListener('mousemove', handleMouseMove)
-    document.removeEventListener('mouseleave', handleMouseLeave)
-  }
-
-  return state
+  return { pearls, swirls, motionCleanup: null }
 }
 
 function cleanupBobaState(state: BobaState) {
@@ -1547,121 +1453,8 @@ function drawBoba(
     ctx.restore()
   }
 
-  // ── Physics constants ──
-  const gravity = 0.15          // settle downward
-  const friction = 0.92         // heavy damping — viscous milk tea
-  const accelForce = 1.0        // how strongly tilt affects pearls
-  const floorBounce = 0.15      // very low bounce — pearls settle quickly
-  const wallBounce = 0.2
-  const mouseRadius = 100       // repulsion radius around cursor
-  const mouseForce = 3.0        // repulsion strength
-  const restThreshold = 0.5     // velocity below this = at rest
-  const accelWake = 0.12        // accel magnitude that wakes settled pearls
-
-  // Determine if external force is being applied (tilt or mouse)
-  const accelMag = Math.abs(state.accelX) + Math.abs(state.accelY)
-  const externalForce = accelMag > accelWake || state.mouseActive
-
-  // ── Tapioca pearls with physics ──
+  // ── Draw pearls (static — no movement logic) ──
   for (const p of state.pearls) {
-    // Check if at rest (supported and slow)
-    const speed = Math.abs(p.vx) + Math.abs(p.vy)
-    const onFloor = p.y + p.r >= h - 2
-    const onPearl = !onFloor && state.pearls.some(q => q !== p && q.y > p.y &&
-      Math.abs(q.x - p.x) < p.r + q.r * 0.9 &&
-      q.y - p.y < p.r + q.r + 2)
-    const supported = onFloor || onPearl
-    const atRest = speed < restThreshold && supported
-
-    // Skip physics entirely for settled pearls when no external force
-    if (atRest && !externalForce) {
-      p.vx = 0
-      p.vy = 0
-      continue
-    }
-
-    // Apply forces
-    p.vy += gravity
-    if (externalForce) {
-      p.vx += state.accelX * accelForce
-      p.vy -= state.accelY * accelForce
-    }
-
-    // Mouse repulsion (desktop)
-    if (state.mouseActive) {
-      const mdx = p.x - state.mouseX
-      const mdy = p.y - state.mouseY
-      const mDist = Math.sqrt(mdx * mdx + mdy * mdy)
-      if (mDist < mouseRadius && mDist > 0) {
-        const strength = mouseForce * (1 - mDist / mouseRadius)
-        p.vx += (mdx / mDist) * strength
-        p.vy += (mdy / mDist) * strength
-      }
-    }
-
-    // Damping (viscous liquid)
-    p.vx *= friction
-    p.vy *= friction
-
-    if (atRest) {
-      // Settling — zero out velocity but still allow collision resolution
-      p.vx = 0
-      p.vy = 0
-    } else {
-      // Move
-      p.x += p.vx
-      p.y += p.vy
-
-      // Bounce off walls
-      if (p.x - p.r < 0) { p.x = p.r; p.vx = Math.abs(p.vx) * wallBounce }
-      if (p.x + p.r > w) { p.x = w - p.r; p.vx = -Math.abs(p.vx) * wallBounce }
-
-      // Bounce off floor + settle
-      if (p.y + p.r > h) {
-        p.y = h - p.r
-        p.vy = -Math.abs(p.vy) * floorBounce
-        if (Math.abs(p.vy) < 0.5) p.vy = 0
-      }
-      // Ceiling
-      if (p.y - p.r < 0) { p.y = p.r; p.vy = Math.abs(p.vy) * floorBounce }
-    }
-
-    // Pearl-pearl collision — only when at least one pearl is moving
-    for (const q of state.pearls) {
-      if (q === p) continue
-      const dx = q.x - p.x, dy = q.y - p.y
-      const dist = Math.sqrt(dx * dx + dy * dy)
-      const minDist = p.r + q.r
-      if (dist < minDist && dist > 0) {
-        const pSpeed = Math.abs(p.vx) + Math.abs(p.vy)
-        const qSpeed = Math.abs(q.vx) + Math.abs(q.vy)
-        // Skip collision resolution if both pearls are settled
-        if (pSpeed < restThreshold && qSpeed < restThreshold && !externalForce) continue
-
-        const overlap = (minDist - dist) * 0.5
-        const nx = dx / dist, ny = dy / dist
-        p.x -= nx * overlap
-        p.y -= ny * overlap
-        q.x += nx * overlap
-        q.y += ny * overlap
-
-        if (pSpeed > restThreshold || qSpeed > restThreshold) {
-          const transferAmount = 0.05
-          p.vx -= nx * transferAmount
-          p.vy -= ny * transferAmount
-          q.vx += nx * transferAmount
-          q.vy += ny * transferAmount
-        }
-      }
-    }
-
-    // Final bounds clamp — collision separation can push pearls outside viewport
-    if (p.x - p.r < 0) { p.x = p.r; p.vx = 0 }
-    if (p.x + p.r > w) { p.x = w - p.r; p.vx = 0 }
-    if (p.y + p.r > h) { p.y = h - p.r; p.vy = 0 }
-    if (p.y - p.r < 0) { p.y = p.r; p.vy = 0 }
-
-    // ── Draw pearl (fully opaque) ──
     const bx = p.x, by = p.y
     ctx.save()
 
