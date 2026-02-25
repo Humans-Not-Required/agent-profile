@@ -1265,7 +1265,7 @@ body {
 /* ── Footer ── */
 .hnr-footer {
   color: var(--text-muted); font-size: 0.6rem; text-align: center;
-  margin-top: auto; padding-top: 2rem; padding-bottom: 0.5rem;
+  margin-top: auto; padding-top: 1.5rem; padding-bottom: 0.25rem;
   opacity: 0.35; letter-spacing: 0.05em;
 }
 .hnr-footer a { color: var(--text-muted); text-decoration: none; }
