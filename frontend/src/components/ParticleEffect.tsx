@@ -1435,8 +1435,8 @@ function initBobaState(w: number, h: number, _foreground: boolean): BobaState {
 
   // ── Accelerometer setup ──
   // Low-pass filter + dead zone to prevent jitter from sensor noise
-  const accelSmoothing = 0.15   // blend factor: 0 = ignore new data, 1 = no smoothing
-  const accelDeadZone = 0.08    // ignore tilts smaller than this (normalized -1 to 1)
+  const accelSmoothing = 0.1    // blend factor: 0 = ignore new data, 1 = no smoothing
+  const accelDeadZone = 0.12    // ignore tilts smaller than this (normalized -1 to 1)
   let rawAccelX = 0, rawAccelY = 0
 
   const handleMotion = (e: DeviceMotionEvent) => {
@@ -1550,19 +1550,42 @@ function drawBoba(
   // ── Physics constants ──
   const gravity = 0.15          // settle downward
   const friction = 0.92         // heavy damping — viscous milk tea
-  const accelForce = 1.0        // how strongly tilt affects pearls (reduced to prevent jitter)
+  const accelForce = 1.0        // how strongly tilt affects pearls
   const floorBounce = 0.15      // very low bounce — pearls settle quickly
   const wallBounce = 0.2
   const mouseRadius = 100       // repulsion radius around cursor
   const mouseForce = 3.0        // repulsion strength
-  const restThreshold = 0.4     // velocity below this = at rest (raised to prevent jitter)
+  const restThreshold = 0.5     // velocity below this = at rest
+  const accelWake = 0.12        // accel magnitude that wakes settled pearls
+
+  // Determine if external force is being applied (tilt or mouse)
+  const accelMag = Math.abs(state.accelX) + Math.abs(state.accelY)
+  const externalForce = accelMag > accelWake || state.mouseActive
 
   // ── Tapioca pearls with physics ──
   for (const p of state.pearls) {
+    // Check if at rest (supported and slow)
+    const speed = Math.abs(p.vx) + Math.abs(p.vy)
+    const onFloor = p.y + p.r >= h - 2
+    const onPearl = !onFloor && state.pearls.some(q => q !== p && q.y > p.y &&
+      Math.abs(q.x - p.x) < p.r + q.r * 0.9 &&
+      q.y - p.y < p.r + q.r + 2)
+    const supported = onFloor || onPearl
+    const atRest = speed < restThreshold && supported
+
+    // Skip physics entirely for settled pearls when no external force
+    if (atRest && !externalForce) {
+      p.vx = 0
+      p.vy = 0
+      continue
+    }
+
     // Apply forces
-    p.vy += gravity                                       // gravity pulls down
-    p.vx += state.accelX * accelForce                     // tilt pushes sideways
-    p.vy -= state.accelY * accelForce                     // tilt pushes up/down (inverted)
+    p.vy += gravity
+    if (externalForce) {
+      p.vx += state.accelX * accelForce
+      p.vy -= state.accelY * accelForce
+    }
 
     // Mouse repulsion (desktop)
     if (state.mouseActive) {
@@ -1580,16 +1603,8 @@ function drawBoba(
     p.vx *= friction
     p.vy *= friction
 
-    // Check if at rest (supported and slow)
-    const speed = Math.abs(p.vx) + Math.abs(p.vy)
-    const supported = p.y + p.r >= h - 2 ||
-      state.pearls.some(q => q !== p && q.y > p.y &&
-        Math.abs(q.x - p.x) < p.r + q.r * 1.1 &&
-        q.y - p.y < p.r + q.r + 3)
-    const atRest = speed < restThreshold && supported
-
     if (atRest) {
-      // Completely frozen — no movement, no velocity, no jitter
+      // Settling — zero out velocity but still allow collision resolution
       p.vx = 0
       p.vy = 0
     } else {
@@ -1611,25 +1626,26 @@ function drawBoba(
       if (p.y - p.r < 0) { p.y = p.r; p.vy = Math.abs(p.vy) * floorBounce }
     }
 
-    // Pearl-pearl collision — position separation only (no velocity when settled)
+    // Pearl-pearl collision — only when at least one pearl is moving
     for (const q of state.pearls) {
       if (q === p) continue
       const dx = q.x - p.x, dy = q.y - p.y
       const dist = Math.sqrt(dx * dx + dy * dy)
       const minDist = p.r + q.r
       if (dist < minDist && dist > 0) {
+        const pSpeed = Math.abs(p.vx) + Math.abs(p.vy)
+        const qSpeed = Math.abs(q.vx) + Math.abs(q.vy)
+        // Skip collision resolution if both pearls are settled
+        if (pSpeed < restThreshold && qSpeed < restThreshold && !externalForce) continue
+
         const overlap = (minDist - dist) * 0.5
         const nx = dx / dist, ny = dy / dist
-        // Always separate overlapping pearls
         p.x -= nx * overlap
         p.y -= ny * overlap
         q.x += nx * overlap
         q.y += ny * overlap
 
-        // Only transfer velocity if at least one pearl is moving
-        const pSpeed = Math.abs(p.vx) + Math.abs(p.vy)
-        const qSpeed = Math.abs(q.vx) + Math.abs(q.vy)
-        if (pSpeed > restThreshold * 2 || qSpeed > restThreshold * 2) {
+        if (pSpeed > restThreshold || qSpeed > restThreshold) {
           const transferAmount = 0.05
           p.vx -= nx * transferAmount
           p.vy -= ny * transferAmount
