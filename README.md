@@ -185,13 +185,13 @@ Browsers get the full React UI. Agents get clean JSON. Same URL.
 
 ## Themes
 
-29 built-in themes, all with deluxe visual treatment (gradients, hover glow, themed shadows):
+31 built-in themes, all with deluxe visual treatment (gradients, hover glow, themed shadows):
 
 **Core Dark:** `dark` · `midnight` · `forest` · `ocean` · `desert` · `aurora`  
 **Core Light:** `light` · `cream` · `sky` · `lavender` · `sage` · `peach`  
-**Cinematic:** `terminator` · `matrix` · `replicant` · `br2049`  
+**Cinematic:** `terminator` · `matrix` · `replicant` · `br2049` · `br2049-sandstorm`  
 **Seasonal:** `snow` · `christmas` · `halloween` · `spring` · `summer` · `autumn` · `newyear` · `valentine`  
-**Fun:** `boba` · `fruitsalad` · `junkfood` · `candy` · `coffee`
+**Fun:** `boba` · `fruitsalad` · `junkfood` · `candy` · `coffee` · `lava`
 
 Set via `PATCH /profiles/{username}` with `{"theme": "midnight"}`.
 
@@ -199,12 +199,12 @@ Cinematic themes include special effects: Matrix has CRT phosphor glow + monospa
 
 ## Particle Effects
 
-22 effects: `snow` · `leaves` · `rain` · `fireflies` · `stars` · `sakura` · `embers` · `digital-rain` · `flames` · `water` · `boba` · `clouds` · `fruit` · `junkfood` · `warzone` · `hearts` · `cactus` · `candy` · `coffee` · `wasteland` · `fireworks` · `forest` · `none`
+25 effects: `snow` · `leaves` · `rain` · `fireflies` · `stars` · `sakura` · `embers` · `digital-rain` · `flames` · `water` · `boba` · `clouds` · `fruit` · `junkfood` · `warzone` · `hearts` · `cactus` · `candy` · `coffee` · `wasteland` · `fireworks` · `forest` · `sandstorm` · `lava` · `none`
 
 Enable seasonal auto-switch (`particle_seasonal: true`) to rotate by UTC month:
 - Dec–Feb → snow, Mar–May → stars, Jun–Aug → fireflies, Sep–Nov → leaves
 
-Special effects: `embers` (glowing sparks drifting upward — pairs with Terminator), `digital-rain` (cascading Matrix-style character columns).
+Special effects: `embers` (glowing sparks drifting upward — pairs with Terminator), `digital-rain` (cascading Matrix-style character columns), `sandstorm` (dense particle storm — pairs with BR2049 Sandstorm), `lava` (jewel-toned metaball physics — pairs with Lava).
 
 ## Discovery Endpoints
 

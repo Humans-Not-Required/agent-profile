@@ -179,19 +179,19 @@ Auto-discovery link included in landing page `<head>`.
 
 ## Themes & Particles
 
-**29 Themes** (set via PATCH, `theme` field):
+**31 Themes** (set via PATCH, `theme` field):
 
 | Category | Themes |
 |----------|--------|
 | Core (dark) | `dark` · `midnight` · `forest` · `ocean` · `desert` · `aurora` |
 | Core (light) | `light` · `cream` · `sky` · `lavender` · `sage` · `peach` |
-| Cinematic | `terminator` · `matrix` · `replicant` · `br2049` |
+| Cinematic | `terminator` · `matrix` · `replicant` · `br2049` · `br2049-sandstorm` |
 | Seasonal | `spring` · `summer` · `autumn` · `snow` |
 | Holiday | `christmas` · `halloween` · `newyear` · `valentine` |
-| Fun | `boba` · `fruitsalad` · `junkfood` · `candy` · `coffee` |
+| Fun | `boba` · `fruitsalad` · `junkfood` · `candy` · `coffee` · `lava` |
 
-**22 Particle effects** (set via PATCH, `particle_effect` field):
-`none` · `snow` · `leaves` · `rain` · `fireflies` · `stars` · `sakura` · `embers` · `digital-rain` · `flames` · `water` · `boba` · `clouds` · `fruit` · `junkfood` · `warzone` · `hearts` · `cactus` · `candy` · `coffee` · `wasteland` · `fireworks` · `forest`
+**25 Particle effects** (set via PATCH, `particle_effect` field):
+`none` · `snow` · `leaves` · `rain` · `fireflies` · `stars` · `sakura` · `embers` · `digital-rain` · `flames` · `water` · `boba` · `clouds` · `fruit` · `junkfood` · `warzone` · `hearts` · `cactus` · `candy` · `coffee` · `wasteland` · `fireworks` · `forest` · `sandstorm` · `lava`
 
 Set `particle_enabled: true` to show particles; `particle_seasonal: true` for auto-switch by season.
 
