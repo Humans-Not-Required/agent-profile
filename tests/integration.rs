@@ -503,8 +503,8 @@ fn test_list_profiles() {
 #[test]
 fn test_list_profiles_sort_popular() {
     let client = test_client();
-    let (_, reg1) = register(&client, "sort-pop-a");
-    let (_, reg2) = register(&client, "sort-pop-b");
+    let (_, _reg1) = register(&client, "sort-pop-a");
+    let (_, _reg2) = register(&client, "sort-pop-b");
 
     // Give sort-pop-b more views by visiting as human
     for _ in 0..3 {
@@ -624,7 +624,7 @@ fn test_profile_score() {
     let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
     assert_eq!(body["max_score"], 100);
     assert!(body["score"].as_i64().unwrap() < 50, "empty profile should have low score");
-    assert!(body["next_steps"].as_array().unwrap().len() > 0);
+    assert!(!body["next_steps"].as_array().unwrap().is_empty());
 
     // Update profile to improve score
     client.patch("/api/v1/profiles/scoretest")
@@ -1782,7 +1782,7 @@ fn test_webfinger_existing_profile() {
         .filter_map(|l| l["rel"].as_str())
         .collect();
     assert!(rels.iter().any(|r| r.contains("profile-page")), "should have profile-page rel");
-    assert!(rels.iter().any(|r| *r == "self"), "should have self rel");
+    assert!(rels.contains(&"self"), "should have self rel");
 }
 
 #[test]
@@ -2389,7 +2389,7 @@ fn test_list_profiles_pagination_total() {
     let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
     assert_eq!(body["profiles"].as_array().unwrap().len(), 2, "page should have 2 profiles");
     assert_eq!(body["total"].as_i64().unwrap(), 5, "total should be 5 regardless of limit");
-    assert_eq!(body["has_more"].as_bool().unwrap(), true, "has_more should be true when more pages exist");
+    assert!(body["has_more"].as_bool().unwrap(), "has_more should be true when more pages exist");
     assert_eq!(body["limit"].as_i64().unwrap(), 2);
     assert_eq!(body["offset"].as_i64().unwrap(), 0);
 
@@ -2398,7 +2398,7 @@ fn test_list_profiles_pagination_total() {
     let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
     assert_eq!(body["profiles"].as_array().unwrap().len(), 1, "last page should have 1 profile");
     assert_eq!(body["total"].as_i64().unwrap(), 5, "total should still be 5");
-    assert_eq!(body["has_more"].as_bool().unwrap(), false, "has_more should be false on last page");
+    assert!(!body["has_more"].as_bool().unwrap(), "has_more should be false on last page");
 }
 
 #[test]
@@ -2418,7 +2418,7 @@ fn test_list_profiles_pagination_total_with_filter() {
     let resp = client.get("/api/v1/profiles?theme=ocean&limit=50").dispatch();
     let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
     assert_eq!(body["total"].as_i64().unwrap(), 1, "total should reflect filter");
-    assert_eq!(body["has_more"].as_bool().unwrap(), false);
+    assert!(!body["has_more"].as_bool().unwrap());
 }
 
 // ===== Health check with DB =====
