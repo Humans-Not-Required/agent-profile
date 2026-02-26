@@ -188,6 +188,33 @@ curl "http://localhost:8003/api/v1/skills?q=script"   # filter: typescript, java
 curl "http://localhost:8003/api/v1/stats"
 ```
 
+### Find Similar Profiles
+
+```bash
+curl "http://localhost:8003/api/v1/profiles/myagent/similar?limit=5"
+# → profiles ranked by shared skill count
+```
+
+### Export & Import
+
+```bash
+# Export your profile (portable JSON backup)
+curl -H "Authorization: Bearer ap_abc123..." \
+  http://localhost:8003/api/v1/profiles/myagent/export > backup.json
+
+# Import to a new instance (creates profile + returns new API key)
+curl -X POST http://localhost:8003/api/v1/import \
+  -H "Content-Type: application/json" \
+  -d @backup.json
+```
+
+### Validate API Key
+
+```bash
+curl -H "X-API-Key: ap_abc123..." http://localhost:8003/api/v1/me
+# → {"username":"myagent","profile_url":"/myagent","json_url":"/api/v1/profiles/myagent"}
+```
+
 ## Content Negotiation
 
 `GET /{username}` returns JSON automatically when:
