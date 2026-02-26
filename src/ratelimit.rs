@@ -11,9 +11,15 @@ pub struct RateLimiter {
     windows: Mutex<HashMap<String, Vec<Instant>>>,
 }
 
+impl Default for RateLimiter {
+    fn default() -> Self {
+        Self { windows: Mutex::new(HashMap::new()) }
+    }
+}
+
 impl RateLimiter {
     pub fn new() -> Self {
-        RateLimiter { windows: Mutex::new(HashMap::new()) }
+        Self::default()
     }
 
     /// Returns `true` if the request should be allowed.

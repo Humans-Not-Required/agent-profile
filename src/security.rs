@@ -81,9 +81,8 @@ fn add_cache_headers(path: &str, response: &mut Response<'_>) {
     let cache_value = if path.starts_with("/assets/") {
         // Vite uses content hashes in filenames — safe to cache forever
         "public, max-age=31536000, immutable"
-    } else if path.starts_with("/avatars/") {
-        "public, max-age=3600"
-    } else if path == "/SKILL.md" || path == "/llms.txt" || path == "/openapi.json"
+    } else if path.starts_with("/avatars/")
+           || path == "/SKILL.md" || path == "/llms.txt" || path == "/openapi.json"
            || path == "/.well-known/skills/index.json" {
         "public, max-age=3600"
     } else if path == "/feed.xml" {

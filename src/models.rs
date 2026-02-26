@@ -297,79 +297,62 @@ pub fn validate_pubkey(pubkey: &str) -> bool {
     hex_only && (pubkey.len() == 66 || pubkey.len() == 130)
 }
 
+/// Input fields for profile score computation.
+pub struct ScoreInput<'a> {
+    pub display_name: &'a str,
+    pub tagline: &'a str,
+    pub bio: &'a str,
+    pub avatar_url: &'a str,
+    pub pubkey: &'a str,
+    pub has_address: bool,
+    pub has_link: bool,
+    pub has_section: bool,
+    pub has_skill: bool,
+}
+
 /// Compute profile completeness score 0-100.
-pub fn compute_profile_score(
-    display_name: &str,
-    tagline: &str,
-    bio: &str,
-    avatar_url: &str,
-    pubkey: &str,
-    has_address: bool,
-    has_link: bool,
-    has_section: bool,
-    has_skill: bool,
-) -> i64 {
+pub fn compute_profile_score(input: &ScoreInput) -> i64 {
     let mut score: i64 = 0;
     // Base fields
-    if !display_name.is_empty() { score += 10; }
-    if !tagline.is_empty() { score += 10; }
-    if bio.len() >= 20 { score += 20; }  // At least a meaningful bio
-    if !avatar_url.is_empty() { score += 10; }
+    if !input.display_name.is_empty() { score += 10; }
+    if !input.tagline.is_empty() { score += 10; }
+    if input.bio.len() >= 20 { score += 20; }  // At least a meaningful bio
+    if !input.avatar_url.is_empty() { score += 10; }
     // Identity
-    if !pubkey.is_empty() { score += 20; }  // Big bonus for cryptographic identity
+    if !input.pubkey.is_empty() { score += 20; }  // Big bonus for cryptographic identity
     // Sub-resources
-    if has_address { score += 10; }
-    if has_link { score += 5; }
-    if has_section { score += 10; }
-    if has_skill { score += 5; }
+    if input.has_address { score += 10; }
+    if input.has_link { score += 5; }
+    if input.has_section { score += 10; }
+    if input.has_skill { score += 5; }
     score.clamp(0, 100)
 }
 
-pub fn score_breakdown(
-    display_name: &str,
-    tagline: &str,
-    bio: &str,
-    avatar_url: &str,
-    pubkey: &str,
-    has_address: bool,
-    has_link: bool,
-    has_section: bool,
-    has_skill: bool,
-) -> Vec<ScoreItem> {
+pub fn score_breakdown(input: &ScoreInput) -> Vec<ScoreItem> {
     vec![
-        ScoreItem { field: "display_name".to_string(), label: "Display name set".to_string(), points: 10, earned: !display_name.is_empty() },
-        ScoreItem { field: "tagline".to_string(), label: "Tagline set".to_string(), points: 10, earned: !tagline.is_empty() },
-        ScoreItem { field: "bio".to_string(), label: "Bio (20+ chars)".to_string(), points: 20, earned: bio.len() >= 20 },
-        ScoreItem { field: "avatar".to_string(), label: "Avatar set".to_string(), points: 10, earned: !avatar_url.is_empty() },
-        ScoreItem { field: "pubkey".to_string(), label: "secp256k1 public key (cryptographic identity)".to_string(), points: 20, earned: !pubkey.is_empty() },
-        ScoreItem { field: "crypto_address".to_string(), label: "At least one crypto address".to_string(), points: 10, earned: has_address },
-        ScoreItem { field: "link".to_string(), label: "At least one link".to_string(), points: 5, earned: has_link },
-        ScoreItem { field: "section".to_string(), label: "At least one freeform section".to_string(), points: 10, earned: has_section },
-        ScoreItem { field: "skill".to_string(), label: "At least one skill tag".to_string(), points: 5, earned: has_skill },
+        ScoreItem { field: "display_name".to_string(), label: "Display name set".to_string(), points: 10, earned: !input.display_name.is_empty() },
+        ScoreItem { field: "tagline".to_string(), label: "Tagline set".to_string(), points: 10, earned: !input.tagline.is_empty() },
+        ScoreItem { field: "bio".to_string(), label: "Bio (20+ chars)".to_string(), points: 20, earned: input.bio.len() >= 20 },
+        ScoreItem { field: "avatar".to_string(), label: "Avatar set".to_string(), points: 10, earned: !input.avatar_url.is_empty() },
+        ScoreItem { field: "pubkey".to_string(), label: "secp256k1 public key (cryptographic identity)".to_string(), points: 20, earned: !input.pubkey.is_empty() },
+        ScoreItem { field: "crypto_address".to_string(), label: "At least one crypto address".to_string(), points: 10, earned: input.has_address },
+        ScoreItem { field: "link".to_string(), label: "At least one link".to_string(), points: 5, earned: input.has_link },
+        ScoreItem { field: "section".to_string(), label: "At least one freeform section".to_string(), points: 10, earned: input.has_section },
+        ScoreItem { field: "skill".to_string(), label: "At least one skill tag".to_string(), points: 5, earned: input.has_skill },
     ]
 }
 
-pub fn score_next_steps(
-    display_name: &str,
-    tagline: &str,
-    bio: &str,
-    avatar_url: &str,
-    pubkey: &str,
-    has_address: bool,
-    has_link: bool,
-    has_section: bool,
-    has_skill: bool,
-) -> Vec<String> {
+pub fn score_next_steps(input: &ScoreInput) -> Vec<String> {
     let mut steps = vec![];
-    if display_name.is_empty() { steps.push("Set a display name".to_string()); }
-    if tagline.is_empty() { steps.push("Add a tagline (short subtitle)".to_string()); }
-    if bio.len() < 20 { steps.push("Write a bio (at least 20 characters)".to_string()); }
-    if avatar_url.is_empty() { steps.push("Add an avatar URL or upload an image".to_string()); }
-    if pubkey.is_empty() { steps.push("Add a secp256k1 public key for cryptographic identity (+20 points)".to_string()); }
-    if !has_address { steps.push("Add a crypto address (Bitcoin, Lightning, Nostr, etc.)".to_string()); }
-    if !has_link { steps.push("Add a link (GitHub, website, etc.)".to_string()); }
-    if !has_section { steps.push("Add a profile section (bio, interests, projects, etc.)".to_string()); }
-    if !has_skill { steps.push("Add at least one skill tag".to_string()); }
+    if input.display_name.is_empty() { steps.push("Set a display name".to_string()); }
+    if input.tagline.is_empty() { steps.push("Add a tagline (short subtitle)".to_string()); }
+    if input.bio.len() < 20 { steps.push("Write a bio (at least 20 characters)".to_string()); }
+    if input.avatar_url.is_empty() { steps.push("Add an avatar URL or upload an image".to_string()); }
+    if input.pubkey.is_empty() { steps.push("Add a secp256k1 public key for cryptographic identity (+20 points)".to_string()); }
+    if !input.has_address { steps.push("Add a crypto address (Bitcoin, Lightning, Nostr, etc.)".to_string()); }
+    if !input.has_link { steps.push("Add a link (GitHub, website, etc.)".to_string()); }
+    if !input.has_section { steps.push("Add a profile section (bio, interests, projects, etc.)".to_string()); }
+    if !input.has_skill { steps.push("Add at least one skill tag".to_string()); }
     steps
 }
 
@@ -415,34 +398,52 @@ mod tests {
 
     #[test]
     fn test_compute_profile_score_empty() {
-        let score = compute_profile_score("", "", "", "", "", false, false, false, false);
-        assert_eq!(score, 0);
+        let input = ScoreInput {
+            display_name: "", tagline: "", bio: "", avatar_url: "", pubkey: "",
+            has_address: false, has_link: false, has_section: false, has_skill: false,
+        };
+        assert_eq!(compute_profile_score(&input), 0);
     }
 
     #[test]
     fn test_compute_profile_score_full() {
-        let bio = "a".repeat(25); // 25 chars ≥ 20
-        let score = compute_profile_score("Test Name", "A tagline", &bio, "https://example.com/avatar.png", "02a1633caf...", true, true, true, true);
-        assert_eq!(score, 100);
+        let bio = "a".repeat(25);
+        let input = ScoreInput {
+            display_name: "Test Name", tagline: "A tagline", bio: &bio,
+            avatar_url: "https://example.com/avatar.png", pubkey: "02a1633caf...",
+            has_address: true, has_link: true, has_section: true, has_skill: true,
+        };
+        assert_eq!(compute_profile_score(&input), 100);
     }
 
     #[test]
     fn test_compute_profile_score_partial() {
-        let score = compute_profile_score("Name", "", "", "", "", false, false, false, false);
-        assert_eq!(score, 10); // only display_name
+        let input = ScoreInput {
+            display_name: "Name", tagline: "", bio: "", avatar_url: "", pubkey: "",
+            has_address: false, has_link: false, has_section: false, has_skill: false,
+        };
+        assert_eq!(compute_profile_score(&input), 10); // only display_name
     }
 
     #[test]
     fn test_compute_profile_score_no_pubkey() {
         let bio = "a".repeat(25);
-        let score = compute_profile_score("Name", "tag", &bio, "https://x.com/a.png", "", true, true, true, true);
+        let input = ScoreInput {
+            display_name: "Name", tagline: "tag", bio: &bio,
+            avatar_url: "https://x.com/a.png", pubkey: "",
+            has_address: true, has_link: true, has_section: true, has_skill: true,
+        };
         // 10+10+20+10+0+10+5+10+5 = 80 (no pubkey)
-        assert_eq!(score, 80);
+        assert_eq!(compute_profile_score(&input), 80);
     }
 
     #[test]
     fn test_score_breakdown_count() {
-        let breakdown = score_breakdown("", "", "", "", "", false, false, false, false);
+        let input = ScoreInput {
+            display_name: "", tagline: "", bio: "", avatar_url: "", pubkey: "",
+            has_address: false, has_link: false, has_section: false, has_skill: false,
+        };
+        let breakdown = score_breakdown(&input);
         assert_eq!(breakdown.len(), 9);
         assert!(breakdown.iter().all(|item| !item.earned));
     }
@@ -450,11 +451,13 @@ mod tests {
     #[test]
     fn test_score_next_steps_full_profile() {
         let bio = "a".repeat(25);
-        let steps = score_next_steps(
-            "Name", "tag", &bio, "https://x.com/a.png",
-            "02a1633cafcc01ebfb6d78e39f687a1f0995c62fc95f51ead10a02ee0be551b5dc",
-            true, true, true, true,
-        );
+        let input = ScoreInput {
+            display_name: "Name", tagline: "tag", bio: &bio,
+            avatar_url: "https://x.com/a.png",
+            pubkey: "02a1633cafcc01ebfb6d78e39f687a1f0995c62fc95f51ead10a02ee0be551b5dc",
+            has_address: true, has_link: true, has_section: true, has_skill: true,
+        };
+        let steps = score_next_steps(&input);
         assert!(steps.is_empty(), "Full profile should have no next steps");
     }
 }

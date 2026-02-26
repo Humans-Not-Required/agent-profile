@@ -212,10 +212,11 @@ fn update_profile_score(conn: &Connection, profile_id: &str, username: &str) {
         let has_link = !p.links.is_empty();
         let has_section = !p.sections.is_empty();
         let has_skill = !p.skills.is_empty();
-        let score = compute_profile_score(
-            &p.display_name, &p.tagline, &p.bio, &p.avatar_url,
-            &p.pubkey, has_addr, has_link, has_section, has_skill,
-        );
+        let score = compute_profile_score(&ScoreInput {
+            display_name: &p.display_name, tagline: &p.tagline, bio: &p.bio,
+            avatar_url: &p.avatar_url, pubkey: &p.pubkey,
+            has_address: has_addr, has_link, has_section, has_skill,
+        });
         let _ = conn.execute(
             "UPDATE profiles SET profile_score = ?1 WHERE id = ?2",
             params![score, profile_id],
@@ -314,10 +315,10 @@ pub fn register(
     let pubkey = body.pubkey.clone().unwrap_or_default();
 
     // Compute initial score
-    let score = compute_profile_score(
-        &display_name, "", "", "", &pubkey,
-        false, false, false, false,
-    );
+    let score = compute_profile_score(&ScoreInput {
+        display_name: &display_name, tagline: "", bio: "", avatar_url: "", pubkey: &pubkey,
+        has_address: false, has_link: false, has_section: false, has_skill: false,
+    });
 
     let conn = db.lock().unwrap();
     match conn.execute(
@@ -372,6 +373,7 @@ pub fn reissue_key(
 // --- Profile CRUD ---
 
 #[get("/profiles?<q>&<theme>&<skill>&<has_pubkey>&<sort>&<limit>&<offset>")]
+#[allow(clippy::too_many_arguments)]
 pub fn list_profiles(
     db: &State<DbConn>,
     q: Option<&str>,
@@ -715,11 +717,11 @@ pub fn update_profile(
         let has_link = !profile.links.is_empty();
         let has_section = !profile.sections.is_empty();
         let has_skill = !profile.skills.is_empty();
-        let score = compute_profile_score(
-            &profile.display_name, &profile.tagline, &profile.bio,
-            &profile.avatar_url, &profile.pubkey,
-            has_addr, has_link, has_section, has_skill,
-        );
+        let score = compute_profile_score(&ScoreInput {
+            display_name: &profile.display_name, tagline: &profile.tagline, bio: &profile.bio,
+            avatar_url: &profile.avatar_url, pubkey: &profile.pubkey,
+            has_address: has_addr, has_link, has_section, has_skill,
+        });
         let _ = conn.execute(
             "UPDATE profiles SET profile_score = ?1 WHERE username = ?2",
             params![score, username],
@@ -770,21 +772,14 @@ pub fn get_score(
     let has_section = !profile.sections.is_empty();
     let has_skill = !profile.skills.is_empty();
 
-    let score = compute_profile_score(
-        &profile.display_name, &profile.tagline, &profile.bio,
-        &profile.avatar_url, &profile.pubkey,
-        has_addr, has_link, has_section, has_skill,
-    );
-    let breakdown = score_breakdown(
-        &profile.display_name, &profile.tagline, &profile.bio,
-        &profile.avatar_url, &profile.pubkey,
-        has_addr, has_link, has_section, has_skill,
-    );
-    let next_steps = score_next_steps(
-        &profile.display_name, &profile.tagline, &profile.bio,
-        &profile.avatar_url, &profile.pubkey,
-        has_addr, has_link, has_section, has_skill,
-    );
+    let si = ScoreInput {
+        display_name: &profile.display_name, tagline: &profile.tagline, bio: &profile.bio,
+        avatar_url: &profile.avatar_url, pubkey: &profile.pubkey,
+        has_address: has_addr, has_link, has_section, has_skill,
+    };
+    let score = compute_profile_score(&si);
+    let breakdown = score_breakdown(&si);
+    let next_steps = score_next_steps(&si);
 
     Ok(Json(ProfileScoreResponse { score, max_score: 100, breakdown, next_steps }))
 }
@@ -827,7 +822,7 @@ pub fn similar_profiles(
         })));
     }
 
-    let lim = limit.unwrap_or(5).max(1).min(20);
+    let lim = limit.unwrap_or(5).clamp(1, 20);
 
     // Find profiles sharing skills, ranked by overlap count
     // Build placeholders for IN clause
@@ -1135,14 +1130,14 @@ pub fn import_profile(
 
     // Recompute score
     let profile = load_profile(&conn, &username).unwrap();
-    let new_score = compute_profile_score(
-        &profile.display_name, &profile.tagline, &profile.bio,
-        &profile.avatar_url, &profile.pubkey,
-        !profile.crypto_addresses.is_empty(),
-        !profile.links.is_empty(),
-        !profile.sections.is_empty(),
-        !profile.skills.is_empty(),
-    );
+    let new_score = compute_profile_score(&ScoreInput {
+        display_name: &profile.display_name, tagline: &profile.tagline, bio: &profile.bio,
+        avatar_url: &profile.avatar_url, pubkey: &profile.pubkey,
+        has_address: !profile.crypto_addresses.is_empty(),
+        has_link: !profile.links.is_empty(),
+        has_section: !profile.sections.is_empty(),
+        has_skill: !profile.skills.is_empty(),
+    });
     let _ = conn.execute(
         "UPDATE profiles SET profile_score = ?1 WHERE username = ?2",
         params![new_score, username],
@@ -1915,10 +1910,11 @@ pub async fn upload_avatar(
             let has_link = !p.links.is_empty();
             let has_section = !p.sections.is_empty();
             let has_skill = !p.skills.is_empty();
-            let score = crate::models::compute_profile_score(
-                &p.display_name, &p.tagline, &p.bio, &p.avatar_url, &p.pubkey,
-                has_addr, has_link, has_section, has_skill,
-            );
+            let score = crate::models::compute_profile_score(&crate::models::ScoreInput {
+                display_name: &p.display_name, tagline: &p.tagline, bio: &p.bio,
+                avatar_url: &p.avatar_url, pubkey: &p.pubkey,
+                has_address: has_addr, has_link, has_section, has_skill,
+            });
             let _ = conn.execute(
                 "UPDATE profiles SET profile_score = ?1 WHERE username = ?2",
                 params![score, username],
@@ -2205,7 +2201,7 @@ pub fn feed_xml(db: &State<DbConn>, base_url: BaseUrl) -> (ContentType, String) 
     // Feed updated timestamp = most recent profile update
     let feed_updated = profiles.first()
         .map(|p| p.4.clone())
-        .unwrap_or_else(|| now());
+        .unwrap_or_else(now);
 
     let mut xml = format!(
         r#"<?xml version="1.0" encoding="UTF-8"?>
