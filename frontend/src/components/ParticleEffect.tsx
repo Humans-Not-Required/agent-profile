@@ -1441,46 +1441,6 @@ interface BobaState {
 const BOBA_MIN_MASS = 64
 const BOBA_MAX_MASS = 484
 
-function applyConvectionForce(p: BobaPearl, w: number, h: number) {
-  const cx = w * 0.5
-  const dx = p.x - cx
-  const normX = dx / (w * 0.5)               // -1..1 from center
-  const normY = p.y / h                       // 0 (top) .. 1 (bottom)
-  // Normalize mass to 1..3 range — small pearls circulate freely, large resist
-  const normMass = 1 + 2 * (p.mass - BOBA_MIN_MASS) / (BOBA_MAX_MASS - BOBA_MIN_MASS)
-  const invMass = 1 / normMass
-
-  // Upwell zone — center column, 50% width
-  const upwellHalf = 0.25
-  const absNormX = Math.abs(normX)
-  if (absNormX < upwellHalf && normY > 0.3) {
-    const proximity = 1 - absNormX / upwellHalf               // 1 at center, 0 at edge
-    const depth = (normY - 0.3) / 0.7                         // 0..1 from 30% to bottom
-    // Strong upward force — must overcome gravity (0.06) + stack pressure
-    p.vy -= 1.4 * proximity * proximity * depth * invMass
-    // Centering pull strengthens near bottom to funnel pearls into column
-    p.vx -= normX * (0.15 + 0.15 * depth) * invMass
-  }
-
-  // Spread zone — top ~45%, push outward from center
-  if (normY < 0.45) {
-    const strength = (1 - normY / 0.45) * 0.3
-    p.vx += Math.sign(dx + 0.001) * strength * invMass
-  }
-
-  // Downdraft — outer edges (|normX| > 0.35), gentle downward pull
-  if (absNormX > 0.35) {
-    const edgeness = (absNormX - 0.35) / 0.65               // 0..1 toward wall
-    p.vy += 0.10 * edgeness * invMass
-  }
-
-  // Inflow — bottom 40%, outside upwell, pull toward center to feed upwell
-  if (normY > 0.6 && absNormX > upwellHalf) {
-    const inflowStrength = (normY - 0.6) / 0.4               // stronger near floor
-    p.vx -= normX * 0.25 * inflowStrength * invMass
-  }
-}
-
 function resolvePair(a: BobaPearl, b: BobaPearl) {
   const dx = b.x - a.x
   const dy = b.y - a.y
@@ -1556,12 +1516,13 @@ function updateBobaPearls(state: BobaState, w: number, h: number, t: number) {
   state.prevW = w
   state.prevH = h
 
-  for (const p of pearls) {
-    // Gravity — slow, thick liquid
-    p.vy += 0.06
+  // Sloshing tilt — 3 incommensurate periods for non-repeating organic feel (~18 min cycle)
+  const tilt = 0.08 * Math.sin(t / 6000) + 0.05 * Math.sin(t / 11000) + 0.03 * Math.sin(t / 17000)
 
-    // Convection force field
-    applyConvectionForce(p, w, h)
+  for (const p of pearls) {
+    // Tilted gravity — mostly downward with slight lateral push from slosh
+    p.vy += 0.06 * Math.cos(tilt)
+    p.vx += 0.06 * Math.sin(tilt)
 
     // Organic wobble — sinusoidal lateral drift
     p.vx += Math.sin(t * 0.001 + p.wobblePhase) * 0.008 / p.mass
