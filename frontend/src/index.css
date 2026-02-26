@@ -117,8 +117,8 @@
 
 [data-theme="br2049"] {
   --bg: #1a0c02; --card: #2a1608; --border: #4a2810;
-  --text: #c89060; --text-muted: #8a5a30; --text-bright: #f0c080;
-  --accent: #e87020; --accent2: #ff9030; --tag-bg: #221008;
+  --text: #d8a070; --text-muted: #9a6838; --text-bright: #f8d090;
+  --accent: #f08028; --accent2: #ffa038; --tag-bg: #221008;
   --tag-border: #4a2810;
 }
 
@@ -901,37 +901,37 @@
 
 /* BR 2049 — The Wasteland: orange haze, radioactive dust, dying sun */
 [data-theme="br2049"] body {
-  background: linear-gradient(180deg, #4a2800 0%, #7a3800 20%, #c06010 50%, #8a4008 75%, #1a0c02 100%);
+  background: linear-gradient(180deg, #5a3200 0%, #8a4400 20%, #d07018 50%, #9a4c10 75%, #1a0c02 100%);
 }
 [data-theme="br2049"] .card {
   background: rgba(42,22,8,0.35);
-  box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 60px rgba(232,112,32,0.06);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 60px rgba(240,128,40,0.08);
   backdrop-filter: blur(2px);
-  border-color: rgba(200,120,50,0.2);
+  border-color: rgba(220,130,55,0.22);
 }
 [data-theme="br2049"] .card:hover {
-  box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 80px rgba(232,112,32,0.1);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 80px rgba(240,128,40,0.12);
 }
 [data-theme="br2049"] .profile-name {
-  color: #f0c070;
-  text-shadow: 0 0 20px rgba(232,160,60,0.4), 0 0 50px rgba(232,112,32,0.15);
+  color: #f8d080;
+  text-shadow: 0 0 20px rgba(240,170,70,0.4), 0 0 50px rgba(240,128,40,0.15);
 }
 [data-theme="br2049"] .profile-tagline {
-  color: #e87020;
-  text-shadow: 0 0 12px rgba(232,112,32,0.3);
+  color: #f08028;
+  text-shadow: 0 0 12px rgba(240,128,40,0.3);
 }
 [data-theme="br2049"] .section-title {
-  color: #c08040;
-  border-top-color: rgba(200,128,64,0.2);
+  color: #d09048;
+  border-top-color: rgba(210,140,72,0.22);
 }
 [data-theme="br2049"] .badge {
-  border-color: rgba(232,112,32,0.3);
+  border-color: rgba(240,128,40,0.3);
 }
 [data-theme="br2049"] a {
-  color: #e88030;
+  color: #f09038;
 }
 [data-theme="br2049"] a:hover {
-  color: #ffa050;
+  color: #ffb060;
 }
 
 /* ── Global base ── */

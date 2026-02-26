@@ -839,7 +839,7 @@ interface WarzoneState {
 const LASER_COLORS = ['rgba(255,20,40,A)', 'rgba(60,140,255,A)', 'rgba(180,60,255,A)', 'rgba(255,100,20,A)']
 
 function initWarzoneState(w: number, h: number, foreground: boolean): WarzoneState {
-  const groundY = h * 0.5  // rubble starts halfway — fills bottom half
+  const groundY = h * 0.68  // horizon line — ground visible in lower third
   const mounds: RubbleMound[] = []
   const empty: WarzoneState = {
     mounds, groundY, laserCooldown: 90, lasers: [], burstRemaining: 0,
@@ -848,32 +848,35 @@ function initWarzoneState(w: number, h: number, foreground: boolean): WarzoneSta
   }
   if (foreground) return empty
 
-  // 3 overlapping layers of organic rubble mounds — back to front
+  // 3 layers of low rubble — broken concrete and debris on the ground
   for (let layer = 0; layer < 3; layer++) {
-    const baseY = groundY + layer * h * 0.1
-    const moundCount = 6 + Math.floor(Math.random() * 4)
+    const baseY = groundY + layer * h * 0.06  // layers closer together (perspective)
+    const moundCount = 8 + Math.floor(Math.random() * 5)
     for (let i = 0; i < moundCount; i++) {
-      const cx = (w / moundCount) * i + (Math.random() - 0.5) * w * 0.2
-      const mw = 80 + Math.random() * 160
-      const mh = 30 + Math.random() * 70 + (2 - layer) * 25  // back layers taller
-      const ptCount = 7 + Math.floor(Math.random() * 5)
+      const cx = (w / moundCount) * i + (Math.random() - 0.5) * w * 0.25
+      const mw = 60 + Math.random() * 140  // wide and low
+      const mh = 8 + Math.random() * 22 + (2 - layer) * 8  // low profile — max ~46px for back
+      const ptCount = 8 + Math.floor(Math.random() * 6)
       const points: { x: number; y: number }[] = []
       for (let p = 0; p <= ptCount; p++) {
         const frac = p / ptCount
         const px = cx - mw / 2 + frac * mw
-        const mainHump = Math.sin(frac * Math.PI) * mh
-        const bump1 = Math.sin(frac * Math.PI * 2.7 + i) * mh * 0.25
-        const bump2 = Math.sin(frac * Math.PI * 5.3 + layer * 2) * mh * 0.12
-        const jitter = (Math.random() - 0.5) * mh * 0.18
-        const py = baseY - mainHump - bump1 - bump2 + jitter
-        points.push({ x: px, y: Math.min(py, baseY + 5) })
+        // Envelope: gradual rise and fall — no abrupt edges
+        const envelope = Math.sin(frac * Math.PI)  // smooth 0→1→0
+        const mainHump = envelope * mh
+        // Jagged rubble texture: sharp small bumps on top of the gentle envelope
+        const jagged = Math.sin(frac * Math.PI * 4.3 + i * 7.1) * mh * 0.2
+        const chips = Math.sin(frac * Math.PI * 9.7 + layer * 3.3) * mh * 0.1
+        const jitter = (Math.random() - 0.5) * mh * 0.15
+        const py = baseY - (mainHump + jagged + chips) * envelope + jitter
+        points.push({ x: px, y: Math.min(py, baseY + 2) })
       }
-      points[0].y = baseY + 15
-      points[points.length - 1].y = baseY + 15
-      mounds.push({ points, shade: 0.3 + layer * 0.25 })  // back=darker, front=lighter
+      // Edges merge smoothly into ground level
+      points[0].y = baseY + 3
+      points[points.length - 1].y = baseY + 3
+      mounds.push({ points, shade: 0.3 + layer * 0.25 })
     }
   }
-  // Sort so back (darker/taller) layers draw first
   mounds.sort((a, b) => a.shade - b.shade)
 
   return { ...empty, mounds, groundY }
@@ -891,8 +894,8 @@ function drawWarzone(
   ctx.save()
   const gY = state.groundY
 
-  // ── Fiery red/orange glow behind rubble (horizon fire) ──
-  const glow1 = ctx.createRadialGradient(w * 0.5, gY + 20, 0, w * 0.5, gY + 20, w * 0.7)
+  // ── Fiery red/orange glow at horizon ──
+  const glow1 = ctx.createRadialGradient(w * 0.5, gY - 20, 0, w * 0.5, gY - 20, w * 0.7)
   glow1.addColorStop(0, 'rgba(200,50,15,0.30)')
   glow1.addColorStop(0.25, 'rgba(180,35,10,0.18)')
   glow1.addColorStop(0.6, 'rgba(120,20,5,0.08)')
@@ -900,34 +903,35 @@ function drawWarzone(
   ctx.fillStyle = glow1
   ctx.fillRect(0, 0, w, h)
 
-  const glow2 = ctx.createRadialGradient(w * 0.25, gY + 30, 0, w * 0.25, gY + 30, w * 0.45)
+  const glow2 = ctx.createRadialGradient(w * 0.25, gY - 10, 0, w * 0.25, gY - 10, w * 0.45)
   glow2.addColorStop(0, 'rgba(220,80,15,0.15)')
   glow2.addColorStop(0.5, 'rgba(160,40,8,0.07)')
   glow2.addColorStop(1, 'rgba(60,10,0,0)')
   ctx.fillStyle = glow2
   ctx.fillRect(0, 0, w, h)
 
-  const glow3 = ctx.createRadialGradient(w * 0.75, gY + 10, 0, w * 0.75, gY + 10, w * 0.35)
+  const glow3 = ctx.createRadialGradient(w * 0.75, gY - 15, 0, w * 0.75, gY - 15, w * 0.35)
   glow3.addColorStop(0, 'rgba(200,60,20,0.12)')
   glow3.addColorStop(1, 'rgba(80,15,0,0)')
   ctx.fillStyle = glow3
   ctx.fillRect(0, 0, w, h)
 
-  // ── Rubble mounds — organic curves, back to front ──
+  // ── Flat ground plane ──
+  ctx.fillStyle = '#0a0806'
+  ctx.fillRect(0, gY, w, h - gY)
+
+  // ── Rubble mounds — low broken debris on the ground ──
   for (const mound of state.mounds) {
-    const shade = Math.floor(8 + mound.shade * 8)
-    ctx.fillStyle = `rgb(${shade},${shade + 1},${shade + 3})`
+    const shade = Math.floor(10 + mound.shade * 10)
+    ctx.fillStyle = `rgb(${shade},${shade + 1},${shade + 2})`
     ctx.beginPath()
     const pts = mound.points
     ctx.moveTo(pts[0].x, pts[0].y)
-    // Smooth curve through points
-    for (let i = 1; i < pts.length - 1; i++) {
-      const xc = (pts[i].x + pts[i + 1].x) / 2
-      const yc = (pts[i].y + pts[i + 1].y) / 2
-      ctx.quadraticCurveTo(pts[i].x, pts[i].y, xc, yc)
+    // Jagged line through points — no smoothing, rubble has hard edges
+    for (let i = 1; i < pts.length; i++) {
+      ctx.lineTo(pts[i].x, pts[i].y)
     }
-    ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y)
-    // Close along bottom
+    // Close along ground
     ctx.lineTo(pts[pts.length - 1].x, h + 10)
     ctx.lineTo(pts[0].x, h + 10)
     ctx.closePath()
@@ -1855,18 +1859,6 @@ function drawWasteland(
         }
       }
     }
-
-    // Curvy road leading toward the city (perspective vanishing point)
-    const roadVanishX = w * 0.5
-    const roadVanishY = skylineY + h * 0.02
-    ctx.fillStyle = '#1a0c02'  // same color as buildings — seamless intersection
-    ctx.beginPath()
-    ctx.moveTo(roadVanishX - 8, roadVanishY)
-    ctx.quadraticCurveTo(w * 0.35, h * 0.82, w * 0.05, h + 10)
-    ctx.lineTo(w * 0.65, h + 10)
-    ctx.quadraticCurveTo(w * 0.65, h * 0.82, roadVanishX + 8, roadVanishY)
-    ctx.closePath()
-    ctx.fill()
 
     // ── Flying spinner cars ──
     for (const sp of state.spinners) {
