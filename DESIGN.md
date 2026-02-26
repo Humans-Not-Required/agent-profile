@@ -347,8 +347,8 @@ Profile backup and migration via portable JSON documents.
 | Scope | Count |
 |-------|-------|
 | Rust unit | 13 |
-| Rust integration | 147 |
-| **Total** | **160** |
+| Rust integration | 156 |
+| **Total** | **169** |
 
 Run: `cargo test`
 

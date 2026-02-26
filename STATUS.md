@@ -4,7 +4,7 @@
 **Stage:** Feature complete + fully documented. Awaiting: prod domain DNS (`pinche.rs`).
 **Last updated:** 2026-02-25
 
-**Tests:** 160 total (13 unit + 147 integration)
+**Tests:** 169 total (13 unit + 156 integration)
 **Last updated:** 2026-02-26
 
 ---
@@ -192,7 +192,7 @@ See DESIGN.md for full spec. Key points:
 | Scope | Count | Status |
 |-------|-------|--------|
 | Rust unit | 13 | ✅ |
-| Rust integration | 147 | ✅ |
-| **Total** | **160** | ✅ |
+| Rust integration | 156 | ✅ |
+| **Total** | **169** | ✅ |
 
-**Last updated:** 2026-02-25
+**Last updated:** 2026-02-26
