@@ -122,6 +122,13 @@
   --tag-border: #4a2810;
 }
 
+[data-theme="br2049-sandstorm"] {
+  --bg: #1c0e04; --card: #261408; --border: #3a2010;
+  --text: #b08858; --text-muted: #7a5430; --text-bright: #c89860;
+  --accent: #c07028; --accent2: #d08838; --tag-bg: #1e1008;
+  --tag-border: #3a2010;
+}
+
 /* ── Seasonal & Holiday Themes ── */
 
 [data-theme="snow"] {
@@ -932,6 +939,41 @@
 }
 [data-theme="br2049"] a:hover {
   color: #ffb060;
+}
+
+/* BR 2049 Sandstorm — Dense sandstorm, megacity fading into haze */
+[data-theme="br2049-sandstorm"] body {
+  background: linear-gradient(180deg, #3a2000 0%, #6a3800 20%, #9a5818 50%, #6a3810 75%, #1c0e04 100%);
+}
+[data-theme="br2049-sandstorm"] .card {
+  background: rgba(38,20,8,0.30);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 50px rgba(192,112,40,0.06);
+  backdrop-filter: blur(4px);
+  border-color: rgba(180,110,50,0.18);
+}
+[data-theme="br2049-sandstorm"] .card:hover {
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 70px rgba(192,112,40,0.10);
+}
+[data-theme="br2049-sandstorm"] .profile-name {
+  color: #c89860;
+  text-shadow: 0 0 18px rgba(200,152,96,0.35), 0 0 40px rgba(192,112,40,0.12);
+}
+[data-theme="br2049-sandstorm"] .profile-tagline {
+  color: #b08040;
+  text-shadow: 0 0 10px rgba(176,128,64,0.25);
+}
+[data-theme="br2049-sandstorm"] .section-title {
+  color: #a07840;
+  border-top-color: rgba(160,120,64,0.18);
+}
+[data-theme="br2049-sandstorm"] .badge {
+  border-color: rgba(192,112,40,0.25);
+}
+[data-theme="br2049-sandstorm"] a {
+  color: #b08040;
+}
+[data-theme="br2049-sandstorm"] a:hover {
+  color: #d0a060;
 }
 
 /* ── Global base ── */

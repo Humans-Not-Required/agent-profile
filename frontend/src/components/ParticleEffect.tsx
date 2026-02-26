@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { CSSParticleEffect } from './CSSParticleEffect'
 
-export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'embers' | 'digital-rain' | 'flames' | 'water' | 'boba' | 'clouds' | 'fruit' | 'junkfood' | 'warzone' | 'hearts' | 'cactus' | 'candy' | 'coffee' | 'wasteland' | 'fireworks' | 'forest' | 'none'
+export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'embers' | 'digital-rain' | 'flames' | 'water' | 'boba' | 'clouds' | 'fruit' | 'junkfood' | 'warzone' | 'hearts' | 'cactus' | 'candy' | 'coffee' | 'wasteland' | 'fireworks' | 'forest' | 'sandstorm' | 'none'
 
 // Effects that use GPU-composited CSS animations instead of canvas
 const CSS_EFFECTS = new Set<EffectName>(['leaves', 'snow', 'fruit', 'junkfood', 'sakura', 'hearts', 'cactus', 'candy', 'coffee'])
@@ -1969,6 +1969,318 @@ function drawWasteland(
   ctx.restore()
 }
 
+// ── Sandstorm (BR 2049 Sandstorm: dense haze, layered megacity, parallax dust) ──
+
+interface SandstormBuilding {
+  x: number; width: number; height: number
+  topShape: 'flat' | 'slant-left' | 'slant-right' | 'spire' | 'notch' | 'step'
+  topParam: number
+  hasAntenna: boolean
+}
+
+interface SandstormBridge {
+  x1: number; x2: number; y: number; sag: number
+}
+
+interface SandstormDust {
+  x: number; y: number
+  vx: number; vy: number
+  size: number; opacity: number
+  layer: number  // 0=far, 1=mid, 2=near — parallax depth
+  phase: number
+}
+
+interface SandstormState {
+  farBuildings: SandstormBuilding[]
+  midBuildings: SandstormBuilding[]
+  nearBuildings: SandstormBuilding[]
+  farBridges: SandstormBridge[]
+  midBridges: SandstormBridge[]
+  dust: SandstormDust[]
+  windGust: number       // current wind multiplier (pulses)
+  windPhase: number      // phase for gust oscillation
+  hazeDrift: number
+}
+
+function generateSandstormBuildings(
+  w: number, h: number,
+  maxHeightFrac: number,
+  minHeightFrac: number,
+  spacing: number,
+): SandstormBuilding[] {
+  const topShapes: SandstormBuilding['topShape'][] = [
+    'flat', 'flat', 'slant-left', 'slant-right', 'notch', 'step', 'spire',
+  ]
+  const buildings: SandstormBuilding[] = []
+  let bx = -20
+  while (bx < w + 60) {
+    const bw = 25 + Math.random() * 55
+    buildings.push({
+      x: bx,
+      width: bw,
+      height: h * minHeightFrac + Math.random() * h * (maxHeightFrac - minHeightFrac),
+      topShape: topShapes[Math.floor(Math.random() * topShapes.length)],
+      topParam: 0.15 + Math.random() * 0.45,
+      hasAntenna: Math.random() > 0.85,
+    })
+    bx += bw + spacing
+  }
+  return buildings
+}
+
+function generateBridges(buildings: SandstormBuilding[], horizonY: number): SandstormBridge[] {
+  const bridges: SandstormBridge[] = []
+  for (let i = 0; i < buildings.length - 1; i++) {
+    if (Math.random() > 0.7) {
+      const b1 = buildings[i]
+      const b2 = buildings[i + 1]
+      const y1 = horizonY - b1.height * 0.6
+      const y2 = horizonY - b2.height * 0.6
+      bridges.push({
+        x1: b1.x + b1.width,
+        x2: b2.x,
+        y: (y1 + y2) / 2,
+        sag: 3 + Math.random() * 8,
+      })
+    }
+  }
+  return bridges
+}
+
+function initSandstormState(w: number, h: number, foreground: boolean): SandstormState {
+  // Three depth layers of buildings
+  const farBuildings = foreground ? [] : generateSandstormBuildings(w, h, 0.55, 0.08, 0)
+  const midBuildings = foreground ? [] : generateSandstormBuildings(w, h, 0.38, 0.05, 2)
+  const nearBuildings = foreground ? [] : generateSandstormBuildings(w, h, 0.22, 0.03, 4)
+
+  const farHorizon = h * 0.58
+  const midHorizon = h * 0.65
+
+  const farBridges = foreground ? [] : generateBridges(farBuildings, farHorizon)
+  const midBridges = foreground ? [] : generateBridges(midBuildings, midHorizon)
+
+  // Dense dust — 5x wasteland's count, 3 parallax layers
+  const dustCount = foreground ? 40 : 300
+  const dust: SandstormDust[] = Array.from({ length: dustCount }, () => {
+    const layer = Math.floor(Math.random() * 3)
+    // Near particles are larger, faster, more opaque
+    const layerScale = [0.5, 1.0, 1.8][layer]
+    return {
+      x: Math.random() * w,
+      y: Math.random() * h,
+      vx: (0.15 + Math.random() * 0.4) * layerScale,
+      vy: (Math.random() - 0.5) * 0.12 * layerScale,
+      size: (0.8 + Math.random() * 2) * layerScale + (foreground ? 2 : 0),
+      opacity: (0.02 + Math.random() * 0.04) * layerScale + (foreground ? 0.04 : 0),
+      layer,
+      phase: Math.random() * Math.PI * 2,
+    }
+  })
+
+  return {
+    farBuildings, midBuildings, nearBuildings,
+    farBridges, midBridges,
+    dust,
+    windGust: 1, windPhase: 0,
+    hazeDrift: 0,
+  }
+}
+
+function drawSandstormBuildingShape(
+  ctx: CanvasRenderingContext2D,
+  b: SandstormBuilding,
+  baseY: number,
+) {
+  const topY = baseY - b.height
+  const slopeH = b.height * b.topParam * 0.4
+
+  ctx.beginPath()
+  ctx.moveTo(b.x, baseY + 20)
+  switch (b.topShape) {
+    case 'slant-left':
+      ctx.lineTo(b.x, topY - slopeH)
+      ctx.lineTo(b.x + b.width, topY)
+      break
+    case 'slant-right':
+      ctx.lineTo(b.x, topY)
+      ctx.lineTo(b.x + b.width, topY - slopeH)
+      break
+    case 'spire':
+      ctx.lineTo(b.x, topY)
+      ctx.lineTo(b.x + b.width * 0.4, topY - slopeH * 2)
+      ctx.lineTo(b.x + b.width * 0.6, topY - slopeH * 2)
+      ctx.lineTo(b.x + b.width, topY)
+      break
+    case 'notch':
+      ctx.lineTo(b.x, topY)
+      ctx.lineTo(b.x + b.width * 0.35, topY)
+      ctx.lineTo(b.x + b.width * 0.35, topY + slopeH * 0.6)
+      ctx.lineTo(b.x + b.width * 0.65, topY + slopeH * 0.6)
+      ctx.lineTo(b.x + b.width * 0.65, topY)
+      ctx.lineTo(b.x + b.width, topY)
+      break
+    case 'step':
+      ctx.lineTo(b.x, topY)
+      ctx.lineTo(b.x + b.width * 0.5, topY)
+      ctx.lineTo(b.x + b.width * 0.5, topY + slopeH * 0.5)
+      ctx.lineTo(b.x + b.width, topY + slopeH * 0.5)
+      break
+    default: // flat
+      ctx.lineTo(b.x, topY)
+      ctx.lineTo(b.x + b.width, topY)
+  }
+  ctx.lineTo(b.x + b.width, baseY + 20)
+  ctx.closePath()
+  ctx.fill()
+
+  // Antenna on non-spire buildings
+  if (b.hasAntenna && b.topShape !== 'spire') {
+    const ax = b.x + b.width * 0.45
+    ctx.fillRect(ax - 1, topY - b.height * 0.12, 2, b.height * 0.12)
+  }
+}
+
+function drawSandstormBridges(
+  ctx: CanvasRenderingContext2D,
+  bridges: SandstormBridge[],
+  alpha: number,
+) {
+  for (const br of bridges) {
+    const midX = (br.x1 + br.x2) / 2
+    ctx.strokeStyle = `rgba(100,65,30,${alpha})`
+    ctx.lineWidth = 1.5
+    ctx.beginPath()
+    ctx.moveTo(br.x1, br.y)
+    ctx.quadraticCurveTo(midX, br.y + br.sag, br.x2, br.y)
+    ctx.stroke()
+  }
+}
+
+function drawSandstorm(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  t: number,
+  state: SandstormState,
+  foreground: boolean,
+) {
+  // Wind gusts — slow oscillation with occasional surges
+  state.windPhase += 0.003
+  state.windGust = 1.0 + Math.sin(state.windPhase) * 0.3
+    + Math.sin(state.windPhase * 2.7) * 0.15
+    + Math.max(0, Math.sin(state.windPhase * 0.4) - 0.6) * 2.0  // occasional strong gust
+
+  if (!foreground) {
+    ctx.save()
+    state.hazeDrift += 0.0002
+
+    // ── Layer 0: Ambient haze wash — pulsing amber overlay ──
+    const hazePulse = 0.04 + Math.sin(t * 0.002) * 0.015
+    ctx.fillStyle = `rgba(160,100,40,${hazePulse})`
+    ctx.fillRect(0, 0, w, h)
+
+    // ── Layer 1: Far megacity silhouette (15% opacity) ──
+    const farHorizon = h * 0.58
+    ctx.fillStyle = 'rgba(100,65,30,0.15)'
+    for (const b of state.farBuildings) {
+      drawSandstormBuildingShape(ctx, b, farHorizon)
+    }
+    drawSandstormBridges(ctx, state.farBridges, 0.08)
+
+    // Dim window glows on far buildings
+    ctx.fillStyle = 'rgba(200,140,60,0.06)'
+    for (const b of state.farBuildings) {
+      const topY = farHorizon - b.height
+      const seed = b.x * 7 + b.width * 13
+      const count = Math.floor(b.height / 40)
+      for (let i = 0; i < count; i++) {
+        const wh = Math.sin(seed + i * 17.3) * 0.5 + 0.5
+        if (wh > 0.75) {
+          const wx = b.x + 3 + (wh * 97 % 1) * Math.max(b.width - 8, 1)
+          const wy = topY + 10 + i * 38
+          if (wy < farHorizon - 5) ctx.fillRect(wx, wy, 2, 1.5)
+        }
+      }
+    }
+
+    // ── Layer 2: Mid-distance haze band ──
+    const hazeGrad = ctx.createLinearGradient(0, farHorizon - h * 0.1, 0, farHorizon + h * 0.15)
+    hazeGrad.addColorStop(0, 'rgba(140,85,30,0)')
+    hazeGrad.addColorStop(0.4, 'rgba(140,85,30,0.08)')
+    hazeGrad.addColorStop(0.7, 'rgba(140,85,30,0.05)')
+    hazeGrad.addColorStop(1, 'rgba(140,85,30,0)')
+    ctx.fillStyle = hazeGrad
+    ctx.fillRect(0, farHorizon - h * 0.1, w, h * 0.25)
+
+    // ── Layer 3: Mid buildings (30% opacity) ──
+    const midHorizon = h * 0.65
+    ctx.fillStyle = 'rgba(90,55,25,0.30)'
+    for (const b of state.midBuildings) {
+      drawSandstormBuildingShape(ctx, b, midHorizon)
+    }
+    drawSandstormBridges(ctx, state.midBridges, 0.15)
+
+    // Window glows on mid buildings
+    ctx.fillStyle = 'rgba(220,150,60,0.10)'
+    for (const b of state.midBuildings) {
+      const topY = midHorizon - b.height
+      const seed = b.x * 11 + b.width * 7
+      const count = Math.floor(b.height / 32)
+      for (let i = 0; i < count; i++) {
+        const wh = Math.sin(seed + i * 13.7) * 0.5 + 0.5
+        if (wh > 0.72) {
+          const wx = b.x + 3 + (wh * 83 % 1) * Math.max(b.width - 8, 1)
+          const wy = topY + 8 + i * 30
+          if (wy < midHorizon - 5) ctx.fillRect(wx, wy, 3, 2)
+        }
+      }
+    }
+
+    // ── Layer 4: Near structures + ground terrain (50% opacity) ──
+    const nearHorizon = h * 0.75
+    ctx.fillStyle = 'rgba(60,35,15,0.50)'
+    for (const b of state.nearBuildings) {
+      drawSandstormBuildingShape(ctx, b, nearHorizon)
+    }
+
+    // Sand dune ridges across the bottom
+    ctx.fillStyle = 'rgba(80,50,20,0.20)'
+    ctx.beginPath()
+    ctx.moveTo(0, h)
+    for (let dx = 0; dx <= w; dx += 40) {
+      const duneY = nearHorizon + (h - nearHorizon) * 0.3
+        + Math.sin(dx * 0.008 + state.hazeDrift * 50) * 15
+        + Math.sin(dx * 0.025) * 8
+      ctx.lineTo(dx, duneY)
+    }
+    ctx.lineTo(w, h)
+    ctx.closePath()
+    ctx.fill()
+
+    ctx.restore()
+  }
+
+  // ── Layer 5: Dense dust particles (both layers) ──
+  ctx.save()
+  for (const d of state.dust) {
+    const layerSpeed = [0.5, 1.0, 1.8][d.layer]
+    const wind = state.windGust * layerSpeed
+    const flicker = 0.7 + Math.sin(d.phase + t * 0.003) * 0.3
+
+    ctx.fillStyle = `rgba(200,140,60,${d.opacity * flicker})`
+    ctx.beginPath()
+    ctx.arc(d.x, d.y, d.size, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Move with wind + vertical wobble
+    d.x += d.vx * wind
+    d.y += d.vy + Math.sin(d.phase + t * 0.001) * 0.08 * layerSpeed
+    if (d.x > w + 15) { d.x = -15; d.y = Math.random() * h }
+    if (d.y < -10 || d.y > h + 10) { d.y = Math.random() * h }
+  }
+  ctx.restore()
+}
+
 // ── Fireworks (New Year: cityscape + water + fireworks) ──
 
 interface FireworkShell {
@@ -2357,6 +2669,12 @@ function CanvasParticleEffect({ activeEffect, foreground, theme }: { activeEffec
       wastelandState = initWastelandState(canvas.width, canvas.height, foreground)
     }
 
+    // Sandstorm state (BR 2049 Sandstorm)
+    let sandstormState: SandstormState | null = null
+    if (activeEffect === 'sandstorm') {
+      sandstormState = initSandstormState(canvas.width, canvas.height, foreground)
+    }
+
     // Winter landscape (snow theme background)
     let winterState: WinterState | null = null
     const isChristmas = theme === 'christmas'
@@ -2393,11 +2711,11 @@ function CanvasParticleEffect({ activeEffect, foreground, theme }: { activeEffec
     // Background counts (emoji effects handled by CSSParticleEffect)
     const bgCountMap: Record<string, number> = {
       rain: 250, fireflies: 90, stars: 800,
-      embers: 250, 'digital-rain': 0, flames: 200, water: 0, boba: 0, clouds: 0, warzone: 0, wasteland: 0, fireworks: 0, forest: 0, none: 0,
+      embers: 250, 'digital-rain': 0, flames: 200, water: 0, boba: 0, clouds: 0, warzone: 0, wasteland: 0, sandstorm: 0, fireworks: 0, forest: 0, none: 0,
     }
     const fgCountMap: Record<string, number> = {
       rain: 20, fireflies: 6, stars: 0,
-      embers: 20, 'digital-rain': 0, flames: 15, water: 0, boba: 0, clouds: 0, warzone: 0, wasteland: 0, fireworks: 0, forest: 0, none: 0,
+      embers: 20, 'digital-rain': 0, flames: 15, water: 0, boba: 0, clouds: 0, warzone: 0, wasteland: 0, sandstorm: 0, fireworks: 0, forest: 0, none: 0,
     }
     const countMap = foreground ? fgCountMap : bgCountMap
     const count = countMap[activeEffect] ?? 80
@@ -2497,6 +2815,13 @@ function CanvasParticleEffect({ activeEffect, foreground, theme }: { activeEffec
       // Wasteland (BR 2049)
       if (activeEffect === 'wasteland' && wastelandState) {
         drawWasteland(ctx, w, h, t, wastelandState, foreground)
+        rafRef.current = requestAnimationFrame(animate)
+        return
+      }
+
+      // Sandstorm (BR 2049 Sandstorm)
+      if (activeEffect === 'sandstorm' && sandstormState) {
+        drawSandstorm(ctx, w, h, t, sandstormState, foreground)
         rafRef.current = requestAnimationFrame(animate)
         return
       }

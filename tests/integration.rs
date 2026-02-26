@@ -219,6 +219,23 @@ fn test_update_profile_invalid_theme() {
     assert_eq!(resp.status(), Status::UnprocessableEntity);
 }
 
+#[test]
+fn test_update_profile_br2049_sandstorm_theme() {
+    let client = test_client();
+    let (_, reg) = register(&client, "sandstorm");
+    let api_key = reg["api_key"].as_str().unwrap();
+    let resp = client.patch("/api/v1/profiles/sandstorm")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", api_key.to_string()))
+        .body(r#"{"theme":"br2049-sandstorm","particle_effect":"sandstorm","particle_enabled":true}"#)
+        .dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["theme"], "br2049-sandstorm");
+    assert_eq!(body["particle_effect"], "sandstorm");
+    assert_eq!(body["particle_enabled"], true);
+}
+
 // ===== Delete Profile =====
 
 #[test]

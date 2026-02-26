@@ -2111,6 +2111,7 @@
               "matrix",
               "replicant",
               "br2049",
+              "br2049-sandstorm",
               "snow",
               "christmas",
               "halloween",
@@ -2152,7 +2153,8 @@
               "coffee",
               "wasteland",
               "fireworks",
-              "forest"
+              "forest",
+              "sandstorm"
             ],
             "default": "none"
           },

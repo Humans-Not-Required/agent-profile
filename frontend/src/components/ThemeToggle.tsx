@@ -20,6 +20,7 @@ export const THEME_EFFECT_MAP: Record<string, EffectName> = {
   matrix: 'digital-rain',
   replicant: 'rain',
   br2049: 'wasteland',
+  'br2049-sandstorm': 'sandstorm',
   snow: 'snow',
   spring: 'sakura',
   summer: 'fireflies',
@@ -60,6 +61,7 @@ const THEME_GROUPS = [
       { id: 'matrix', emoji: '💊', name: 'Matrix' },
       { id: 'replicant', emoji: '🌆', name: 'Replicant' },
       { id: 'br2049', emoji: '🏜️', name: '2049' },
+      { id: 'br2049-sandstorm', emoji: '🌫️', name: 'Sandstorm' },
     ],
   },
   {
