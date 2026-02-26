@@ -1,41 +1,12 @@
 import { useState } from 'react'
 import type { EffectName } from './ParticleEffect'
+import { THEME_CONFIG } from '../theme-config'
 import { PickerModal } from './PickerModal'
 
-/** Maps each theme to its natural particle effect. */
-export const THEME_EFFECT_MAP: Record<string, EffectName> = {
-  dark: 'none',
-  light: 'none',
-  midnight: 'stars',
-  forest: 'forest',
-  ocean: 'water',
-  desert: 'cactus',
-  aurora: 'stars',
-  cream: 'none',
-  sky: 'clouds',
-  lavender: 'stars',
-  sage: 'leaves',
-  peach: 'fireflies',
-  terminator: 'warzone',
-  matrix: 'digital-rain',
-  replicant: 'rain',
-  br2049: 'wasteland',
-  'br2049-sandstorm': 'sandstorm',
-  snow: 'snow',
-  spring: 'sakura',
-  summer: 'fireflies',
-  autumn: 'leaves',
-  christmas: 'snow',
-  halloween: 'flames',
-  newyear: 'fireworks',
-  valentine: 'hearts',
-  boba: 'boba',
-  fruitsalad: 'fruit',
-  junkfood: 'junkfood',
-  candy: 'candy',
-  coffee: 'coffee',
-  lava: 'lava',
-}
+/** Maps each theme to its natural particle effect (derived from THEME_CONFIG). */
+export const THEME_EFFECT_MAP: Record<string, EffectName> = Object.fromEntries(
+  Object.entries(THEME_CONFIG).map(([k, v]) => [k, v.effect])
+) as Record<string, EffectName>
 
 const THEME_GROUPS = [
   {

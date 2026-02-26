@@ -7,6 +7,7 @@ import { Sections } from './components/Sections'
 import { CryptoAddresses } from './components/CryptoAddresses'
 import { ParticleEffect } from './components/ParticleEffect'
 import { ThemeToggle, THEME_EFFECT_MAP } from './components/ThemeToggle'
+import { THEME_CONFIG } from './theme-config'
 import Endorsements from './components/Endorsements'
 import SimilarProfiles from './components/SimilarProfiles'
 
@@ -140,23 +141,25 @@ export default function App() {
   const createdDate = profile.created_at.slice(0, 10)
   const updatedDate = profile.updated_at ? profile.updated_at.slice(0, 10) : createdDate
   const jsonUrl = `/api/v1/profiles/${profile.username}`
-  const activeEffect = THEME_EFFECT_MAP[theme] ?? 'none'
+  const themeConfig = THEME_CONFIG[theme]
+  const activeEffect = themeConfig?.effect ?? THEME_EFFECT_MAP[theme] ?? 'none'
+  const activeScene = themeConfig?.scene ?? 'none'
   return (
     <>
       {/* Particle canvas — behind everything */}
       <ParticleEffect
         effect={activeEffect}
+        scene={activeScene}
         enabled={particlesEnabled}
         seasonal={profile.particle_seasonal ?? false}
-        theme={theme}
       />
       {/* Foreground particle layer — sparse, above content for depth */}
       <ParticleEffect
         effect={activeEffect}
+        scene={activeScene}
         enabled={particlesEnabled}
         seasonal={profile.particle_seasonal ?? false}
         foreground
-        theme={theme}
       />
 
       {/* Content wrapper — pushes footer to bottom of viewport */}
