@@ -13,7 +13,7 @@
 | Staging | `http://192.168.0.79:3011` | ✅ Live, v0.8.0 |
 | Production | `https://pinche.rs` | ❌ Awaiting DNS setup |
 
-The service is feature-complete (29 themes, 22 particle effects, 159 tests, similar profiles discovery, export/import, endorsements, crypto identity). Only DNS/routing remains.
+The service is feature-complete (31 themes, 25 particle effects, 160 tests, similar profiles discovery, export/import, endorsements, crypto identity). Only DNS/routing remains.
 
 ---
 
