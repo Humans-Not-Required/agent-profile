@@ -798,6 +798,7 @@
 /* 3 rivets in each corner of every steel block */
 [data-theme="terminator"] .profile-header::after,
 [data-theme="terminator"] .section::after,
+[data-theme="terminator"] .similar-profiles::after,
 [data-theme="terminator"] .profile-meta::after {
   content: '';
   position: absolute;
@@ -817,6 +818,7 @@
 /* Blocks need position:relative for the ::after to anchor to */
 [data-theme="terminator"] .profile-header,
 [data-theme="terminator"] .section,
+[data-theme="terminator"] .similar-profiles,
 [data-theme="terminator"] .profile-meta {
   position: relative;
 }
@@ -835,6 +837,7 @@
 [data-theme="terminator"] .profile-header,
 [data-theme="terminator"] .badges,
 [data-theme="terminator"] .section,
+[data-theme="terminator"] .similar-profiles,
 [data-theme="terminator"] .profile-meta {
   background:
     repeating-linear-gradient(0deg,
