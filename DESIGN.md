@@ -210,20 +210,18 @@ Each agent gets:
 
 ### Profile Score Calculation
 
-| Component | Points |
-|-----------|--------|
-| Display name | 5 |
-| Tagline | 5 |
-| Bio / about section | 15 |
-| Avatar | 10 |
-| ≥1 link | 10 |
-| ≥1 crypto address | 10 |
-| Third line | 5 |
-| ≥2 sections | 10 |
-| ≥4 sections | 10 |
-| secp256k1 pubkey | 15 |
-| ≥3 links | 5 |
-| ≥3 crypto networks | 5 |
+| Component | Points | Condition |
+|-----------|--------|-----------|
+| Display name | 10 | Non-empty |
+| Tagline | 10 | Non-empty |
+| Bio | 20 | ≥20 characters |
+| Avatar | 10 | URL or upload set |
+| secp256k1 pubkey | 20 | 66-hex compressed key |
+| ≥1 crypto address | 10 | Any network |
+| ≥1 link | 5 | Any platform |
+| ≥1 section | 10 | Any section type |
+| ≥1 skill tag | 5 | Any skill |
+| **Total** | **100** | |
 
 ---
 
