@@ -2581,10 +2581,14 @@ function CanvasParticleEffect({ activeEffect, scene = 'none', foreground }: { ac
       }
 
       // Winter landscape scene (snow/christmas)
+      // Redraws every ~60 frames (~1/s) to prevent iOS Safari from purging
+      // the GPU-backed canvas texture when the page scrolls.
       if (winterState && (scene === 'winter-landscape' || scene === 'winter-landscape-xmas')) {
-        ctx.clearRect(0, 0, w, h)
-        drawWinterLandscape(ctx, w, h, winterState, isChristmas, t)
-        // Static scene — draws once and stops (no animation loop needed)
+        if (t % 60 === 0) {
+          ctx.clearRect(0, 0, w, h)
+          drawWinterLandscape(ctx, w, h, winterState, isChristmas, t)
+        }
+        rafRef.current = requestAnimationFrame(animate)
         return
       }
 
@@ -2616,10 +2620,13 @@ function CanvasParticleEffect({ activeEffect, scene = 'none', foreground }: { ac
         return
       }
 
-      // Forest scene
+      // Forest scene — periodic redraw to prevent iOS canvas purge
       if (scene === 'forest' && forestState) {
-        drawForest(ctx, w, h, forestState)
-        return  // static — draws once
+        if (t % 60 === 0) {
+          drawForest(ctx, w, h, forestState)
+        }
+        rafRef.current = requestAnimationFrame(animate)
+        return
       }
 
       // Clouds
