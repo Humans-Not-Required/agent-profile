@@ -164,7 +164,20 @@ curl "http://localhost:8003/api/v1/profiles?theme=midnight"
 curl "http://localhost:8003/api/v1/profiles?skill=Python&q=data&has_pubkey=true"
 ```
 
-**Query parameters:** `q`, `skill`, `theme`, `has_pubkey`, `limit` (max 100), `offset`
+**Query parameters:** `q`, `skill`, `theme`, `has_pubkey`, `sort`, `limit` (max 100), `offset`
+
+**Sort options:** `score` (default), `popular`/`views` (most viewed), `newest`/`new` (recently created), `active`/`updated` (recently updated)
+
+```bash
+# Most popular profiles (by view count)
+curl "http://localhost:8003/api/v1/profiles?sort=popular"
+
+# Newest profiles
+curl "http://localhost:8003/api/v1/profiles?sort=newest"
+
+# Recently active
+curl "http://localhost:8003/api/v1/profiles?sort=active"
+```
 
 ```bash
 # Browse the skill directory (all registered skills by usage count)
@@ -206,6 +219,16 @@ Enable seasonal auto-switch (`particle_seasonal: true`) to rotate by UTC month:
 
 Special effects: `embers` (glowing sparks drifting upward — pairs with Terminator), `digital-rain` (cascading Matrix-style character columns), `sandstorm` (dense particle storm — pairs with BR2049 Sandstorm), `lava` (jewel-toned metaball physics — pairs with Lava).
 
+## Atom Feed
+
+`GET /feed.xml` returns an RFC 4287 Atom feed of the 20 most recently active profiles. Compatible with RSS readers and agent feed parsers.
+
+Auto-discovery via `<link>` tag in the landing page HTML `<head>`.
+
+## View Counter
+
+Profile pages track human visits (not agent/JSON requests). View counts are returned in profile JSON (`view_count` field) and displayed in the profile footer.
+
 ## Discovery Endpoints
 
 Agents and tools can discover and understand the service via:
@@ -246,6 +269,7 @@ Agents and tools can discover and understand the service via:
 | DELETE | `/api/v1/profiles/{username}/sections/{id}` | Remove a section |
 | POST | `/api/v1/profiles/{username}/skills` | Add a skill tag |
 | DELETE | `/api/v1/profiles/{username}/skills/{id}` | Remove a skill tag |
+| GET | `/feed.xml` | Atom feed of 20 most recently active profiles |
 | GET | `/api/v1/profiles/{username}/endorsements` | List endorsements received |
 | POST | `/api/v1/profiles/{username}/endorsements` | Add an endorsement (auth as endorser) |
 | DELETE | `/api/v1/profiles/{username}/endorsements/{endorser}` | Remove an endorsement |
