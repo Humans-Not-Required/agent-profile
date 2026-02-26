@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { CSSParticleEffect } from './CSSParticleEffect'
 
-export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'embers' | 'digital-rain' | 'flames' | 'water' | 'boba' | 'clouds' | 'fruit' | 'junkfood' | 'warzone' | 'hearts' | 'cactus' | 'candy' | 'coffee' | 'wasteland' | 'fireworks' | 'forest' | 'sandstorm' | 'none'
+export type EffectName = 'snow' | 'leaves' | 'rain' | 'fireflies' | 'stars' | 'sakura' | 'embers' | 'digital-rain' | 'flames' | 'water' | 'boba' | 'clouds' | 'fruit' | 'junkfood' | 'warzone' | 'hearts' | 'cactus' | 'candy' | 'coffee' | 'wasteland' | 'fireworks' | 'forest' | 'sandstorm' | 'lava' | 'none'
 
 // Effects that use GPU-composited CSS animations instead of canvas
 const CSS_EFFECTS = new Set<EffectName>(['leaves', 'snow', 'fruit', 'junkfood', 'sakura', 'hearts', 'cactus', 'candy', 'coffee'])
@@ -1659,6 +1659,253 @@ function drawBoba(
   }
 }
 
+// ── Lava Lamp (metaball scalar field rendering on offscreen canvas) ──
+
+interface LavaBlob {
+  x: number; y: number
+  vx: number; vy: number
+  r: number          // influence radius
+  heat: number       // 0-1 cycle: hot rises, cool sinks
+  heatRate: number   // how fast heat changes
+  color: number      // 0-2 color variant
+  wobblePhase: number
+}
+
+interface LavaState {
+  blobs: LavaBlob[]
+  offCanvas: HTMLCanvasElement
+  offCtx: CanvasRenderingContext2D
+  imgData: ImageData
+  scale: number       // 1/4 resolution factor
+  prevW: number; prevH: number
+}
+
+function initLavaState(w: number, h: number): LavaState {
+  const area = w * h
+  const blobCount = Math.max(8, Math.min(16, Math.round(area / 80000)))
+  const blobs: LavaBlob[] = Array.from({ length: blobCount }, () => ({
+    x: Math.random() * w,
+    y: Math.random() * h,
+    vx: 0, vy: 0,
+    r: 40 + Math.random() * 50,
+    heat: Math.random(),
+    heatRate: 0.002 + Math.random() * 0.003,
+    color: Math.floor(Math.random() * 3),
+    wobblePhase: Math.random() * Math.PI * 2,
+  }))
+
+  const scale = 0.25
+  const offW = Math.ceil(w * scale)
+  const offH = Math.ceil(h * scale)
+  const offCanvas = document.createElement('canvas')
+  offCanvas.width = offW
+  offCanvas.height = offH
+  const offCtx = offCanvas.getContext('2d')!
+  const imgData = offCtx.createImageData(offW, offH)
+
+  return { blobs, offCanvas, offCtx, imgData, scale, prevW: w, prevH: h }
+}
+
+function cleanupLavaState(_state: LavaState) {
+  // No external resources to clean up; offscreen canvas is GC'd.
+}
+
+function updateLavaBlobs(state: LavaState, w: number, h: number, t: number) {
+  // Handle viewport resize — scale positions proportionally
+  if (state.prevW > 0 && state.prevH > 0 && (w !== state.prevW || h !== state.prevH)) {
+    const sx = w / state.prevW
+    const sy = h / state.prevH
+    for (const b of state.blobs) {
+      b.x = Math.min(w - b.r, Math.max(b.r, b.x * sx))
+      b.y = Math.min(h - b.r, Math.max(b.r, b.y * sy))
+    }
+    // Resize offscreen canvas
+    const offW = Math.ceil(w * state.scale)
+    const offH = Math.ceil(h * state.scale)
+    state.offCanvas.width = offW
+    state.offCanvas.height = offH
+    state.imgData = state.offCtx.createImageData(offW, offH)
+  }
+  state.prevW = w
+  state.prevH = h
+
+  for (const b of state.blobs) {
+    // Heat cycle based on vertical position
+    const normY = b.y / h // 0=top, 1=bottom
+    if (normY > 0.6) {
+      // Near bottom: heat up
+      b.heat = Math.min(1, b.heat + b.heatRate * 1.5)
+    } else if (normY < 0.3) {
+      // Near top: cool down
+      b.heat = Math.max(0, b.heat - b.heatRate * 1.2)
+    } else {
+      // Middle: drift toward 0.5
+      b.heat += (0.5 - b.heat) * b.heatRate * 0.5
+    }
+
+    // Buoyancy: hot blobs rise, cool blobs sink
+    const buoyancy = (b.heat - 0.4) * -0.12
+    b.vy += buoyancy
+
+    // Gentle constant gravity
+    b.vy += 0.02
+
+    // Lateral sinusoidal wobble
+    b.vx += Math.sin(t * 0.0008 + b.wobblePhase) * 0.015
+
+    // High viscous drag for thick lava feel
+    b.vx *= 0.985
+    b.vy *= 0.985
+
+    // Integrate position
+    b.x += b.vx
+    b.y += b.vy
+
+    // Soft boundary bounce with near-zero restitution
+    if (b.y > h - b.r) { b.y = h - b.r; b.vy *= -0.05 }
+    if (b.y < b.r) { b.y = b.r; b.vy *= -0.05 }
+    if (b.x < b.r) { b.x = b.r; b.vx *= -0.05 }
+    if (b.x > w - b.r) { b.x = w - b.r; b.vx *= -0.05 }
+  }
+
+  // Gentle repulsion between very close blobs (prevent physics overlap)
+  const blobs = state.blobs
+  for (let i = 0; i < blobs.length; i++) {
+    for (let j = i + 1; j < blobs.length; j++) {
+      const a = blobs[i], b = blobs[j]
+      const dx = b.x - a.x
+      const dy = b.y - a.y
+      const minDist = (a.r + b.r) * 0.6
+      const distSq = dx * dx + dy * dy
+      if (distSq < minDist * minDist && distSq > 0.01) {
+        const dist = Math.sqrt(distSq)
+        const overlap = minDist - dist
+        const nx = dx / dist
+        const ny = dy / dist
+        const push = overlap * 0.02
+        a.x -= nx * push
+        a.y -= ny * push
+        b.x += nx * push
+        b.y += ny * push
+      }
+    }
+  }
+}
+
+function drawLava(
+  ctx: CanvasRenderingContext2D,
+  w: number, h: number, t: number,
+  state: LavaState,
+) {
+  updateLavaBlobs(state, w, h, t)
+
+  const { blobs, offCanvas, offCtx, imgData, scale } = state
+  const offW = offCanvas.width
+  const offH = offCanvas.height
+  const data = imgData.data
+  const threshold = 1.0
+
+  // Color palette: deep red → orange → yellow-white based on field intensity
+  // Precompute blob positions in offscreen space
+  const scaledBlobs = blobs.map(b => ({
+    sx: b.x * scale,
+    sy: b.y * scale,
+    sr2: (b.r * scale) * (b.r * scale),
+    heat: b.heat,
+    color: b.color,
+  }))
+
+  // For each pixel in offscreen canvas, compute metaball field
+  for (let py = 0; py < offH; py++) {
+    for (let px = 0; px < offW; px++) {
+      let field = 0
+      let heatSum = 0
+      let colorSum = 0
+
+      for (const sb of scaledBlobs) {
+        const dx = px - sb.sx
+        const dy = py - sb.sy
+        const distSq = dx * dx + dy * dy
+        const contribution = sb.sr2 / (distSq + 1)
+        field += contribution
+        heatSum += contribution * sb.heat
+        colorSum += contribution * sb.color
+      }
+
+      const idx = (py * offW + px) * 4
+
+      if (field > threshold) {
+        // Normalize heat and color by total field
+        const normHeat = heatSum / field
+        const normColor = colorSum / field
+        // Intensity beyond threshold drives brightness
+        const intensity = Math.min((field - threshold) / 2.0, 1.0)
+
+        // Base color from heat: cool=deep red, hot=bright orange-yellow
+        let r: number, g: number, b: number
+        if (normHeat < 0.3) {
+          // Cool: deep dark red
+          r = 80 + intensity * 60
+          g = 10 + intensity * 15
+          b = 5 + intensity * 10
+        } else if (normHeat < 0.6) {
+          // Warm: orange-red
+          const t2 = (normHeat - 0.3) / 0.3
+          r = 140 + t2 * 80 + intensity * 35
+          g = 25 + t2 * 50 + intensity * 30
+          b = 5 + intensity * 8
+        } else {
+          // Hot: orange to yellow-white
+          const t2 = (normHeat - 0.6) / 0.4
+          r = 220 + t2 * 35 + intensity * 10
+          g = 75 + t2 * 100 + intensity * 40
+          b = 5 + t2 * 30 + intensity * 25
+        }
+
+        // Color variant tint
+        if (normColor > 1.5) {
+          // More yellow
+          g = Math.min(255, g + 20)
+        } else if (normColor < 0.5) {
+          // More crimson
+          r = Math.min(255, r + 15)
+          g = Math.max(0, g - 10)
+        }
+
+        const alpha = Math.min(255, 180 + intensity * 75)
+        data[idx] = Math.min(255, r)
+        data[idx + 1] = Math.min(255, g)
+        data[idx + 2] = Math.min(255, b)
+        data[idx + 3] = alpha
+      } else {
+        data[idx] = 0
+        data[idx + 1] = 0
+        data[idx + 2] = 0
+        data[idx + 3] = 0
+      }
+    }
+  }
+
+  // Put pixel data to offscreen canvas
+  offCtx.putImageData(imgData, 0, 0)
+
+  // Clear main canvas
+  ctx.clearRect(0, 0, w, h)
+
+  // Draw upscaled — bilinear filtering provides natural glow blur
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'medium'
+  ctx.drawImage(offCanvas, 0, 0, w, h)
+
+  // Glow pass: additive blend at low opacity, slightly oversized
+  ctx.save()
+  ctx.globalCompositeOperation = 'lighter'
+  ctx.globalAlpha = 0.15
+  const oversize = 8
+  ctx.drawImage(offCanvas, -oversize, -oversize, w + oversize * 2, h + oversize * 2)
+  ctx.restore()
+}
+
 // ── Wasteland (BR 2049: orange haze, city silhouette, spinner cars) ──
 
 interface Spinner {
@@ -2612,6 +2859,12 @@ function CanvasParticleEffect({ activeEffect, foreground, theme }: { activeEffec
       bobaState = initBobaState(canvas.width, canvas.height, foreground)
     }
 
+    // Lava state
+    let lavaState: LavaState | null = null
+    if (activeEffect === 'lava') {
+      lavaState = initLavaState(canvas.width, canvas.height)
+    }
+
     // Clouds state
     let cloudState: CloudState | null = null
     if (activeEffect === 'clouds') {
@@ -2672,11 +2925,11 @@ function CanvasParticleEffect({ activeEffect, foreground, theme }: { activeEffec
     // Background counts (emoji effects handled by CSSParticleEffect)
     const bgCountMap: Record<string, number> = {
       rain: 250, fireflies: 90, stars: 800,
-      embers: 250, 'digital-rain': 0, flames: 200, water: 0, boba: 0, clouds: 0, warzone: 0, wasteland: 0, sandstorm: 0, fireworks: 0, forest: 0, none: 0,
+      embers: 250, 'digital-rain': 0, flames: 200, water: 0, boba: 0, clouds: 0, warzone: 0, wasteland: 0, sandstorm: 0, fireworks: 0, forest: 0, lava: 0, none: 0,
     }
     const fgCountMap: Record<string, number> = {
       rain: 20, fireflies: 6, stars: 0,
-      embers: 20, 'digital-rain': 0, flames: 15, water: 0, boba: 0, clouds: 0, warzone: 0, wasteland: 0, sandstorm: 0, fireworks: 0, forest: 0, none: 0,
+      embers: 20, 'digital-rain': 0, flames: 15, water: 0, boba: 0, clouds: 0, warzone: 0, wasteland: 0, sandstorm: 0, fireworks: 0, forest: 0, lava: 0, none: 0,
     }
     const countMap = foreground ? fgCountMap : bgCountMap
     const count = countMap[activeEffect] ?? 80
@@ -2815,6 +3068,14 @@ function CanvasParticleEffect({ activeEffect, foreground, theme }: { activeEffec
         return
       }
 
+      // Lava lamp metaballs (background only — single layer)
+      if (activeEffect === 'lava') {
+        if (foreground) { rafRef.current = requestAnimationFrame(animate); return }
+        if (lavaState) drawLava(ctx, w, h, t, lavaState)
+        rafRef.current = requestAnimationFrame(animate)
+        return
+      }
+
       // Water caustics + bubbles
       if (activeEffect === 'water' && waterState) {
         drawWater(ctx, w, h, t, waterState, foreground)
@@ -2889,6 +3150,7 @@ function CanvasParticleEffect({ activeEffect, foreground, theme }: { activeEffec
       cancelAnimationFrame(rafRef.current)
       window.removeEventListener('resize', resize)
       if (bobaState) cleanupBobaState(bobaState)
+      if (lavaState) cleanupLavaState(lavaState)
     }
   }, [activeEffect, theme])
 

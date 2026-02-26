@@ -222,6 +222,13 @@
   --tag-border: #3a2a18;
 }
 
+[data-theme="lava"] {
+  --bg: #0e0608; --card: #1a0c10; --border: #3a1820;
+  --text: #c09080; --text-muted: #8a6058; --text-bright: #e8c0b0;
+  --accent: #e85020; --accent2: #f0a030; --tag-bg: #140a0c;
+  --tag-border: #3a1820;
+}
+
 /* ── Deluxe Theme Treatments ── */
 
 /* Dark — The Terminal: flat black with subtle blue vignette, crisp 1px borders */
@@ -572,6 +579,26 @@
 }
 [data-theme="coffee"] .profile-name {
   text-shadow: 0 0 15px rgba(212,148,74,0.15);
+}
+
+/* Lava Lamp — Deep warm glow from below, molten orange-red accents */
+[data-theme="lava"] body {
+  background:
+    radial-gradient(ellipse at 50% 95%, #2a0a04 0%, transparent 50%),
+    radial-gradient(ellipse at 30% 80%, rgba(232,80,32,0.08) 0%, transparent 40%),
+    radial-gradient(ellipse at 70% 85%, rgba(240,160,48,0.06) 0%, transparent 40%),
+    #0e0608;
+}
+[data-theme="lava"] .card {
+  box-shadow: inset 0 1px 0 rgba(232,80,32,0.05), 0 4px 24px rgba(0,0,0,0.5);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+[data-theme="lava"] .card:hover {
+  box-shadow: inset 0 1px 0 rgba(232,80,32,0.1), 0 4px 28px rgba(232,80,32,0.08);
+  transform: translateY(-1px);
+}
+[data-theme="lava"] .profile-name {
+  text-shadow: 0 0 15px rgba(232,80,32,0.2);
 }
 
 /* Candy — Sugar Rush: pastel rainbow gradient, playful sweets vibe */
