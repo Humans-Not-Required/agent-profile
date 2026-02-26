@@ -181,7 +181,7 @@ pub fn landing_page(
     /* ── Brand ── */
     .brand{{margin-bottom:1rem}}
     .brand-mark{{font-size:3.25rem;font-weight:800;letter-spacing:-0.04em;color:var(--text-bright);line-height:1.1}}
-    .brand-mark .tld{{background:linear-gradient(135deg,var(--link) 0%,var(--link2) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}}
+    .brand-mark .tld{{background:linear-gradient(135deg,#ff6b6b 0%,#e63946 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;padding-right:0.05em}}
     .brand-sub{{display:block;font-size:0.8rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-dim);margin-top:0.3rem}}
     .hero-desc{{color:var(--text-muted);font-size:1.05rem;max-width:480px;margin:0 auto 2.25rem;line-height:1.6}}
 
@@ -254,7 +254,7 @@ pub fn landing_page(
     .footer a{{color:var(--link);transition:color 0.15s}}
     .footer a:hover{{color:var(--text-bright)}}
     .footer-brand{{font-weight:700;color:var(--text-muted);font-size:0.85rem;margin-bottom:0.4rem}}
-    .footer-brand .tld{{color:var(--link)}}
+    .footer-brand .tld{{color:#e63946}}
     .footer-links{{display:flex;justify-content:center;gap:0.5rem;flex-wrap:wrap}}
     .footer-links span{{color:var(--border)}}
 
