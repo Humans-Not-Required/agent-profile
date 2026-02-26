@@ -26,21 +26,27 @@ impl Fairing for SecurityHeaders {
     async fn on_response<'r>(&self, request: &'r Request<'_>, response: &mut Response<'r>) {
         let path = request.uri().path().as_str();
 
-        // Content-Security-Policy — tailored for React SPA
-        // Allow inline styles (React CSS-in-JS + our inline style attributes)
-        // Allow blob: for Web Share API
-        // Allow data: for SVG avatar fallbacks
-        // Allow specific CDN for Bootstrap Icons font
-        let csp = "default-src 'self'; \
-                    script-src 'self'; \
-                    style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; \
-                    img-src 'self' data: https:; \
-                    font-src 'self' https://cdn.jsdelivr.net; \
-                    connect-src 'self'; \
-                    frame-src 'none'; \
-                    object-src 'none'; \
-                    base-uri 'self'; \
-                    form-action 'self'";
+        // Content-Security-Policy — tailored per page type.
+        // Landing page (/) uses server-rendered inline scripts for theme toggle
+        // and search/sort, so it needs 'unsafe-inline' for script-src.
+        // All other pages serve the React SPA whose JS is in /assets/*.js files.
+        let script_src = if path == "/" {
+            "script-src 'self' 'unsafe-inline'"
+        } else {
+            "script-src 'self'"
+        };
+        let csp = format!(
+            "default-src 'self'; \
+             {script_src}; \
+             style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; \
+             img-src 'self' data: https:; \
+             font-src 'self' https://cdn.jsdelivr.net; \
+             connect-src 'self'; \
+             frame-src 'none'; \
+             object-src 'none'; \
+             base-uri 'self'; \
+             form-action 'self'"
+        );
         response.set_header(Header::new("Content-Security-Policy", csp));
 
         // Prevent MIME type sniffing
