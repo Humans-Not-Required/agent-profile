@@ -2963,3 +2963,276 @@ fn test_similar_returns_profile_fields() {
     assert!(s["shared_count"].is_number());
     assert!(s["shared_skills"].is_string());
 }
+
+// ===== Section PATCH =====
+
+#[test]
+fn test_update_section() {
+    let client = test_client();
+    let (_, reg) = register(&client, "sec-patch-test");
+    let key = reg["api_key"].as_str().unwrap().to_string();
+
+    // Add a section
+    let resp = client.post("/api/v1/profiles/sec-patch-test/sections")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(r#"{"section_type":"about","title":"About Me","content":"Original content here."}"#)
+        .dispatch();
+    assert_eq!(resp.status(), Status::Created);
+    let section: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let section_id = section["id"].as_str().unwrap().to_string();
+
+    // Update title and content
+    let url = format!("/api/v1/profiles/sec-patch-test/sections/{}", section_id);
+    let resp = client.patch(&url)
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(r#"{"title":"Updated Title","content":"Updated content."}"#)
+        .dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let updated: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(updated["title"], "Updated Title");
+    assert_eq!(updated["content"], "Updated content.");
+    assert_eq!(updated["section_type"], "about"); // unchanged
+
+    // Verify via full profile fetch
+    let resp = client.get("/api/v1/profiles/sec-patch-test")
+        .header(Header::new("Accept", "application/json"))
+        .dispatch();
+    let profile: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let sections = profile["sections"].as_array().unwrap();
+    assert_eq!(sections[0]["title"], "Updated Title");
+    assert_eq!(sections[0]["content"], "Updated content.");
+}
+
+#[test]
+fn test_update_section_partial() {
+    let client = test_client();
+    let (_, reg) = register(&client, "sec-partial-test");
+    let key = reg["api_key"].as_str().unwrap().to_string();
+
+    let resp = client.post("/api/v1/profiles/sec-partial-test/sections")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(r#"{"section_type":"interests","title":"My Interests","content":"Rust, AI, Infrastructure"}"#)
+        .dispatch();
+    assert_eq!(resp.status(), Status::Created);
+    let section: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let section_id = section["id"].as_str().unwrap().to_string();
+
+    // Update only title
+    let url = format!("/api/v1/profiles/sec-partial-test/sections/{}", section_id);
+    let resp = client.patch(&url)
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(r#"{"title":"Updated Interests"}"#)
+        .dispatch();
+    assert_eq!(resp.status(), Status::Ok);
+    let updated: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(updated["title"], "Updated Interests");
+    assert_eq!(updated["content"], "Rust, AI, Infrastructure"); // unchanged
+}
+
+#[test]
+fn test_update_section_not_found() {
+    let client = test_client();
+    let (_, reg) = register(&client, "sec-nf-test");
+    let key = reg["api_key"].as_str().unwrap().to_string();
+
+    let resp = client.patch("/api/v1/profiles/sec-nf-test/sections/nonexistent-id")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(r#"{"title":"Nope"}"#)
+        .dispatch();
+    assert_eq!(resp.status(), Status::NotFound);
+}
+
+#[test]
+fn test_update_section_no_fields() {
+    let client = test_client();
+    let (_, reg) = register(&client, "sec-empty-test");
+    let key = reg["api_key"].as_str().unwrap().to_string();
+
+    let resp = client.post("/api/v1/profiles/sec-empty-test/sections")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(r#"{"section_type":"about","title":"Test","content":"Test content"}"#)
+        .dispatch();
+    assert_eq!(resp.status(), Status::Created);
+    let section: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let section_id = section["id"].as_str().unwrap().to_string();
+
+    let url = format!("/api/v1/profiles/sec-empty-test/sections/{}", section_id);
+    let resp = client.patch(&url)
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(r#"{}"#)
+        .dispatch();
+    assert_eq!(resp.status(), Status::UnprocessableEntity);
+}
+
+#[test]
+fn test_update_section_wrong_key() {
+    let client = test_client();
+    let (_, reg_a) = register(&client, "sec-wk-owner");
+    let (_, reg_b) = register(&client, "sec-wk-other");
+    let key_a = reg_a["api_key"].as_str().unwrap().to_string();
+    let key_b = reg_b["api_key"].as_str().unwrap().to_string();
+
+    let resp = client.post("/api/v1/profiles/sec-wk-owner/sections")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key_a.clone()))
+        .body(r#"{"section_type":"about","title":"Mine","content":"My section"}"#)
+        .dispatch();
+    assert_eq!(resp.status(), Status::Created);
+    let section: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let section_id = section["id"].as_str().unwrap().to_string();
+
+    // Try to update with other agent's key
+    let url = format!("/api/v1/profiles/sec-wk-owner/sections/{}", section_id);
+    let resp = client.patch(&url)
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key_b))
+        .body(r#"{"title":"Hacked"}"#)
+        .dispatch();
+    assert_eq!(resp.status(), Status::Unauthorized);
+}
+
+// ===== Verified Endorsements =====
+
+#[test]
+fn test_endorsement_verified_signature() {
+    use k256::ecdsa::{SigningKey, Signature};
+    use k256::ecdsa::signature::Signer;
+
+    let client = test_client();
+
+    // Generate a secp256k1 keypair for the endorser
+    let signing_key = SigningKey::random(&mut rand::thread_rng());
+    let verifying_key = signing_key.verifying_key();
+    let pubkey_hex = hex::encode(verifying_key.to_sec1_bytes());
+
+    // Register endorser with pubkey
+    let (_, reg_endorser) = register(&client, "verified-endorser");
+    let endorser_key = reg_endorser["api_key"].as_str().unwrap().to_string();
+    // Set pubkey on endorser profile
+    client.patch("/api/v1/profiles/verified-endorser")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", endorser_key.clone()))
+        .body(serde_json::json!({"pubkey": pubkey_hex}).to_string())
+        .dispatch();
+
+    // Register endorsee
+    let (_, _reg_endorsee) = register(&client, "verified-endorsee");
+
+    // Sign the endorsement message
+    let message = "Verified: this agent delivers consistently.";
+    let signature: Signature = signing_key.sign(message.as_bytes());
+    let sig_hex = hex::encode(signature.to_bytes());
+
+    // Submit endorsed endorsement
+    let resp = client.post("/api/v1/profiles/verified-endorsee/endorsements")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", endorser_key.clone()))
+        .body(serde_json::json!({
+            "from": "verified-endorser",
+            "message": message,
+            "signature": sig_hex
+        }).to_string())
+        .dispatch();
+
+    assert_eq!(resp.status(), Status::Ok);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert_eq!(body["verified"], true, "endorsement should be cryptographically verified");
+    assert_eq!(body["endorser"], "verified-endorser");
+    assert_eq!(body["message"], message);
+}
+
+#[test]
+fn test_endorsement_invalid_signature() {
+    use k256::ecdsa::SigningKey;
+
+    let client = test_client();
+
+    // Generate keypair for endorser
+    let signing_key = SigningKey::random(&mut rand::thread_rng());
+    let verifying_key = signing_key.verifying_key();
+    let pubkey_hex = hex::encode(verifying_key.to_sec1_bytes());
+
+    let (_, reg) = register(&client, "bad-sig-endorser");
+    let key = reg["api_key"].as_str().unwrap().to_string();
+    client.patch("/api/v1/profiles/bad-sig-endorser")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(serde_json::json!({"pubkey": pubkey_hex}).to_string())
+        .dispatch();
+
+    let (_, _) = register(&client, "bad-sig-endorsee");
+
+    // Submit endorsement with garbage signature
+    let resp = client.post("/api/v1/profiles/bad-sig-endorsee/endorsements")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(serde_json::json!({
+            "from": "bad-sig-endorser",
+            "message": "Trust me",
+            "signature": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+        }).to_string())
+        .dispatch();
+
+    assert_eq!(resp.status(), Status::UnprocessableEntity);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert!(body["error"].as_str().unwrap().contains("Signature verification failed"));
+}
+
+#[test]
+fn test_endorsement_no_pubkey_with_signature() {
+    let client = test_client();
+
+    let (_, reg) = register(&client, "no-pk-endorser");
+    let key = reg["api_key"].as_str().unwrap().to_string();
+    // No pubkey set on this profile
+
+    let (_, _) = register(&client, "no-pk-endorsee");
+
+    // Submit endorsement with a signature but no pubkey
+    let resp = client.post("/api/v1/profiles/no-pk-endorsee/endorsements")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(serde_json::json!({
+            "from": "no-pk-endorser",
+            "message": "Unsigned endorser",
+            "signature": "aabbccdd"
+        }).to_string())
+        .dispatch();
+
+    assert_eq!(resp.status(), Status::UnprocessableEntity);
+    let body: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    assert!(body["error"].as_str().unwrap().contains("no public key"));
+}
+
+#[test]
+fn test_update_section_content_max_length() {
+    let client = test_client();
+    let (_, reg) = register(&client, "sec-maxlen-test");
+    let key = reg["api_key"].as_str().unwrap().to_string();
+
+    let resp = client.post("/api/v1/profiles/sec-maxlen-test/sections")
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(r#"{"section_type":"about","title":"Test","content":"Short"}"#)
+        .dispatch();
+    assert_eq!(resp.status(), Status::Created);
+    let section: serde_json::Value = serde_json::from_str(&resp.into_string().unwrap()).unwrap();
+    let section_id = section["id"].as_str().unwrap().to_string();
+
+    // Try to update with content exceeding 5000 chars
+    let long_content = "x".repeat(5001);
+    let url = format!("/api/v1/profiles/sec-maxlen-test/sections/{}", section_id);
+    let resp = client.patch(&url)
+        .header(ContentType::JSON)
+        .header(Header::new("X-API-Key", key.clone()))
+        .body(serde_json::json!({"content": long_content}).to_string())
+        .dispatch();
+    assert_eq!(resp.status(), Status::UnprocessableEntity);
+}
