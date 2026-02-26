@@ -1682,19 +1682,20 @@ interface LavaState {
 
 function initLavaState(w: number, h: number): LavaState {
   const area = w * h
-  const blobCount = Math.max(8, Math.min(16, Math.round(area / 80000)))
+  const blobCount = Math.max(4, Math.min(6, Math.round(area / 200000)))
+  const minDim = Math.min(w, h)
   const blobs: LavaBlob[] = Array.from({ length: blobCount }, () => ({
     x: Math.random() * w,
     y: Math.random() * h,
     vx: 0, vy: 0,
-    r: 40 + Math.random() * 50,
+    r: minDim * (0.12 + Math.random() * 0.06),
     heat: Math.random(),
-    heatRate: 0.002 + Math.random() * 0.003,
+    heatRate: 0.0004 + Math.random() * 0.0006,
     color: Math.floor(Math.random() * 3),
     wobblePhase: Math.random() * Math.PI * 2,
   }))
 
-  const scale = 0.25
+  const scale = 0.35
   const offW = Math.ceil(w * scale)
   const offH = Math.ceil(h * scale)
   const offCanvas = document.createElement('canvas')
@@ -1729,60 +1730,74 @@ function updateLavaBlobs(state: LavaState, w: number, h: number, t: number) {
   state.prevW = w
   state.prevH = h
 
+  // Desktop centering: blobs cluster within center 60% of viewport
+  const centerX = w * 0.5
+  const marginL = w * 0.2
+  const marginR = w * 0.8
+
   for (const b of state.blobs) {
     // Heat cycle based on vertical position
     const normY = b.y / h // 0=top, 1=bottom
     if (normY > 0.6) {
       // Near bottom: heat up
-      b.heat = Math.min(1, b.heat + b.heatRate * 1.5)
+      b.heat = Math.min(1, b.heat + b.heatRate * 1.2)
     } else if (normY < 0.3) {
       // Near top: cool down
-      b.heat = Math.max(0, b.heat - b.heatRate * 1.2)
+      b.heat = Math.max(0, b.heat - b.heatRate * 1.0)
     } else {
       // Middle: drift toward 0.5
-      b.heat += (0.5 - b.heat) * b.heatRate * 0.5
+      b.heat += (0.5 - b.heat) * b.heatRate * 0.3
     }
 
-    // Buoyancy: hot blobs rise, cool blobs sink
-    const buoyancy = (b.heat - 0.4) * -0.12
+    // Buoyancy: hot blobs rise, cool blobs sink (5x slower)
+    const buoyancy = (b.heat - 0.45) * -0.025
     b.vy += buoyancy
 
-    // Gentle constant gravity
-    b.vy += 0.02
+    // Gentle constant gravity (5x slower)
+    b.vy += 0.004
 
-    // Lateral sinusoidal wobble
-    b.vx += Math.sin(t * 0.0008 + b.wobblePhase) * 0.015
+    // Lateral sinusoidal wobble (slower freq + smaller amp)
+    b.vx += Math.sin(t * 0.0003 + b.wobblePhase) * 0.003
 
-    // High viscous drag for thick lava feel
-    b.vx *= 0.985
-    b.vy *= 0.985
+    // Horizontal centering force for wide screens
+    if (b.x < marginL) {
+      b.vx += (marginL - b.x) * 0.0001
+    } else if (b.x > marginR) {
+      b.vx += (marginR - b.x) * 0.0001
+    }
+    // Constant gentle center pull
+    b.vx += (centerX - b.x) * 0.00002
+
+    // High viscous drag for thick lava feel (much less drag = slower deceleration)
+    b.vx *= 0.997
+    b.vy *= 0.997
 
     // Integrate position
     b.x += b.vx
     b.y += b.vy
 
     // Soft boundary bounce with near-zero restitution
-    if (b.y > h - b.r) { b.y = h - b.r; b.vy *= -0.05 }
-    if (b.y < b.r) { b.y = b.r; b.vy *= -0.05 }
-    if (b.x < b.r) { b.x = b.r; b.vx *= -0.05 }
-    if (b.x > w - b.r) { b.x = w - b.r; b.vx *= -0.05 }
+    if (b.y > h - b.r) { b.y = h - b.r; b.vy *= -0.02 }
+    if (b.y < b.r) { b.y = b.r; b.vy *= -0.02 }
+    if (b.x < b.r) { b.x = b.r; b.vx *= -0.02 }
+    if (b.x > w - b.r) { b.x = w - b.r; b.vx *= -0.02 }
   }
 
-  // Gentle repulsion between very close blobs (prevent physics overlap)
+  // Gentle repulsion only when blob centers nearly overlap (enables visual merging)
   const blobs = state.blobs
   for (let i = 0; i < blobs.length; i++) {
     for (let j = i + 1; j < blobs.length; j++) {
       const a = blobs[i], b = blobs[j]
       const dx = b.x - a.x
       const dy = b.y - a.y
-      const minDist = (a.r + b.r) * 0.6
+      const minDist = (a.r + b.r) * 0.25
       const distSq = dx * dx + dy * dy
       if (distSq < minDist * minDist && distSq > 0.01) {
         const dist = Math.sqrt(distSq)
         const overlap = minDist - dist
         const nx = dx / dist
         const ny = dy / dist
-        const push = overlap * 0.02
+        const push = overlap * 0.008
         a.x -= nx * push
         a.y -= ny * push
         b.x += nx * push
@@ -1803,9 +1818,8 @@ function drawLava(
   const offW = offCanvas.width
   const offH = offCanvas.height
   const data = imgData.data
-  const threshold = 1.0
+  const threshold = 0.8
 
-  // Color palette: deep red → orange → yellow-white based on field intensity
   // Precompute blob positions in offscreen space
   const scaledBlobs = blobs.map(b => ({
     sx: b.x * scale,
@@ -1838,41 +1852,75 @@ function drawLava(
         // Normalize heat and color by total field
         const normHeat = heatSum / field
         const normColor = colorSum / field
-        // Intensity beyond threshold drives brightness
-        const intensity = Math.min((field - threshold) / 2.0, 1.0)
+        // Intensity beyond threshold drives brightness (wider divisor = richer gradient)
+        const intensity = Math.min((field - threshold) / 2.5, 1.0)
 
-        // Base color from heat: cool=deep red, hot=bright orange-yellow
+        // Jewel-toned color palette: three families blended by normColor
         let r: number, g: number, b: number
-        if (normHeat < 0.3) {
-          // Cool: deep dark red
-          r = 80 + intensity * 60
-          g = 10 + intensity * 15
-          b = 5 + intensity * 10
-        } else if (normHeat < 0.6) {
-          // Warm: orange-red
-          const t2 = (normHeat - 0.3) / 0.3
-          r = 140 + t2 * 80 + intensity * 35
-          g = 25 + t2 * 50 + intensity * 30
-          b = 5 + intensity * 8
+
+        if (normColor < 0.8) {
+          // Violet family: deep indigo → magenta/rose → warm pink → white-pink
+          if (normHeat < 0.3) {
+            // Cool: deep indigo/purple
+            r = 60 + intensity * 40
+            g = 15 + intensity * 15
+            b = 100 + intensity * 50
+          } else if (normHeat < 0.6) {
+            // Warm: magenta/rose
+            const t2 = (normHeat - 0.3) / 0.3
+            r = 100 + t2 * 80 + intensity * 40
+            g = 30 + t2 * 20 + intensity * 25
+            b = 150 - t2 * 40 + intensity * 30
+          } else {
+            // Hot: warm pink → white-pink
+            const t2 = (normHeat - 0.6) / 0.4
+            r = 200 + t2 * 40 + intensity * 15
+            g = 80 + t2 * 80 + intensity * 60
+            b = 130 + t2 * 50 + intensity * 50
+          }
+        } else if (normColor < 1.5) {
+          // Burgundy family: dark wine → rust/amber → golden → white-gold
+          if (normHeat < 0.3) {
+            // Cool: dark wine/crimson
+            r = 90 + intensity * 50
+            g = 15 + intensity * 15
+            b = 40 + intensity * 25
+          } else if (normHeat < 0.6) {
+            // Warm: rust/amber
+            const t2 = (normHeat - 0.3) / 0.3
+            r = 160 + t2 * 50 + intensity * 30
+            g = 40 + t2 * 50 + intensity * 35
+            b = 20 + intensity * 10
+          } else {
+            // Hot: golden → white-gold
+            const t2 = (normHeat - 0.6) / 0.4
+            r = 220 + t2 * 30 + intensity * 10
+            g = 140 + t2 * 60 + intensity * 40
+            b = 30 + t2 * 50 + intensity * 50
+          }
         } else {
-          // Hot: orange to yellow-white
-          const t2 = (normHeat - 0.6) / 0.4
-          r = 220 + t2 * 35 + intensity * 10
-          g = 75 + t2 * 100 + intensity * 40
-          b = 5 + t2 * 30 + intensity * 25
+          // Twilight family: deep teal-violet → orchid/coral → peach → white-peach
+          if (normHeat < 0.3) {
+            // Cool: deep teal-violet
+            r = 40 + intensity * 30
+            g = 35 + intensity * 25
+            b = 90 + intensity * 50
+          } else if (normHeat < 0.6) {
+            // Warm: orchid/coral
+            const t2 = (normHeat - 0.3) / 0.3
+            r = 140 + t2 * 60 + intensity * 35
+            g = 60 + t2 * 40 + intensity * 30
+            b = 100 - t2 * 30 + intensity * 20
+          } else {
+            // Hot: peach → white-peach
+            const t2 = (normHeat - 0.6) / 0.4
+            r = 210 + t2 * 35 + intensity * 10
+            g = 130 + t2 * 60 + intensity * 45
+            b = 90 + t2 * 60 + intensity * 55
+          }
         }
 
-        // Color variant tint
-        if (normColor > 1.5) {
-          // More yellow
-          g = Math.min(255, g + 20)
-        } else if (normColor < 0.5) {
-          // More crimson
-          r = Math.min(255, r + 15)
-          g = Math.max(0, g - 10)
-        }
-
-        const alpha = Math.min(255, 180 + intensity * 75)
+        const alpha = Math.min(255, 190 + intensity * 65)
         data[idx] = Math.min(255, r)
         data[idx + 1] = Math.min(255, g)
         data[idx + 2] = Math.min(255, b)
@@ -1894,14 +1942,14 @@ function drawLava(
 
   // Draw upscaled — bilinear filtering provides natural glow blur
   ctx.imageSmoothingEnabled = true
-  ctx.imageSmoothingQuality = 'medium'
+  ctx.imageSmoothingQuality = 'high'
   ctx.drawImage(offCanvas, 0, 0, w, h)
 
-  // Glow pass: additive blend at low opacity, slightly oversized
+  // Glow pass: additive blend at low opacity, wider halo
   ctx.save()
   ctx.globalCompositeOperation = 'lighter'
-  ctx.globalAlpha = 0.15
-  const oversize = 8
+  ctx.globalAlpha = 0.12
+  const oversize = 12
   ctx.drawImage(offCanvas, -oversize, -oversize, w + oversize * 2, h + oversize * 2)
   ctx.restore()
 }
