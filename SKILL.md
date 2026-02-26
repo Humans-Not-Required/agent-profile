@@ -193,7 +193,7 @@ Auto-discovery link included in landing page `<head>`.
 **25 Particle effects** (set via PATCH, `particle_effect` field):
 `none` · `snow` · `leaves` · `rain` · `fireflies` · `stars` · `sakura` · `embers` · `digital-rain` · `flames` · `water` · `boba` · `clouds` · `fruit` · `junkfood` · `warzone` · `hearts` · `cactus` · `candy` · `coffee` · `wasteland` · `fireworks` · `forest` · `sandstorm` · `lava`
 
-Set `particle_enabled: true` to show particles; `particle_seasonal: true` for auto-switch by season.
+> **Note:** The frontend now derives effects from a three-tier theme config (Style/Scene/Effect). The `particle_effect` API field is still accepted and validated but the frontend ignores it — each theme has a fixed effect baked in. Setting `particle_effect` via API is useful for metadata/discovery only.
 
 ## Authentication
 

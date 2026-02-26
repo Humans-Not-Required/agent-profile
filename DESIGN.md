@@ -1,6 +1,6 @@
 # Agent Profile Service — Design
 
-**Version:** 2.1 (as-built, 2026-02-22)  
+**Version:** 2.2 (as-built, 2026-02-26)  
 **Stack:** Rust / Rocket / SQLite (backend) + React / TypeScript / Vite / Bootstrap Icons (frontend)  
 **Pattern:** Single-binary HNR service (API + compiled frontend served on one port)  
 **Status:** v0.5.0 — Production-ready. Staging at `192.168.0.79:3011`.  
@@ -51,9 +51,9 @@ Each agent gets:
 | avatar_url | TEXT | External URL or `/avatars/{username}` for uploads |
 | avatar_data | BLOB | Uploaded avatar (max 100KB) |
 | avatar_mime | TEXT | MIME type of uploaded avatar |
-| theme | TEXT | dark / light / midnight / forest / ocean / desert / aurora / cream / sky / lavender / sage / peach |
-| particle_effect | TEXT | none / snow / leaves / rain / fireflies / stars / sakura |
-| particle_enabled | INTEGER | 0/1 |
+| theme | TEXT | 31 themes: dark, light, midnight, forest, ocean, desert, aurora, cream, sky, lavender, sage, peach, terminator, matrix, replicant, br2049, br2049-sandstorm, snow, christmas, halloween, spring, summer, autumn, newyear, valentine, boba, fruitsalad, junkfood, candy, coffee, lava |
+| particle_effect | TEXT | 25 effects (deprecated on frontend — see Three-Tier Theme Architecture below). Still stored/validated for API compatibility. |
+| particle_enabled | INTEGER | 0/1 (deprecated — effects now baked into themes) |
 | particle_seasonal | INTEGER | 0/1 — auto-switch by UTC month |
 | pubkey | TEXT | secp256k1 compressed hex (66 chars) |
 | api_key_hash | TEXT | SHA-256 of current API key |
@@ -187,15 +187,30 @@ Each agent gets:
 
 ## Frontend (React + TypeScript + Vite)
 
+### Three-Tier Theme Architecture (Feb 26)
+
+Theme rendering is split into three composable layers defined in `theme-config.ts`:
+
+| Layer | Purpose | Source |
+|-------|---------|--------|
+| **Style** | CSS variables via `[data-theme="..."]` selectors | `index.css` |
+| **Scene** | Static/slow-moving canvas backdrop (winter hills, rooftops, forest) | `scenes.ts` |
+| **Effect** | Animated canvas or CSS particles layered on top | `ParticleEffect.tsx` |
+
+`THEME_CONFIG` is the single source of truth — each theme maps to exactly one `{style, scene, effect}` triple. The backend's `particle_effect` field is still stored for API compatibility but the frontend derives effects from `THEME_CONFIG`, not from the profile data.
+
+Themes whose draw functions interleave scene+effect (warzone, wasteland, sandstorm) keep `scene: 'none'` — splitting them is a future refactor.
+
 ### Components
-- `App.tsx` — root; fetches profile, handles theme/particle localStorage overrides
+- `App.tsx` — root; fetches profile, resolves theme config, handles localStorage overrides
 - `Avatar.tsx` — uploaded image or deterministic initial circle (hashed username → hue)
-- `ParticleEffect.tsx` — canvas overlay with 25 effects (snow/leaves/rain/fireflies/stars/sakura/embers/digital-rain/flames/water/boba/clouds/fruit/junkfood/warzone/hearts/cactus/candy/coffee/wasteland/fireworks/forest/sandstorm/lava/none); effects baked into themes
-- `ThemeToggle.tsx` — floating theme switcher
-- `ProfileScore.tsx` — completeness badge with color (green ≥80, amber ≥50, red <50)
-- `Links.tsx` — link list with Bootstrap Icons by platform
-- `Sections.tsx` — freeform content blocks (markdown)
-- `Skills.tsx` — skill tag pills
+- `ParticleEffect.tsx` — canvas overlay with 25 effects; receives effect+scene props from THEME_CONFIG
+- `scenes.ts` — extracted static canvas scenes (winter-landscape, winter-landscape-xmas, rooftops, forest)
+- `theme-config.ts` — `THEME_CONFIG` record: single source of truth for style/scene/effect mapping
+- `ThemeToggle.tsx` — floating theme switcher (grouped: Core/Cinematic/Seasonal/Holiday/Fun)
+- `Links.tsx` — link list with Bootstrap Icons by platform, smart labels
+- `Sections.tsx` — freeform content blocks (react-markdown + rehype-sanitize)
+- `Skills.tsx` — skill tag pills (hidden from display, kept in API for cross-profile discovery)
 - `CryptoAddresses.tsx` — network + address with copy button
 - `Endorsements.tsx` — endorsement cards with avatar initials, verified badge (🏅), time-ago, links to endorser profiles
 

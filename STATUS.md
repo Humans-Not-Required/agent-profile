@@ -5,6 +5,7 @@
 **Last updated:** 2026-02-25
 
 **Tests:** 160 total (13 unit + 147 integration)
+**Last updated:** 2026-02-26
 
 ---
 
@@ -84,9 +85,18 @@
 
 6. **Production domain** — `pinche.rs` (assigned by Jordan 2026-02-21). Needs DNS + Cloudflare Tunnel or reverse proxy setup.
 
-## ✅ Done (Jordan's Feb 25 sprint)
+## ✅ Done (Jordan's Feb 25-26 sprint)
 
-**Particle system overhaul:**
+**Three-Tier Theme Architecture (Feb 26):**
+- Extracted `theme-config.ts` — single source of truth for Style/Scene/Effect mapping
+- Extracted `scenes.ts` — static canvas scenes (winter-landscape, winter-landscape-xmas, rooftops, forest)
+- `ParticleEffect.tsx` now receives scene+effect props from THEME_CONFIG (was theme-name string matching)
+- `App.tsx` and `ThemeToggle.tsx` updated to read from THEME_CONFIG
+- Backend `particle_effect` field deprecated (still stored/validated for API compat)
+- Terminator steel plate styling applied to similar-profiles section
+- Lava accent color added to backend
+
+**Particle system overhaul (Feb 25):**
 - Merged particle effects into themes — removed standalone ParticleToggle component
 - Particles now auto-assigned per theme, no separate picker needed
 
