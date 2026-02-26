@@ -34,6 +34,7 @@ export const THEME_EFFECT_MAP: Record<string, EffectName> = {
   junkfood: 'junkfood',
   candy: 'candy',
   coffee: 'coffee',
+  lava: 'lava',
 }
 
 const THEME_GROUPS = [
@@ -90,6 +91,7 @@ const THEME_GROUPS = [
       { id: 'junkfood', emoji: '🍔', name: 'Junk Food' },
       { id: 'candy', emoji: '🍬', name: 'Candy' },
       { id: 'coffee', emoji: '☕', name: 'Coffee' },
+      { id: 'lava', emoji: '🌋', name: 'Lava Lamp' },
     ],
   },
 ]

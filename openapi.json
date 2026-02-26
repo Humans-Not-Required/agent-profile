@@ -143,7 +143,8 @@
                 "fruitsalad",
                 "junkfood",
                 "candy",
-                "coffee"
+                "coffee",
+                "lava"
               ]
             }
           },
@@ -2124,7 +2125,8 @@
               "fruitsalad",
               "junkfood",
               "candy",
-              "coffee"
+              "coffee",
+              "lava"
             ],
             "default": "dark"
           },
@@ -2154,7 +2156,8 @@
               "wasteland",
               "fireworks",
               "forest",
-              "sandstorm"
+              "sandstorm",
+              "lava"
             ],
             "default": "none"
           },

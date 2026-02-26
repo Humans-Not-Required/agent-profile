@@ -17,9 +17,9 @@ pub const VALID_THEMES: &[&str] = &[
     "terminator", "matrix", "replicant", "br2049", "br2049-sandstorm",
     "snow", "christmas", "halloween", "spring", "summer", "autumn",
     "newyear", "valentine", "boba", "fruitsalad", "junkfood",
-    "candy", "coffee",
+    "candy", "coffee", "lava",
 ];
-pub const VALID_PARTICLE_EFFECTS: &[&str] = &["none", "snow", "leaves", "rain", "fireflies", "stars", "sakura", "embers", "digital-rain", "flames", "water", "boba", "clouds", "fruit", "junkfood", "warzone", "hearts", "cactus", "candy", "coffee", "wasteland", "fireworks", "forest", "sandstorm"];
+pub const VALID_PARTICLE_EFFECTS: &[&str] = &["none", "snow", "leaves", "rain", "fireflies", "stars", "sakura", "embers", "digital-rain", "flames", "water", "boba", "clouds", "fruit", "junkfood", "warzone", "hearts", "cactus", "candy", "coffee", "wasteland", "fireworks", "forest", "sandstorm", "lava"];
 pub const VALID_NETWORKS: &[&str] = &[
     "bitcoin", "lightning", "ethereum", "cardano", "ergo",
     "nervos", "solana", "monero", "dogecoin", "nostr", "custom",
