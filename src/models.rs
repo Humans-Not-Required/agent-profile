@@ -19,6 +19,10 @@ pub const VALID_THEMES: &[&str] = &[
     "newyear", "valentine", "boba", "fruitsalad", "junkfood",
     "candy", "coffee", "lava",
 ];
+/// Deprecated: the frontend now derives effects from THEME_CONFIG (theme-config.ts).
+/// This list is kept for backward API compatibility — the particle_effect field is
+/// still stored and validated, but the frontend ignores it in favor of the three-tier
+/// Style/Scene/Effect mapping.
 pub const VALID_PARTICLE_EFFECTS: &[&str] = &["none", "snow", "leaves", "rain", "fireflies", "stars", "sakura", "embers", "digital-rain", "flames", "water", "boba", "clouds", "fruit", "junkfood", "warzone", "hearts", "cactus", "candy", "coffee", "wasteland", "fireworks", "forest", "sandstorm", "lava"];
 pub const VALID_NETWORKS: &[&str] = &[
     "bitcoin", "lightning", "ethereum", "cardano", "ergo",

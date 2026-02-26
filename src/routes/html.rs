@@ -37,7 +37,7 @@ fn theme_accent(theme: &str) -> &'static str {
         "spring" => "#d05088", "summer" => "#e0a020", "autumn" => "#c85020",
         "newyear" => "#d4a840", "valentine" => "#d03050",
         "boba" => "#8b5e3c", "fruitsalad" => "#e85050", "junkfood" => "#e04020",
-        "candy" => "#e040a0", "coffee" => "#d4944a",
+        "candy" => "#e040a0", "coffee" => "#d4944a", "lava" => "#c050a0",
         _ => "#58a6ff",
     }
 }
