@@ -4,7 +4,7 @@
 **Stage:** Feature complete + fully documented. Awaiting: prod domain DNS (`pinche.rs`).
 **Last updated:** 2026-02-25
 
-**Tests:** 159 total (13 unit + 146 integration)
+**Tests:** 160 total (13 unit + 147 integration)
 
 ---
 
@@ -35,7 +35,7 @@
 2. ~~**Search field fixes (landing page)**~~ — ✅ DONE
    - Bootstrap Icons (bi-search), clear button, iOS zoom fix, theme accent borders on cards
 
-3. **Theme polish — DELUXE** — ✅ DONE. All 24 themes have deluxe treatment.
+3. **Theme polish — DELUXE** — ✅ DONE. All 31 themes have deluxe treatment.
 
    **Existing 12 themes — world concepts:**
    - 🌑 **Dark** — *The Terminal.* VS Code energy. Flat black, crisp white, electric blue accents. Razor-sharp 1px borders. Pure utility.
@@ -51,27 +51,30 @@
    - 🌱 **Sage** — *The Greenhouse.* Sunlit garden morning. Barely-there green tint. Rich herb green accents.
    - 🍑 **Peach** — *The Golden Hour.* 30 min before sunset. Soft cream-pink. Coral/orange accents. Warm and social.
 
-   **3 cinematic themes — ✅ DONE:**
+   **5 cinematic themes — ✅ DONE:**
    - 🤖 **Terminator** — *The Wasteland.* Scorched earth, molten red glow, industrial metal cards, embers particle effect
    - 💊 **Matrix** — *The Simulation.* Phosphor green on black, CRT glow, monospace, digital-rain particle effect
    - 🌆 **Replicant** — *Blade Runner 2049.* Amber fog, atmospheric haze, moody warm accent, rain particles
+   - 🏜️ **BR2049 Sandstorm** — *Blade Runner 2049 sandstorm.* Dense sandstorm particle effect variant
+   - 🫧 **Lava** — *Lava Lamp.* Jewel-toned palette, dreamy metaball physics
 
    **Seasonal & holiday themes — ✅ DONE (9 themes):**
    - ❄️ Snow, 🎄 Christmas, 🎃 Halloween, 🌸 Spring, ☀️ Summer, 🍂 Autumn, 🎆 New Year, 💘 Valentine
 
    **Fun themes added (5):**
-   - 🧋 **Boba** — warm cream-brown, physics pearls + accelerometer
+   - 🧋 **Boba** — warm cream-brown, liquid sloshing physics + accelerometer
    - 🍓 **Fruit Salad** — peachy-pink, tumbling fruit emoji
    - 🍔 **Junk Food** — ketchup-mustard, falling fast food
    - 🍬 **Candy** — pastel rainbow gradient, falling candy emoji
    - ☕ **Coffee** — warm brown tones, coffee emoji
 
-   **Deluxe treatment — ✅ DONE for all 29 themes:**
+   **Deluxe treatment — ✅ DONE for all 31 themes:**
    - ✅ Backgrounds: gradients, vignettes (no flat colors)
    - ✅ Card depth: theme-specific shadow colors, glass-morphism (ocean, snow, matrix, replicant)
    - ✅ Hover states: cards lift 1px + accent-colored glow
    - ✅ Cinematic special effects: Matrix CRT glow + monospace, Terminator industrial metal, Replicant haze
-   - ✅ Theme picker: grouped panel (Core/Cinematic/Seasonal/Holiday) instead of cycle button
+   - ✅ Theme picker: grouped panel (Core/Cinematic/Seasonal/Holiday/Fun) instead of cycle button
+   - ✅ Particle toggle removed — effects now baked into themes (merged by Jordan Feb 25)
 
 2. ~~**Fix demo profiles**~~ — ✅ DONE. 12 themed showcase profiles seeded (3 cinematic + 9 seasonal/holiday). All score ≥ 55. Seed script at `scripts/seed-demos.sh`.
 3. ~~**Add search to landing page**~~ — ✅ DONE. Client-side instant search filters profiles by name, skill, or keyword.
@@ -80,6 +83,24 @@
 5. ~~**GET /me + PATCH addresses**~~ — ✅ DONE (22a94f4). `GET /api/v1/me` for API key introspection (validates key, returns associated profile). `PATCH /api/v1/profiles/{username}/addresses/{id}` for partial address updates. 7 new tests.
 
 6. **Production domain** — `pinche.rs` (assigned by Jordan 2026-02-21). Needs DNS + Cloudflare Tunnel or reverse proxy setup.
+
+## ✅ Done (Jordan's Feb 25 sprint)
+
+**Particle system overhaul:**
+- Merged particle effects into themes — removed standalone ParticleToggle component
+- Particles now auto-assigned per theme, no separate picker needed
+
+**New themes + effects (29 → 31):**
+- 🏜️ BR2049 Sandstorm — dense sandstorm particle effect (new effect: `sandstorm`)
+- 🫧 Lava — lava lamp with jewel-toned metaball physics (new effect: `lava`)
+- Boba pearl physics replaced with liquid sloshing mechanics
+- Warzone rubble + BR2049 palette polish
+- .rs brand color changed to reddish gradient
+
+**CI/testing:**
+- Default Rocket port/address changed to 8000/127.0.0.1 (local dev friendly; Docker overrides to 8003/0.0.0.0)
+- 1 new integration test (br2049-sandstorm theme validation)
+- CI passing ✅
 
 ## ✅ Done (v0.5.0 — Feb 22)
 
@@ -161,7 +182,7 @@ See DESIGN.md for full spec. Key points:
 | Scope | Count | Status |
 |-------|-------|--------|
 | Rust unit | 13 | ✅ |
-| Rust integration | 146 | ✅ |
-| **Total** | **159** | ✅ |
+| Rust integration | 147 | ✅ |
+| **Total** | **160** | ✅ |
 
 **Last updated:** 2026-02-25

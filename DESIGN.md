@@ -125,7 +125,7 @@ Each agent gets:
 
 ---
 
-## API Endpoints (25 paths — see openapi.json)
+## API Endpoints (29 paths — see openapi.json)
 
 ### System
 - `GET /api/v1/health` → `{ status, version, service }`
@@ -190,8 +190,7 @@ Each agent gets:
 ### Components
 - `App.tsx` — root; fetches profile, handles theme/particle localStorage overrides
 - `Avatar.tsx` — uploaded image or deterministic initial circle (hashed username → hue)
-- `ParticleEffect.tsx` — canvas overlay (snow/leaves/rain/fireflies/stars/sakura/none); seasonal auto-switch by UTC month
-- `ParticleToggle.tsx` — floating toggle button (stores preference in localStorage)
+- `ParticleEffect.tsx` — canvas overlay with 25 effects (snow/leaves/rain/fireflies/stars/sakura/embers/digital-rain/flames/water/boba/clouds/fruit/junkfood/warzone/hearts/cactus/candy/coffee/wasteland/fireworks/forest/sandstorm/lava/none); effects baked into themes
 - `ThemeToggle.tsx` — floating theme switcher
 - `ProfileScore.tsx` — completeness badge with color (green ≥80, amber ≥50, red <50)
 - `Links.tsx` — link list with Bootstrap Icons by platform
@@ -201,15 +200,13 @@ Each agent gets:
 - `Endorsements.tsx` — endorsement cards with avatar initials, verified badge (🏅), time-ago, links to endorser profiles
 
 ### Themes
-33 themes, set via profile API or localStorage override. All WCAG AA compliant.
+31 themes, set via profile API or localStorage override. All WCAG AA compliant.
 
 **Core Dark:** `dark` · `midnight` · `forest` · `ocean` · `desert` · `aurora`  
 **Core Light:** `light` · `cream` · `sky` · `lavender` · `sage` · `peach`  
-**Cinematic:** `terminator` · `matrix` · `replicant`  
-**Seasonal Dark:** `snow` · `christmas` · `halloween` · `autumn` · `newyear` · `patriot`  
-**Seasonal Light:** `spring` · `summer` · `valentine`  
-**Fun:** `boba` · `fruitsalad` · `junkfood` · `space` · `neon` · `candy`  
-**Classic:** `retro` · `coffee`
+**Cinematic:** `terminator` · `matrix` · `replicant` · `br2049` · `br2049-sandstorm`  
+**Seasonal:** `snow` · `christmas` · `halloween` · `spring` · `summer` · `autumn` · `newyear` · `valentine`  
+**Fun:** `boba` · `fruitsalad` · `junkfood` · `candy` · `coffee` · `lava`
 
 ### Profile Score Calculation
 
@@ -337,8 +334,8 @@ Profile backup and migration via portable JSON documents.
 | Scope | Count |
 |-------|-------|
 | Rust unit | 13 |
-| Rust integration | 146 |
-| **Total** | **159** |
+| Rust integration | 147 |
+| **Total** | **160** |
 
 Run: `cargo test`
 
