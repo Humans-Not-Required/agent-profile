@@ -2355,9 +2355,12 @@ export function ParticleEffect({ effect, scene = 'none', enabled, seasonal, fore
       ? seasonalEffect()
       : effect
 
+  // Foreground layer is only for sparse particles above content —
+  // never render scenes on it (scenes are always background-only).
+  if (foreground && activeEffect === 'none') return null
+
   // Forest scene with no effect — render scene canvas only
-  if (scene === 'forest' && activeEffect === 'none' && enabled) {
-    if (foreground) return null
+  if (scene === 'forest' && activeEffect === 'none') {
     return <CanvasParticleEffect activeEffect="none" scene="forest" foreground={false} />
   }
 
