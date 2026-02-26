@@ -1330,14 +1330,14 @@ function initLavaState(w: number, h: number): LavaState {
     x: Math.random() * w,
     y: Math.random() * h,
     vx: 0, vy: 0,
-    r: minDim * (0.12 + Math.random() * 0.06),
+    r: minDim * (0.18 + Math.random() * 0.08),
     heat: Math.random(),
     heatRate: 0.0004 + Math.random() * 0.0006,
     color: Math.floor(Math.random() * 3),
     wobblePhase: Math.random() * Math.PI * 2,
   }))
 
-  const scale = 0.35
+  const scale = 0.5
   const offW = Math.ceil(w * scale)
   const offH = Math.ceil(h * scale)
   const offCanvas = document.createElement('canvas')
