@@ -2372,7 +2372,7 @@ export function ParticleEffect({ effect, scene = 'none', enabled, seasonal, fore
 
   // Delegate emoji-based effects to CSS component (GPU-composited, zero JS per frame)
   if (CSS_EFFECTS.has(activeEffect)) {
-    return <CSSParticleEffect effect={activeEffect as 'leaves' | 'snow' | 'fruit' | 'junkfood' | 'sakura' | 'hearts' | 'cactus'} foreground={foreground} />
+    return <CSSParticleEffect effect={activeEffect as 'leaves' | 'snow' | 'fruit' | 'junkfood' | 'sakura' | 'hearts' | 'cactus' | 'candy' | 'coffee'} foreground={foreground} />
   }
 
   return <CanvasParticleEffect activeEffect={activeEffect} scene={scene} foreground={foreground} />

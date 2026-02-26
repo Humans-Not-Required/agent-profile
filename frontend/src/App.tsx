@@ -6,7 +6,7 @@ import { Sections } from './components/Sections'
 // Skills component removed from display (data kept in API for discovery)
 import { CryptoAddresses } from './components/CryptoAddresses'
 import { ParticleEffect } from './components/ParticleEffect'
-import { ThemeToggle, THEME_EFFECT_MAP } from './components/ThemeToggle'
+import { ThemeToggle } from './components/ThemeToggle'
 import { THEME_CONFIG } from './theme-config'
 import Endorsements from './components/Endorsements'
 import SimilarProfiles from './components/SimilarProfiles'
@@ -142,7 +142,7 @@ export default function App() {
   const updatedDate = profile.updated_at ? profile.updated_at.slice(0, 10) : createdDate
   const jsonUrl = `/api/v1/profiles/${profile.username}`
   const themeConfig = THEME_CONFIG[theme]
-  const activeEffect = themeConfig?.effect ?? THEME_EFFECT_MAP[theme] ?? 'none'
+  const activeEffect = themeConfig?.effect ?? 'none'
   const activeScene = themeConfig?.scene ?? 'none'
   return (
     <>
