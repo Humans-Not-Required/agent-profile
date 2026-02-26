@@ -2524,13 +2524,37 @@ function CanvasParticleEffect({ activeEffect, scene = 'none', foreground }: { ac
     // (snow, leaves, sakura, fruit, junkfood handled by CSSParticleEffect)
     // (flames handled separately via FlameParticle system)
 
+    // Pre-draw static scenes once before animation loop.
+    // These scenes don't animate, so we draw them here and skip
+    // clearing/redrawing in the loop — the rAF loop stays alive
+    // only to prevent iOS Safari from purging the GPU canvas texture.
+    if (winterState && (scene === 'winter-landscape' || scene === 'winter-landscape-xmas')) {
+      const w = canvas.width, h = canvas.height
+      ctx.clearRect(0, 0, w, h)
+      drawWinterLandscape(ctx, w, h, winterState, isChristmas, 0)
+    }
+    if (scene === 'forest' && forestState) {
+      drawForest(ctx, canvas.width, canvas.height, forestState)
+    }
+
     let t = 0
     const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
       t++
 
       const w = canvas.width
       const h = canvas.height
+
+      // Static scenes: keep rAF alive (iOS anti-purge) but don't redraw.
+      if (winterState && (scene === 'winter-landscape' || scene === 'winter-landscape-xmas')) {
+        rafRef.current = requestAnimationFrame(animate)
+        return
+      }
+      if (scene === 'forest' && forestState) {
+        rafRef.current = requestAnimationFrame(animate)
+        return
+      }
+
+      ctx.clearRect(0, 0, w, h)
 
       if (activeEffect === 'digital-rain') {
         drawDigitalRain(ctx, rainColumns, w, h, t)
@@ -2580,17 +2604,7 @@ function CanvasParticleEffect({ activeEffect, scene = 'none', foreground }: { ac
         return
       }
 
-      // Winter landscape scene (snow/christmas)
-      // Redraws every ~60 frames (~1/s) to prevent iOS Safari from purging
-      // the GPU-backed canvas texture when the page scrolls.
-      if (winterState && (scene === 'winter-landscape' || scene === 'winter-landscape-xmas')) {
-        if (t % 60 === 0) {
-          ctx.clearRect(0, 0, w, h)
-          drawWinterLandscape(ctx, w, h, winterState, isChristmas, t)
-        }
-        rafRef.current = requestAnimationFrame(animate)
-        return
-      }
+      // (Winter landscape handled above — pre-drawn, rAF-only in loop)
 
       // Warzone (Terminator)
       if (activeEffect === 'warzone' && warzoneState) {
@@ -2620,14 +2634,7 @@ function CanvasParticleEffect({ activeEffect, scene = 'none', foreground }: { ac
         return
       }
 
-      // Forest scene — periodic redraw to prevent iOS canvas purge
-      if (scene === 'forest' && forestState) {
-        if (t % 60 === 0) {
-          drawForest(ctx, w, h, forestState)
-        }
-        rafRef.current = requestAnimationFrame(animate)
-        return
-      }
+      // (Forest scene handled above — pre-drawn, rAF-only in loop)
 
       // Clouds
       if (activeEffect === 'clouds' && cloudState) {
