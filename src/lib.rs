@@ -151,5 +151,11 @@ pub fn create_rocket(db_path: &str) -> rocket::Rocket<rocket::Build> {
             feed_xml,
             webfinger,
             assets::serve_asset,
+            assets::serve_favicon,
+            assets::serve_favicon_svg,
+            assets::serve_logo_svg,
+            assets::serve_apple_touch_icon,
+            assets::serve_icon_192,
+            assets::serve_icon_512,
         ])
 }
