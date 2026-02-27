@@ -13,7 +13,7 @@
 | Staging | `http://192.168.0.79:3011` | ✅ Live, v0.8.0 |
 | Production | `https://pinche.rs` | ❌ Awaiting DNS setup |
 
-The service is feature-complete (31 themes, 25 particle effects, 160 tests, similar profiles discovery, export/import, endorsements, crypto identity). Only DNS/routing remains.
+The service is feature-complete (31 themes, 25 particle effects, 169 tests, similar profiles discovery, export/import, endorsements, crypto identity). Only DNS/routing remains.
 
 ---
 
@@ -237,7 +237,7 @@ Watchtower watches the `agent-profile` container and auto-pulls new images from 
 - [ ] Nanook profile accessible at `https://pinche.rs/nanook`
 - [ ] WebFinger returns correct domain
 - [ ] Sitemap uses `https://pinche.rs` URLs
-- [ ] Landing page loads with all 30 profiles
+- [ ] Landing page loads with all profiles
 - [ ] Similar profiles working
 - [ ] Social previews working (share a link in Discord/Telegram)
 - [ ] Watchtower or webhook deploy configured
